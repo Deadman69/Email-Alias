@@ -6,11 +6,13 @@ use App\Enums\AuditEvent;
 use App\Models\AuditLog;
 use App\Models\User;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Title('Admin — Audit Log')]
+#[Layout('layouts.app')]
 class AuditLogViewer extends Component
 {
     use WithPagination;

@@ -6,18 +6,21 @@ use App\Enums\AuditEvent;
 use App\Models\InboundEmail;
 use App\Services\AuditLogger;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Title('Email')]
+#[Layout('layouts.app')]
 class ViewEmail extends Component
 {
     #[Locked]
     public int $emailId;
 
-    /** Whether the user has unlocked external image loading. */
     public bool $showExternalImages = false;
+
+    public string $viewMode = 'rendered';
 
     /**
      * Mount and authorize, then mark as read.
@@ -50,32 +53,56 @@ class ViewEmail extends Component
             return '';
         }
 
-        // Rewrite links to always open in new tab
         $html = preg_replace_callback(
             '/<a\s[^>]*>/i',
             function ($matches) {
                 $tag = $matches[0];
-                // Remove existing target / rel
+
                 $tag = preg_replace('/\s+target=["\'][^"\']*["\']/i', '', $tag);
                 $tag = preg_replace('/\s+rel=["\'][^"\']*["\']/i', '', $tag);
-                // Inject safe target + rel
+
                 return rtrim(rtrim($tag, '>'), '/') . ' target="_blank" rel="noopener noreferrer">';
             },
             $html
         );
 
+        $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
+        $html = preg_replace('/<iframe\b[^>]*>(.*?)<\/iframe>/is', '', $html);
+        $html = preg_replace('/<object\b[^>]*>(.*?)<\/object>/is', '', $html);
+        $html = preg_replace('/<embed\b[^>]*>/is', '', $html);
+        $html = preg_replace('/<form\b[^>]*>(.*?)<\/form>/is', '', $html);
+
+        $html = preg_replace(
+            '/<link\b[^>]*rel=["\']?stylesheet["\']?[^>]*>/i',
+            '',
+            $html
+        );
+
         if (! $this->showExternalImages) {
-            // Replace external image src with data-original-src and a blank pixel
             $html = preg_replace_callback(
                 '/<img\s[^>]*>/i',
                 function ($matches) {
                     $tag = $matches[0];
-                    // Only block http/https src (leave data: URIs untouched)
+
                     return preg_replace(
                         '/\ssrc=["\'](?!data:)(https?:\/\/[^"\']+)["\']/i',
                         ' src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-original-src="$1"',
                         $tag
                     );
+                },
+                $html
+            );
+
+            $html = preg_replace_callback(
+                '/style=["\']([^"\']*)["\']/i',
+                function ($matches) {
+                    $style = preg_replace(
+                        '/background-image\s*:\s*url\s*\((https?:\/\/[^)]+)\)/i',
+                        'background-image:none',
+                        $matches[1]
+                    );
+
+                    return 'style="' . $style . '"';
                 },
                 $html
             );
@@ -90,6 +117,16 @@ class ViewEmail extends Component
     public function allowExternalImages(): void
     {
         $this->showExternalImages = true;
+
         unset($this->safeHtml);
+    }
+
+    public function setViewMode(string $mode): void
+    {
+        if (! in_array($mode, ['rendered', 'raw'], true)) {
+            return;
+        }
+
+        $this->viewMode = $mode;
     }
 }

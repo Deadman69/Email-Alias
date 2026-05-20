@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 
 #[UseFactory(AliasFactory::class)]
 #[Fillable(['address', 'local_part', 'type', 'duration', 'user_id', 'label', 'expires_at'])]
@@ -85,7 +85,7 @@ class Alias extends Model
     /**
      * Compute the expiration timestamp from a duration string.
      */
-    public static function expiresAtFromDuration(string $duration): Carbon
+    public static function expiresAtFromDuration(string $duration): CarbonInterface
     {
         return match ($duration) {
             '1h'  => now()->addHour(),

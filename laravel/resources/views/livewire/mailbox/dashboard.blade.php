@@ -1,4 +1,4 @@
-<x-layouts.app :title="__('My Mailboxes')">
+<div>
     <div class="flex h-full w-full flex-col gap-6 p-6">
 
         {{-- Header --}}
@@ -72,8 +72,8 @@
                         {{-- Expiry --}}
                         @if ($alias->expires_at)
                             <div class="mb-3 flex items-center gap-1 text-xs"
-                                 x-data="{ expires: '{{ $alias->expires_at->toIso8601String() }}' }"
-                                 x-init="
+                                x-data="{ expires: '{{ $alias->expires_at->toIso8601String() }}' }"
+                                x-init="
                                     setInterval(() => {
                                         const diff = new Date(expires) - Date.now();
                                         if (diff <= 0) { $el.textContent = 'Expired'; return; }
@@ -83,7 +83,7 @@
                                         $el.querySelector('[data-countdown]').textContent =
                                             (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm ' : '') + s + 's';
                                     }, 1000)
-                                 "
+                                "
                             >
                                 <flux:icon name="clock" class="size-3 text-amber-500" />
                                 <span class="text-amber-600 dark:text-amber-400">
@@ -195,8 +195,8 @@
                             placeholder="my-alias"
                             suffix="@{{ $this->domain }}"
                         />
-
-                        @if (! $localPartAvailable && $suggestedAlternative)
+                        
+                        @if (!$errors->first('customLocalPart') && ! $localPartAvailable && $suggestedAlternative)
                             <div class="mt-1 flex items-center gap-1 text-sm text-amber-600">
                                 <flux:icon name="exclamation-circle" class="size-4" />
                                 {{ __('Already taken.') }}
@@ -204,13 +204,12 @@
                                     {{ __('Use') }} {{ $suggestedAlternative }}
                                 </button>
                             </div>
-                        @elseif ($customLocalPart && $localPartAvailable)
+                        @elseif (!$errors->first('customLocalPart') && $customLocalPart && $localPartAvailable)
                             <div class="mt-1 flex items-center gap-1 text-sm text-green-600">
                                 <flux:icon name="check-circle" class="size-4" />
                                 {{ __('Available') }}
                             </div>
                         @endif
-                        <flux:error name="customLocalPart" />
                     </div>
                 @else
                     <flux:text class="text-sm text-zinc-500">
@@ -232,4 +231,4 @@
             </form>
         </div>
     </flux:modal>
-</x-layouts.app>
+</div>

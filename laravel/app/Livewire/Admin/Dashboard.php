@@ -9,11 +9,13 @@ use App\Models\User;
 use App\Services\AliasService;
 use Flux\Flux;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Title('Admin — Dashboard')]
+#[Layout('layouts.app')]
 class Dashboard extends Component
 {
     use WithPagination;

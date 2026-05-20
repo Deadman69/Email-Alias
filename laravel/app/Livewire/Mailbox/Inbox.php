@@ -9,12 +9,14 @@ use App\Services\AuditLogger;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Title('Inbox')]
+#[Layout('layouts.app')]
 class Inbox extends Component
 {
     use WithPagination;

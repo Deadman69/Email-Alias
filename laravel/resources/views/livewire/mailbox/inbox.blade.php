@@ -1,4 +1,4 @@
-<x-layouts.app :title="$this->alias->address">
+<div>
     <div class="flex h-full flex-col gap-4 p-6">
 
         {{-- Header --}}
@@ -139,4 +139,4 @@
             }
         });
     </script>
-</x-layouts.app>
+</div>
