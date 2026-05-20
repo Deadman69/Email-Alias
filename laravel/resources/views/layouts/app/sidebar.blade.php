@@ -15,6 +15,15 @@
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
+                    <flux:sidebar.item icon="inbox" :href="route('mailbox.dashboard')" :current="request()->routeIs('mailbox.*')" wire:navigate>
+                        {{ __('Mailboxes') }}
+                    </flux:sidebar.item>
+
+                    @if (auth()->user()?->is_admin)
+                        <flux:sidebar.item icon="shield-check" :href="route('admin.dashboard')" :current="request()->routeIs('admin.*')" wire:navigate>
+                            {{ __('Admin') }}
+                        </flux:sidebar.item>
+                    @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
