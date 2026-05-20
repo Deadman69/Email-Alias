@@ -406,6 +406,12 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 - [x] `CleanupExpiredAliases` job — purge scheduler
 - [x] `EmailReceived` event — broadcast sur canal privé `alias.{id}`
 - [x] `config/emailalias.php` — toutes les options métier
+- [ ] Bloquer les mails trop lourds (iamges intégrées par exemple) avec un avertissement à l'utilisateur que le mail a été bloqué (on ne garde que les informations essentielles : sender, objet...)
+- [ ] Gérer les pièces jointe (dans une limite de taille configurable)
+    - [ ] Taille max disponible soit par mail (5mo de pièce jointe par mail par exemple) ou par utilisateur (un utilisateur ne peut avoir que 500mb de pièces jointe pour tous les mails confondus)
+- [ ] Fix le fait que les mailbox "session" ne sont pas détruite à la déconnexion
+    - [ ] Supprimer le timer sur les mailbox session puisqu'elles sont delete après la déconnexion et pas après un délai
+- [ ] Dans le viewEmail, trouver un moyen d'éviter l'évasion de détection & l'injection de JS (via onerror="" par exemple) en utilisant une vraie librairie PHP pour filtrer
 
 ### Laravel — Auth & Sécurité
 
@@ -430,6 +436,7 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 
 ### Laravel — Livewire / UI
 
+- [ ] Vrai dashboard pour le user qui reprends ses stats et pas juste redirection vers Dashboard mailbox
 - [x] `Mailbox\Dashboard` — liste aliases, création (random/custom/type/durée), delete, extend
 - [x] `Mailbox\Inbox` — liste emails, filtre lu/non-lu, temps réel Reverb, marquer lu/suppression
 - [x] `Mailbox\ViewEmail` — détail email
@@ -440,8 +447,14 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 - [ ] Countdown d'expiration temps réel dans la sidebar
 - [ ] Copie adresse en un clic
 - [ ] Temps réel Reverb branché dans l'inbox (listeners JS)
-- [ ] Création pour un utilisateur (panel admin)
-- [ ] Gestion utilisateurs admin (promouvoir, désactiver)
+- [ ] Création de mailbox pour un utilisateur (panel admin)
+- [ ] Gestion utilisateurs admin (promouvoir admin, désactiver)
+    - [ ] Afficher le mail de l'utilisateur dans la liste des users sur le panel admin
+    - [ ] Ajouter des tooltips sur les dates "dans 1h" avec la date exacte
+    - [ ] Spécifier les timezone pour toutes les dates complètes
+    - [ ] Gérer dans les settings utilisateur sa timezone souhaitée pour l'affichage (UTC+1, +2, Europe/Paris, America/New-York...)
+    - [ ] Pouvoir chercher un utilisateur par email si on a une très grande liste (+10000 utilisateurs)
+        - [ ] Idem dans les audit log
 
 ### Tests
 

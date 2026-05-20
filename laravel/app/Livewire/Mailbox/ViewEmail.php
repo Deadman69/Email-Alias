@@ -111,6 +111,29 @@ class ViewEmail extends Component
         return $html;
     }
 
+    #[Computed]
+    public function hasBlockedExternalContent(): bool
+    {
+        $html = $this->email->body_html ?? '';
+        if (empty($html)) {
+            return false;
+        }
+
+        if (preg_match('/<img[^>]+src=["\']https?:\/\//i', $html)) {
+            return true;
+        }
+
+        if (preg_match('/background-image\s*:\s*url\s*\(\s*https?:\/\//i', $html)) {
+            return true;
+        }
+        
+        if (preg_match('/<link\b[^>]*rel=["\']?stylesheet["\']?[^>]*href=["\']https?:\/\//i', $html)) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Allow loading external images for this session.
      */

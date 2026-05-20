@@ -81,7 +81,7 @@
             </div>
         </div>
 
-        @if (! $showExternalImages && $this->email->body_html && $viewMode === 'rendered')
+        @if (! $showExternalImages && $this->hasBlockedExternalContent && $viewMode === 'rendered')
             <div class="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-950">
                 <div class="flex items-center gap-2">
                     <flux:icon name="exclamation-triangle" class="size-4 text-amber-600" />
