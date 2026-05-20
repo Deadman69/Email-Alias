@@ -15,12 +15,12 @@ if [ ! -f .env ]; then
   echo "    .env créé depuis .env.example — pensez à remplir les valeurs !"
 fi
 
-echo "==> Création du projet Laravel 12..."
+echo "==> Création du projet Laravel 13..."
 if [ ! -f laravel/composer.json ]; then
   # Utilise le container Composer pour ne pas nécessiter PHP en local
   docker run --rm -v "$(pwd)/laravel:/app" composer:2 \
     create-project laravel/laravel:^12.0 . --prefer-dist --no-interaction
-  echo "    Laravel 12 installé."
+  echo "    Laravel 13 installé."
 else
   echo "    laravel/composer.json déjà présent, skip."
 fi
