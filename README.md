@@ -412,6 +412,7 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 - [ ] Fix le fait que les mailbox "session" ne sont pas détruite à la déconnexion
     - [ ] Supprimer le timer sur les mailbox session puisqu'elles sont delete après la déconnexion et pas après un délai
 - [ ] Dans le viewEmail, trouver un moyen d'éviter l'évasion de détection & l'injection de JS (via onerror="" par exemple) en utilisant une vraie librairie PHP pour filtrer
+- [ ] Utiliser des Ulid pour les Emails également au lieu des id numérique
 
 ### Laravel — Auth & Sécurité
 
@@ -455,6 +456,7 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
     - [ ] Gérer dans les settings utilisateur sa timezone souhaitée pour l'affichage (UTC+1, +2, Europe/Paris, America/New-York...)
     - [ ] Pouvoir chercher un utilisateur par email si on a une très grande liste (+10000 utilisateurs)
         - [ ] Idem dans les audit log
+    - [ ] Pouvoir voir tous les utilisateurs et leurs rangs (admin/user) dans une page/tableau dédiée
 
 ### Tests
 
