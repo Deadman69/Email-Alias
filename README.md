@@ -7,12 +7,14 @@ Plateforme interne d'adresses email temporaires pour développeurs. 100% self-ho
 ## Table des matières
 
 - [Vue d'ensemble](#vue-densemble)
+- [Stack technique](#stack-technique)
 - [Architecture](#architecture)
 - [Structure du projet](#structure-du-projet)
 - [Fonctionnalités](#fonctionnalités)
 - [Installation](#installation)
 - [Configuration (.env)](#configuration-env)
-- [TODO / Checklist d'implémentation](#todo--checklist-dimplémentation)
+- [Checklist d'implémentation](#checklist-dimplémentation)
+- [Notes de développement](#notes-de-développement)
 
 ---
 
@@ -24,6 +26,21 @@ EmailAlias permet aux développeurs de créer des adresses email temporaires ou 
 - Un serveur avec le port 25 ouvert (réception SMTP)
 - Un enregistrement MX sur votre domaine pointant vers ce serveur
 - Une application Azure AD (ou autre OIDC) pour le SSO *(optionnel)*
+
+---
+
+## Stack technique
+
+| Couche | Technologie |
+|---|---|
+| **Backend** | PHP 8.4 · Laravel 13 · Laravel Fortify |
+| **Frontend** | Livewire 4 · Flux UI 2 · Tailwind CSS 4 |
+| **Temps réel** | Laravel Reverb (WebSocket natif) |
+| **Base de données** | PostgreSQL 16 |
+| **SMTP receiver** | Node.js 22 · `smtp-server` npm |
+| **Reverse proxy** | Caddy (HTTPS automatique) |
+| **Containerisation** | Podman / Docker Compose |
+| **Tests** | Pest 4 · PHPUnit 12 |
 
 ---
 
@@ -42,16 +59,16 @@ Internet
 │  │  (Node.js)     │  Reçoit TOUS les mails  │
 │  └───────┬────────┘                         │
 │          │ POST /internal/inbound           │
+│          │ (réseau interne, secret partagé) │
 │          ▼                                  │
 │  ┌────────────────┐    ┌─────────────────┐  │
-│  │    Laravel 12  │◄──►│   PostgreSQL    │  │
-│  │  (API + UI)    │    └─────────────────┘  │
+│  │    Laravel 13  │◄──►│   PostgreSQL    │  │
+│  │  Livewire + UI │    └─────────────────┘  │
 │  └───────┬────────┘                         │
-│          │ broadcast                        │
+│          │ broadcast (WebSocket)            │
 │          ▼                                  │
 │  ┌────────────────┐                         │
-│  │ Laravel Reverb │  WebSocket              │
-│  │  (temps réel)  │  (inbox live)           │
+│  │ Laravel Reverb │  ws:// inbox live       │
 │  └────────────────┘                         │
 └─────────────────────────────────────────────┘
           ▲
@@ -62,49 +79,79 @@ Internet
 **Flux d'un email entrant :**
 1. Un email arrive sur `anything@votre-domaine.com`
 2. Le serveur SMTP Node.js l'accepte (catch-all, aucun filtre)
-3. Il POST le mail brut (RFC 822) à Laravel via réseau Docker interne
-4. Laravel vérifie que l'adresse destinataire existe en base
-5. Si oui : sauvegarde le mail + broadcast WebSocket vers l'inbox concernée
-6. L'audit log enregistre la réception (sans contenu)
+3. Il POST le mail parsé à Laravel via réseau Docker interne (secret partagé)
+4. Job `ProcessInboundEmail` cherche l'alias destinataire en base
+5. Si trouvé : sauvegarde le mail + broadcast `EmailReceived` sur le canal WebSocket privé
+6. L'`AuditLog` enregistre la réception (métadonnées uniquement, pas le contenu)
 
 ---
 
 ## Structure du projet
 
 ```
-EmailAlias/
-├── docker-compose.yml          # Orchestration principale
-├── docker-compose.dev.yml      # Overrides pour le développement
-├── .env.example                # Toutes les variables à configurer
-├── README.md                   # Ce fichier
+Email-Alias/
+├── docker-compose.yml              # Orchestration principale (prod)
+├── docker-compose.dev.yml          # Overrides dev (ports exposés, volumes)
+├── .env.example                    # Toutes les variables à configurer
+├── README.md                       # Ce fichier
+├── README_DEV.md                   # Guide développeur (démarrage, tests, commandes)
+├── scripts/
+│   └── init.sh                     # Bootstrap en une commande
 │
-├── smtp-server/                # Micro-service réception SMTP
+├── smtp-server/                    # Micro-service réception SMTP
 │   ├── Dockerfile
-│   ├── package.json
+│   ├── package.json                # smtp-server, mailparser, node-fetch
 │   └── src/
-│       └── index.js            # ~100 lignes, reçoit et forward à Laravel
+│       └── index.js                # ~120 lignes : reçoit SMTP → POST /internal/inbound
 │
-└── laravel/                    # Application principale
-    ├── Dockerfile
+└── laravel/                        # Application principale (Laravel 13)
+    ├── Dockerfile                  # PHP 8.4-FPM + extensions pgsql, pcntl, bcmath
+    ├── Dockerfile.dev
+    ├── CLAUDE.md                   # Conventions de code du projet
     ├── app/
+    │   ├── Enums/
+    │   │   ├── AliasType.php       # Session | Duration | Permanent
+    │   │   └── AuditEvent.php      # 13 événements tracés
+    │   ├── Events/
+    │   │   └── EmailReceived.php   # Broadcast WebSocket sur canal alias.{id}
     │   ├── Http/Controllers/
-    │   │   ├── Auth/           # Login/password + SSO + 2FA
-    │   │   ├── AliasController.php
-    │   │   ├── MailboxController.php
-    │   │   └── Admin/
-    │   │       └── AdminController.php
-    │   ├── Models/
-    │   │   ├── User.php
-    │   │   ├── Alias.php       # Adresse email
-    │   │   ├── Email.php       # Mail reçu
-    │   │   └── AuditLog.php
+    │   │   └── Internal/
+    │   │       └── InboundEmailController.php  # Webhook SMTP → dispatch job
     │   ├── Jobs/
-    │   │   └── ProcessInboundEmail.php
-    │   └── Events/
-    │       └── EmailReceived.php
-    ├── resources/
-    │   └── js/                 # Vue 3 + Inertia.js
-    └── ...
+    │   │   ├── ProcessInboundEmail.php         # Parse + sauvegarde + broadcast
+    │   │   └── CleanupExpiredAliases.php       # Purge scheduler quotidien
+    │   ├── Livewire/
+    │   │   ├── Mailbox/
+    │   │   │   ├── Dashboard.php   # Gestion des aliases
+    │   │   │   ├── Inbox.php       # Liste des emails
+    │   │   │   └── ViewEmail.php   # Détail d'un email
+    │   │   └── Admin/
+    │   │       ├── Dashboard.php   # Vue globale admin
+    │   │       └── AuditLogViewer.php
+    │   ├── Models/
+    │   │   ├── User.php            # is_admin, 2FA, Passkeys
+    │   │   ├── Alias.php           # ULID PK, HasUlids, SoftDeletes
+    │   │   ├── InboundEmail.php    # SoftDeletes, markAsRead/Unread
+    │   │   └── AuditLog.php        # Immutable (no updated_at), MorphTo
+    │   ├── Policies/               # AliasPolicy, InboundEmailPolicy
+    │   └── Services/
+    │       ├── AliasService.php    # create, delete, extend, suggestAlternative
+    │       └── AuditLogger.php     # log() centralisé
+    ├── config/
+    │   └── emailalias.php          # domain, smtp_secret, limites, flags
+    ├── database/
+    │   ├── migrations/             # aliases, inbound_emails, audit_logs
+    │   ├── factories/              # AliasFactory, InboundEmailFactory
+    │   └── seeders/                # DemoSeeder (admin + dev + données)
+    ├── resources/views/livewire/
+    │   ├── mailbox/                # dashboard, inbox, view-email
+    │   └── admin/                  # dashboard, audit-log-viewer
+    ├── routes/
+    │   ├── web.php                 # Routes UI (mailbox + admin)
+    │   └── internal.php            # POST /internal/inbound (réseau interne)
+    └── tests/Feature/
+        ├── Mailbox/                # CreateAliasTest, InboundEmailTest
+        └── Admin/                  # AdminAccessTest
 ```
 
 ---
@@ -117,8 +164,9 @@ EmailAlias/
 |---|---|
 | Login / Mot de passe | Pour les environnements de dev sans SSO |
 | SSO via OIDC (Azure AD) | Login via compte d'entreprise |
-| 2FA TOTP | Optionnel, activable par utilisateur (app type Authy/Google Authenticator) |
-| Rôles | `user`, `admin` |
+| Passkeys | Authentification sans mot de passe (WebAuthn) |
+| 2FA TOTP | Optionnel, activable par utilisateur (Authy, Google Authenticator…) |
+| Rôles | `user`, `admin` (champ `is_admin` sur `users`) |
 
 ---
 
@@ -128,33 +176,30 @@ EmailAlias/
 
 | Type | Comportement | Default |
 |---|---|---|
-| **Session** | Perdue au refresh de la page (stockée uniquement en `sessionStorage`) | ✅ Oui |
-| **Durée** | Expiration automatique au délai choisi, extension manuelle possible | — |
+| **Session** | Perdue au refresh de la page | ✅ Oui |
+| **Durée** | Expiration automatique, extension manuelle possible | — |
 | **Permanente** | Pas d'expiration, liée au compte utilisateur | — |
 
 Délais disponibles pour le type **Durée** : `1h`, `12h`, `24h`, `7 jours`, `30 jours`
 
-- L'expiration est affichée clairement dans l'UI (ex : *"Expire dans 2h 34min"*, compte à rebours)
-- Un email de notification peut être envoyé avant expiration *(optionnel, configurable)*
+- L'expiration est affichée clairement dans l'UI (compte à rebours humain)
 - Extension manuelle possible depuis l'interface
+- Purge automatique via scheduler (`CleanupExpiredAliases`)
 
 #### Format de l'adresse
 
 | Mode | Exemple | Default |
 |---|---|---|
-| **Aléatoire** | `a3f9b2c1@domain.tld` | ✅ Oui |
+| **Aléatoire** | `01jvxxxxxx@domain.tld` (ULID-based) | ✅ Oui |
 | **Custom** | `test-paul-projet@domain.tld` | — |
 
 - Le mode custom vérifie la disponibilité en temps réel
-- En cas de conflit, une alternative est proposée automatiquement (`test-paul-projet-2@domain.tld`)
+- En cas de conflit, une alternative est proposée automatiquement (`taken-2`)
 - Caractères autorisés : lettres, chiffres, tirets, underscores
 
-#### Actions sur les adresses
+#### Clé primaire
 
-- Créer une adresse (authentifié ou anonyme pour les adresses session)
-- Supprimer une adresse (et tous ses emails associés)
-- Étendre la durée d'une adresse à durée limitée
-- Copier l'adresse en un clic
+Les aliases utilisent un **ULID** comme clé primaire (`HasUlids`). Non-devinable, non-séquentiel, tri chronologique natif.
 
 ---
 
@@ -163,50 +208,38 @@ Délais disponibles pour le type **Durée** : `1h`, `12h`, `24h`, `7 jours`, `30
 #### Vue inbox
 
 - Liste des emails avec expéditeur, sujet, date, badge lu/non lu
+- Filtres : Tous / Non lus / Lus
 - Switch rapide entre plusieurs adresses
-- Nombre de mails non lus par adresse
-- Mise à jour en temps réel via WebSocket (Laravel Reverb) — pas besoin de rafraîchir
+- Mise à jour en temps réel via WebSocket (Reverb) — aucun refresh nécessaire
 
 #### Vue email
 
 | Fonctionnalité | Comportement |
 |---|---|
-| **Images externes** | Bloquées par défaut (anti-tracking pixel). Bouton *"Afficher les images"* pour charger à la demande, comme Outlook |
-| **Images encodées** | Affichées directement (base64 inline, pas de requête externe) |
-| **Liens** | Forcément `target="_blank" rel="noopener noreferrer"`. Les liens sans attribut cible sont réécrits automatiquement |
+| **Images externes** | Bloquées par défaut (anti-tracking). Bouton *"Afficher les images"* à la demande |
+| **Images encodées** | Affichées directement (base64 inline, aucune requête externe) |
+| **Liens** | Forcément `target="_blank" rel="noopener noreferrer"` |
 | **HTML** | Rendu dans un `<iframe sandbox>` pour isoler le contenu |
 | **Texte brut** | Fallback si pas de version HTML |
+| **Headers bruts** | Accessibles (mode développeur) |
 
 #### Actions sur les emails
 
 - Marquer comme lu / non lu
-- Supprimer un email
-- Voir les headers bruts (mode développeur)
-
----
-
-### Interface utilisateur
-
-- Dashboard avec toutes les adresses actives et leur statut
-- Création rapide depuis un bouton flottant
-- Compteur d'expiration en temps réel (countdown)
-- Indicateur visuel du type d'adresse (session / durée / permanente)
-- Copie de l'adresse en un clic
-- Responsive (mobile-friendly)
+- Marquer tout comme lu
+- Supprimer un email (soft delete)
 
 ---
 
 ### Panel Administrateur
 
-Accessible uniquement aux utilisateurs avec le rôle `admin`.
+Accessible uniquement aux utilisateurs avec `is_admin = true`.
 
 | Fonctionnalité | Détail |
 |---|---|
-| **Vue globale des adresses** | Liste toutes les adresses de tous les utilisateurs |
+| **Vue globale des adresses** | Liste toutes les adresses de tous les utilisateurs, avec recherche et filtre par user |
 | **Vue des emails reçus** | Contrôlée par `ADMIN_CAN_READ_EMAILS=true/false` dans le `.env` |
-| **Créer une adresse pour un utilisateur** | L'admin peut créer des adresses au nom d'un utilisateur |
 | **Supprimer une adresse** | L'admin peut supprimer n'importe quelle adresse |
-| **Gestion des utilisateurs** | Promouvoir/rétrograder admin, désactiver un compte |
 | **Vue de l'audit log** | Consultation complète des logs avec filtres |
 | **Statistiques** | Nombre d'adresses actives, emails reçus, adresses expirées |
 
@@ -214,18 +247,17 @@ Accessible uniquement aux utilisateurs avec le rôle `admin`.
 
 ### Audit Log
 
-Toutes les actions sont tracées, **sans stocker le contenu des emails** par défaut.
+Toutes les actions sont tracées. **Le contenu des emails n'est jamais stocké dans les logs.**
 
-| Événement | Données loguées |
-|---|---|
-| Adresse créée | Qui, quelle adresse, quel type, timestamp |
-| Adresse supprimée | Qui, quelle adresse, timestamp |
-| Adresse expirée | Quelle adresse, timestamp |
-| Email reçu | Adresse destinataire, expéditeur, sujet, timestamp (pas le body) |
-| Email supprimé | Qui, adresse concernée, sujet, timestamp |
-| Connexion utilisateur | Qui, méthode (password/SSO), IP, timestamp |
-| Action admin | Qui (admin), quelle action, sur qui/quoi, timestamp |
-| 2FA activé/désactivé | Qui, timestamp |
+| Événement tracé |
+|---|
+| `alias_created` — `alias_deleted` — `alias_expired` — `alias_extended` |
+| `email_received` — `email_read` — `email_deleted` |
+| `user_login` — `user_logout` |
+| `two_factor_enabled` — `two_factor_disabled` |
+| `admin_alias_created` — `admin_alias_deleted` — `admin_viewed_email` — `admin_user_updated` |
+
+Chaque entrée contient : qui, quoi, sur quoi (morph), IP, user-agent, timestamp.
 
 ---
 
@@ -233,46 +265,43 @@ Toutes les actions sont tracées, **sans stocker le contenu des emails** par dé
 
 ### Prérequis
 
-- Podman (ou Docker) + Podman Compose (ou Docker Compose)
-- Port 25 ouvert sur le serveur
+- Podman Desktop (ou Docker) avec Compose
+- Port 25 ouvert sur le serveur de production
 - Un domaine avec accès à la configuration DNS
 
-### Étapes
+### Démarrage rapide
 
 ```bash
 # 1. Cloner le projet
-git clone <repo> emailalias
-cd emailalias
+git clone <repo> Email-Alias
+cd Email-Alias
 
 # 2. Copier et remplir la configuration
 cp .env.example .env
-# Éditer .env avec vos valeurs
+# Éditer .env — au minimum : APP_DOMAIN et SMTP_INTERNAL_SECRET
 
-# 3. Démarrer les conteneurs
+# 3. Démarrer les containers
 podman compose up -d
 
-# 4. Initialiser la base de données
+# 4. Migrations + données de démo
 podman compose exec app php artisan migrate --seed
 
 # 5. Créer le premier admin
 podman compose exec app php artisan admin:create
 ```
 
-### DNS — Enregistrement MX
+> **Dev local** : voir [README_DEV.md](README_DEV.md) pour le guide complet (tests sans DNS, hot-reload, commandes utiles).
 
-Ajouter un enregistrement MX sur votre domaine :
+### DNS — Enregistrement MX (production)
 
 ```
-Type : MX
-Nom  : @ (ou votre sous-domaine)
-Valeur : votre-serveur.com
+Type     : MX
+Nom      : @  (ou sous-domaine dédié)
+Valeur   : votre-serveur.com
 Priorité : 10
 ```
 
-Vérification :
-```bash
-nslookup -type=MX votre-domaine.com
-```
+Vérification : `nslookup -type=MX votre-domaine.com`
 
 ---
 
@@ -282,7 +311,7 @@ nslookup -type=MX votre-domaine.com
 # ─── Application ──────────────────────────────────────────────
 APP_NAME="EmailAlias"
 APP_URL=https://emailalias.votre-domaine.com
-APP_DOMAIN=votre-domaine.com          # Domaine utilisé pour les adresses email
+APP_DOMAIN=votre-domaine.com          # Domaine des adresses générées
 
 # ─── Base de données ──────────────────────────────────────────
 DB_CONNECTION=pgsql
@@ -293,129 +322,153 @@ DB_USERNAME=emailalias
 DB_PASSWORD=changeme
 
 # ─── SSO Azure AD (optionnel) ─────────────────────────────────
-SSO_ENABLED=true
+SSO_ENABLED=false
 AZURE_CLIENT_ID=
 AZURE_CLIENT_SECRET=
 AZURE_TENANT_ID=
 AZURE_REDIRECT_URI="${APP_URL}/auth/sso/callback"
 
 # ─── Authentification locale ──────────────────────────────────
-LOCAL_AUTH_ENABLED=true              # Désactiver en prod si SSO obligatoire
-REGISTRATION_ENABLED=false           # true = inscription libre, false = invitation only
+LOCAL_AUTH_ENABLED=true              # false = SSO obligatoire
+REGISTRATION_ENABLED=false           # true = inscription libre
 
 # ─── 2FA ──────────────────────────────────────────────────────
-TWO_FACTOR_ENABLED=true              # Activer la fonctionnalité 2FA
-TWO_FACTOR_REQUIRED=false            # Forcer le 2FA pour tous les utilisateurs
+TWO_FACTOR_ENABLED=true
+TWO_FACTOR_REQUIRED=false            # true = 2FA forcé pour tous
 
 # ─── Adresses email ───────────────────────────────────────────
-ALIAS_MAX_PER_USER=20                # Nombre max d'adresses par utilisateur
+ALIAS_MAX_PER_USER=20
 ALIAS_DEFAULT_TYPE=session           # session | duration | permanent
-ALIAS_ALLOW_PERMANENT=true           # Autoriser les adresses permanentes
+ALIAS_ALLOW_PERMANENT=true
 
 # ─── Admin ────────────────────────────────────────────────────
-ADMIN_CAN_READ_EMAILS=false          # Autoriser les admins à lire le contenu des mails
+ADMIN_CAN_READ_EMAILS=false
 
 # ─── SMTP Receiver ────────────────────────────────────────────
 SMTP_RECEIVER_PORT=25
-SMTP_INTERNAL_SECRET=changeme        # Clé partagée entre smtp-server et Laravel
+SMTP_INTERNAL_SECRET=changeme        # Clé partagée smtp-server ↔ Laravel
 
 # ─── WebSocket (Reverb) ───────────────────────────────────────
 REVERB_APP_ID=emailalias
 REVERB_APP_KEY=changeme
 REVERB_APP_SECRET=changeme
-REVERB_HOST=reverb
+REVERB_HOST=0.0.0.0
 REVERB_PORT=8080
 
 # ─── Nettoyage automatique ────────────────────────────────────
-CLEANUP_EXPIRED_ALIASES=true         # Supprimer auto les adresses expirées
-CLEANUP_EMAIL_RETENTION_DAYS=30      # Supprimer les emails après N jours (0 = jamais)
+CLEANUP_EXPIRED_ALIASES=true
+CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 ```
 
 ---
 
-## TODO / Checklist d'implémentation
+## Checklist d'implémentation
 
 ### Infrastructure
 
-- [ ] `docker-compose.yml` avec services : `app`, `smtp-server`, `reverb`, `db`, `caddy`
-- [ ] `docker-compose.dev.yml` avec hot-reload et outils de dev
-- [ ] `Dockerfile` Laravel (PHP 8.4-FPM + extensions)
-- [ ] `Dockerfile` smtp-server (Node.js Alpine)
-- [ ] Reverse proxy Caddy avec HTTPS automatique
-- [ ] Script `artisan admin:create` pour le premier admin
+- [x] `docker-compose.yml` — services `app`, `smtp-server`, `reverb`, `worker`, `scheduler`, `db`, `caddy`
+- [x] `docker-compose.dev.yml` — ports exposés, volumes hot-reload
+- [x] `Dockerfile` Laravel (PHP 8.4-FPM, extensions pgsql / pcntl / bcmath)
+- [x] `Dockerfile.dev` Laravel
+- [x] `Dockerfile` smtp-server (Node.js 22 Alpine)
+- [x] Reverse proxy Caddy (HTTPS automatique via caddy-docker-proxy)
+- [ ] Commande `artisan admin:create`
 
 ### SMTP Receiver (Node.js)
 
-- [ ] Serveur SMTP avec `smtp-server` (npm)
-- [ ] Accepter toutes les connexions (catch-all, 0 filtre)
-- [ ] STARTTLS supporté
-- [ ] Parser le mail reçu (expéditeur, destinataires, headers)
-- [ ] POST vers `http://app/internal/inbound` avec auth par secret partagé
-- [ ] Retry en cas d'échec du POST (avec backoff)
-- [ ] Logs structurés (JSON)
+- [x] Serveur SMTP (`smtp-server` npm) — catch-all, 0 filtre
+- [x] STARTTLS supporté (optionnel)
+- [x] Parse du mail entrant (`mailparser`)
+- [x] POST vers `/internal/inbound` avec secret partagé
+- [x] Retry avec backoff exponentiel (3 tentatives)
+- [x] Logs structurés JSON
+- [ ] Graceful shutdown (SIGTERM géré, à valider en prod)
 
-### Laravel — Backend
+### Laravel — Base de données
 
-- [ ] Migrations : `users`, `aliases`, `emails`, `audit_logs`, `admin_actions`
-- [ ] Auth locale (login/password) avec Laravel Fortify
-- [ ] Auth SSO Azure AD via Laravel Socialite
-- [ ] 2FA TOTP (package `pragmarx/google2fa-laravel`)
-- [ ] Middleware rôle `admin`
-- [ ] `AliasController` : CRUD adresses, check disponibilité, extension durée
-- [ ] `MailboxController` : liste emails, marquer lu/non lu, supprimer
-- [ ] `InboundController` : endpoint `/internal/inbound` (IP interne uniquement)
-- [ ] `AdminController` : vue globale, actions admin
-- [ ] Job `ProcessInboundEmail` : parse, sauvegarde, broadcast
-- [ ] Job `CleanupExpiredAliases` : scheduler quotidien
-- [ ] Event `EmailReceived` + broadcast Reverb
-- [ ] Audit log automatique via Observer/Listener
-- [ ] Commande `admin:create`
-- [ ] Tests unitaires et feature (Pest)
+- [x] Migration `aliases` — ULID PK, type, duration, expires_at, soft deletes
+- [x] Migration `inbound_emails` — FK ULID vers aliases, soft deletes
+- [x] Migration `audit_logs` — morph varchar (compatible ULID + int), immutable
+- [x] Factories `AliasFactory`, `InboundEmailFactory`
+- [ ] Seeder de démo (`DemoSeeder`) — admin + user + aliases + emails
 
-### Laravel — Frontend (Vue 3 + Inertia.js)
+### Laravel — Modèles & Métier
 
-- [ ] Layout principal avec sidebar des adresses actives
-- [ ] Page login (formulaire + bouton SSO)
-- [ ] Page 2FA (saisie TOTP)
-- [ ] Composant création d'adresse (modal, aléatoire/custom, type, durée)
-- [ ] Composant inbox (liste emails, badge non-lu, temps réel via Echo)
-- [ ] Composant vue email (iframe sandbox, blocage images, réécriture liens)
-- [ ] Countdown d'expiration (composant temps réel)
-- [ ] Switch rapide entre adresses (sidebar ou tabs)
-- [ ] Panel Admin (tableau de bord, liste adresses, audit log, stats)
-- [ ] Page profil (activer/désactiver 2FA, changer mot de passe)
+- [x] `Alias` — `HasUlids`, `SoftDeletes`, scopes `active()`/`expired()`, `extendByDuration()`
+- [x] `InboundEmail` — `SoftDeletes`, `markAsRead()`, `markAsUnread()`, scopes
+- [x] `AuditLog` — immutable, polymorphe, cast `auditable_id` en string
+- [x] `User` — `is_admin`, 2FA, Passkeys (Fortify)
+- [x] `AliasType` enum — `Session | Duration | Permanent`
+- [x] `AuditEvent` enum — 13 événements
+- [x] `AliasService` — `create()`, `delete()`, `extend()`, `suggestAlternative()`, `isAddressAvailable()`
+- [x] `AuditLogger` — service centralisé `log()`
+- [x] `ProcessInboundEmail` job — parse + sauvegarde + broadcast
+- [x] `CleanupExpiredAliases` job — purge scheduler
+- [x] `EmailReceived` event — broadcast sur canal privé `alias.{id}`
+- [x] `config/emailalias.php` — toutes les options métier
 
-### Sécurité
+### Laravel — Auth & Sécurité
 
-- [ ] Validation que `/internal/inbound` n'est accessible qu'en réseau interne Docker
-- [ ] `iframe sandbox` pour l'affichage des emails HTML
-- [ ] Blocage images externes par défaut (Content Security Policy)
-- [ ] Réécriture des liens (`target="_blank" rel="noopener noreferrer"`)
-- [ ] Rate limiting sur la création d'adresses
-- [ ] Rate limiting sur le login
-- [ ] CSRF sur tous les formulaires (natif Laravel)
-- [ ] Logs d'audit pour toutes les actions sensibles
+- [x] Auth locale login/password (Fortify)
+- [x] 2FA TOTP (Fortify)
+- [x] Passkeys / WebAuthn (Fortify)
+- [x] Middleware `admin` (vérifie `is_admin`)
+- [x] Middleware `internal` — webhook accessible réseau interne uniquement
+- [x] `AliasPolicy`, `InboundEmailPolicy` — contrôle d'accès par ownership
+- [x] Rate limiting sur login (natif Fortify)
+- [ ] SSO Azure AD via Socialite — *à configurer*
+- [ ] Rate limiting sur création d'aliases
+- [ ] 2FA obligatoire configurable (`TWO_FACTOR_REQUIRED`)
+
+### Laravel — Contrôleurs & Routes
+
+- [x] `InboundEmailController` — `POST /internal/inbound` → dispatch job → 202
+- [x] Route mailbox dashboard `/mailbox`
+- [x] Route inbox `/mailbox/{alias}` (résolution par ULID)
+- [x] Route email detail `/mailbox/emails/{email}`
+- [x] Routes admin `/admin`, `/admin/audit`
+
+### Laravel — Livewire / UI
+
+- [x] `Mailbox\Dashboard` — liste aliases, création (random/custom/type/durée), delete, extend
+- [x] `Mailbox\Inbox` — liste emails, filtre lu/non-lu, temps réel Reverb, marquer lu/suppression
+- [x] `Mailbox\ViewEmail` — détail email
+- [x] `Admin\Dashboard` — vue globale aliases, stats, recherche, filtre user, delete
+- [x] `Admin\AuditLogViewer` — consultation logs
+- [x] Pages settings (profil, sécurité, 2FA, apparence) — fournies par Fortify
+- [ ] Vues email — `iframe sandbox`, blocage images externes, réécriture liens
+- [ ] Countdown d'expiration temps réel dans la sidebar
+- [ ] Copie adresse en un clic
+- [ ] Temps réel Reverb branché dans l'inbox (listeners JS)
+- [ ] Création pour un utilisateur (panel admin)
+- [ ] Gestion utilisateurs admin (promouvoir, désactiver)
+
+### Tests
+
+- [x] `CreateAliasTest` — création, custom, doublons, limites, suppression, extension
+- [x] `InboundEmailTest` — réception, autorisation, marquage lu/non-lu
+- [x] `AdminAccessTest` — accès refusé aux non-admins
+- [x] Tests Auth Fortify (login, 2FA, reset password, vérification email)
+- [ ] Tests `AliasService` (unitaires)
+- [ ] Tests `CleanupExpiredAliases` job
+- [ ] Tests `ProcessInboundEmail` job
 
 ---
 
 ## Notes de développement
 
-### Adresses "session"
+### Clé primaire ULID sur Alias
 
-Les adresses de type session ne sont **pas stockées en base**. Elles existent uniquement :
-- En `sessionStorage` côté navigateur (clé + adresse générée)
-- Dans la mémoire du processus smtp-server (cache court terme)
-
-À chaque email entrant, le smtp-server interroge Laravel pour savoir si l'adresse existe (base OU cache session actif). Le cache session a un TTL de 2h sans activité.
+`Alias` utilise `HasUlids` (Laravel natif). Le ULID est généré automatiquement à la création. Les FK dans `inbound_emails` sont de type `char(26)`. Les colonnes morph dans `audit_logs` sont des `varchar` pour accepter à la fois les ULIDs (Alias) et les entiers (User, InboundEmail).
 
 ### Isolation des emails HTML
 
-Tout contenu HTML est rendu dans une `<iframe>` avec les attributs :
+Tout contenu HTML est rendu dans une `<iframe>` avec :
 ```html
 <iframe sandbox="allow-same-origin" referrerpolicy="no-referrer" ...>
 ```
-Les images `src` externes sont remplacées par un placeholder avant injection. Un bouton "Afficher les images" déclenche le rechargement avec les vraies URLs.
+Les attributs `src` d'images externes sont remplacés par un placeholder avant injection. Un bouton *"Afficher les images"* recharge avec les URLs réelles.
 
 ### Podman vs Docker
 
-Ce projet fonctionne avec Podman et Podman Compose. Si vous utilisez Docker, remplacez `podman compose` par `docker compose` dans toutes les commandes. Aucune modification des fichiers n'est nécessaire.
+Ce projet fonctionne avec Podman et Podman Compose. Si vous utilisez Docker, remplacez `podman compose` par `docker compose`. Aucune modification des fichiers n'est nécessaire.
