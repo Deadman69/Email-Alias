@@ -1,0 +1,127 @@
+services:
+
+  # ── Application Laravel ──────────────────────────────────────────────────────
+  app:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+    volumes:
+      - laravel_storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+      - web
+    labels:
+      caddy: "${APP_URL}"
+      caddy.reverse_proxy: "{{upstreams 9000}}"
+
+  # ── SMTP Receiver ────────────────────────────────────────────────────────────
+  smtp-server:
+    build:
+      context: ./smtp-server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${SMTP_RECEIVER_PORT:-25}:25"
+    environment:
+      - LARAVEL_INBOUND_URL=http://app:9000/internal/inbound
+      - SMTP_INTERNAL_SECRET=${SMTP_INTERNAL_SECRET}
+      - NODE_ENV=production
+    depends_on:
+      - app
+    networks:
+      - internal
+
+  # ── WebSocket (Laravel Reverb) ────────────────────────────────────────────────
+  reverb:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+      - web
+    labels:
+      caddy: "${APP_URL}"
+      caddy.handle_path: "/app/*"
+      caddy.handle_path.reverse_proxy: "{{upstreams 8080}}"
+
+  # ── Queue Worker ──────────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Scheduler (cron) ──────────────────────────────────────────────────────────
+  scheduler:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    command: ["/bin/sh", "-c", "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Base de données ───────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-emailalias}
+      POSTGRES_USER: ${DB_USERNAME:-emailalias}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_db_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-emailalias}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ── Reverse Proxy (Caddy — HTTPS automatique) ─────────────────────────────────
+  caddy:
+    image: lucaslorentz/caddy-docker-proxy:ci-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - caddy_data:/data
+    networks:
+      - web
+
+volumes:
+  postgres_data:
+  laravel_storage:
+  caddy_data:
+
+networks:
+  internal:
+    internal: true
+  web:

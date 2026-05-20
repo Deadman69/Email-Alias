@@ -1,0 +1,35 @@
+services:
+
+  app:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile.dev
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    volumes:
+      - ./laravel:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
+    ports:
+      - "8000:9000"
+
+  smtp-server:
+    build:
+      context: ./smtp-server
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+      - LARAVEL_INBOUND_URL=http://app:9000/internal/inbound
+    volumes:
+      - ./smtp-server/src:/app/src
+    ports:
+      - "2525:25"   # Port non-privilégié pour le dev local
+
+  reverb:
+    ports:
+      - "8080:8080"
+
+  db:
+    ports:
+      - "5432:5432"   # Accès direct à la BDD pour les outils (TablePlus, DBeaver...)
