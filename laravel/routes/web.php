@@ -13,7 +13,7 @@ Route::view('/', 'welcome')->name('home');
 // ── Mailbox (authenticated users) ────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/mailbox', Dashboard::class)->name('mailbox.dashboard');
-    Route::get('/mailbox/{alias:ulid}', Inbox::class)->name('mailbox.inbox');
+    Route::get('/mailbox/{alias}', Inbox::class)->name('mailbox.inbox');
     Route::get('/mailbox/emails/{email}', ViewEmail::class)->name('mailbox.email');
 });
 

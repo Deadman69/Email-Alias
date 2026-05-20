@@ -136,7 +136,7 @@ class Dashboard extends Component
     /**
      * Delete an alias after authorization check.
      */
-    public function deleteAlias(int $aliasId, AliasService $aliasService, AuditLogger $auditLogger): void
+    public function deleteAlias(string $aliasId, AliasService $aliasService, AuditLogger $auditLogger): void
     {
         $alias = Alias::findOrFail($aliasId);
         $this->authorize('delete', $alias);
@@ -150,7 +150,7 @@ class Dashboard extends Component
     /**
      * Extend an alias's expiration.
      */
-    public function extendAlias(int $aliasId, string $duration, AliasService $aliasService): void
+    public function extendAlias(string $aliasId, string $duration, AliasService $aliasService): void
     {
         $alias = Alias::findOrFail($aliasId);
         $this->authorize('update', $alias);

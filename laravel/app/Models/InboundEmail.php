@@ -22,8 +22,9 @@ class InboundEmail extends Model
     protected function casts(): array
     {
         return [
-            'headers' => 'array',
-            'read_at' => 'datetime',
+            'alias_id' => 'string', // FK vers aliases.id (ULID)
+            'headers'  => 'array',
+            'read_at'  => 'datetime',
         ];
     }
 

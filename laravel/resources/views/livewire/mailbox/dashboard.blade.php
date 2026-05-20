@@ -96,7 +96,7 @@
                                         <flux:button size="xs" variant="ghost" icon="plus-circle">{{ __('Extend') }}</flux:button>
                                         <flux:menu>
                                             @foreach ($this->durationOptions as $val => $label)
-                                                <flux:menu.item wire:click="extendAlias({{ $alias->id }}, '{{ $val }}')">
+                                                <flux:menu.item wire:click="extendAlias('{{ $alias->id }}', '{{ $val }}')">
                                                     +{{ $label }}
                                                 </flux:menu.item>
                                             @endforeach
@@ -113,7 +113,7 @@
                                 variant="filled"
                                 icon="inbox"
                                 wire:navigate
-                                :href="route('mailbox.inbox', $alias->ulid)"
+                                :href="route('mailbox.inbox', $alias->id)"
                                 class="flex-1"
                             >
                                 {{ __('Open') }}
@@ -123,7 +123,7 @@
                                 size="sm"
                                 variant="ghost"
                                 icon="trash"
-                                wire:click="deleteAlias({{ $alias->id }})"
+                                wire:click="deleteAlias('{{ $alias->id }}')"
                                 wire:confirm="{{ __('Delete this alias and all its emails?') }}"
                                 class="text-red-500 hover:text-red-600"
                             />

@@ -7,6 +7,7 @@ use Database\Factories\AliasFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,12 @@ use Illuminate\Support\Carbon;
 #[Fillable(['address', 'local_part', 'type', 'duration', 'user_id', 'label', 'expires_at'])]
 class Alias extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasUlids, SoftDeletes;
+
+    // HasUlids positionne automatiquement :
+    //   $incrementing = false
+    //   $keyType      = 'string'
+    // et génère un ULID à la création si la PK n'est pas fournie.
 
     /**
      * @return array<string, string>

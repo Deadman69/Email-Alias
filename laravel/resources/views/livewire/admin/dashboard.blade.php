@@ -68,7 +68,7 @@
                                     size="xs"
                                     variant="ghost"
                                     icon="trash"
-                                    wire:click="deleteAlias({{ $alias->id }})"
+                                    wire:click="deleteAlias('{{ $alias->id }}')"
                                     wire:confirm="{{ __('Delete this alias and all its emails?') }}"
                                     class="text-red-400 hover:text-red-600"
                                 />

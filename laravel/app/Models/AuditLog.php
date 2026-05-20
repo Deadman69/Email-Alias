@@ -20,8 +20,9 @@ class AuditLog extends Model
     protected function casts(): array
     {
         return [
-            'event'    => AuditEvent::class,
-            'metadata' => 'array',
+            'event'        => AuditEvent::class,
+            'metadata'     => 'array',
+            'auditable_id' => 'string', // varchar : ULID (Alias) ou entier (User, InboundEmail)
         ];
     }
 

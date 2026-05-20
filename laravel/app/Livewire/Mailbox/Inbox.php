@@ -20,7 +20,7 @@ class Inbox extends Component
     use WithPagination;
 
     #[Locked]
-    public int $aliasId;
+    public string $aliasId;
 
     public string $filter = 'all'; // 'all' | 'unread' | 'read'
 

@@ -53,7 +53,7 @@ class Dashboard extends Component
     /**
      * Delete an alias as admin.
      */
-    public function deleteAlias(int $aliasId, AliasService $aliasService): void
+    public function deleteAlias(string $aliasId, AliasService $aliasService): void
     {
         $alias = Alias::findOrFail($aliasId);
         $aliasService->delete($alias, byAdmin: true);

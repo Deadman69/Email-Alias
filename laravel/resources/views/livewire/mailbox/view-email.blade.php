@@ -7,7 +7,7 @@
                 variant="ghost"
                 icon="arrow-left"
                 wire:navigate
-                :href="route('mailbox.inbox', $this->email->alias->ulid)"
+                :href="route('mailbox.inbox', $this->email->alias->id)"
                 size="sm"
             />
             <div class="min-w-0 flex-1">

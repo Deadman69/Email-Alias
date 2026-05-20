@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('inbound_emails', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('alias_id')->constrained()->cascadeOnDelete();
+            $table->foreignUlid('alias_id')->constrained()->cascadeOnDelete();
             $table->string('from_address');
             $table->string('from_name')->nullable();
             $table->string('subject')->default('(no subject)');

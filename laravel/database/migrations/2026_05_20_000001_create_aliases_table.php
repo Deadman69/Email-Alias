@@ -10,8 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('aliases', function (Blueprint $table) {
-            $table->id();
-            $table->ulid()->unique();
+            $table->ulid('id')->primary();
             $table->string('address')->unique();
             $table->string('local_part');
             $table->string('type')->default(AliasType::Session->value);
