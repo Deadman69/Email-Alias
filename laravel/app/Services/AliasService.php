@@ -6,6 +6,7 @@ use App\Enums\AliasType;
 use App\Enums\AuditEvent;
 use App\Models\Alias;
 use App\Models\User;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -25,25 +26,26 @@ class AliasService
         ?string $duration = null,
         ?string $label = null,
     ): Alias {
+        $this->enforceRateLimit($user);
         $this->ensureUserCanCreateAlias($user);
 
         $localPart = $localPart ? $this->normalizeLocalPart($localPart) : $this->generateUniqueLocalPart();
-        $domain = config('emailalias.domain');
-        $address = "{$localPart}@{$domain}";
+        $domain    = config('emailalias.domain');
+        $address   = "{$localPart}@{$domain}";
 
         $this->ensureAddressAvailable($address);
-
-        $expiresAt = match ($type) {
-            AliasType::Session   => now()->addHours(config('emailalias.session_alias_ttl_hours', 2)),
-            AliasType::Duration  => Alias::expiresAtFromDuration($duration ?? '24h'),
-            AliasType::Permanent => null,
-        };
 
         if ($type === AliasType::Permanent && ! config('emailalias.allow_permanent')) {
             throw ValidationException::withMessages([
                 'type' => ['Permanent aliases are disabled.'],
             ]);
         }
+
+        $expiresAt = match ($type) {
+            AliasType::Session   => now()->addHours(config('emailalias.session_alias_ttl_hours', 2)),
+            AliasType::Duration  => Alias::expiresAtFromDuration($duration ?? '24h'),
+            AliasType::Permanent => null,
+        };
 
         $alias = Alias::create([
             'address'    => $address,
@@ -103,9 +105,9 @@ class AliasService
      */
     public function suggestAlternative(string $localPart): string
     {
-        $domain = config('emailalias.domain');
+        $domain    = config('emailalias.domain');
         $candidate = $this->normalizeLocalPart($localPart);
-        $i = 2;
+        $i         = 2;
 
         while (Alias::withTrashed()->where('address', "{$candidate}@{$domain}")->exists()) {
             $candidate = $this->normalizeLocalPart($localPart) . '-' . $i;
@@ -116,20 +118,42 @@ class AliasService
     }
 
     /**
-     * Check if a local part / address is available (not taken, not soft-deleted).
+     * Check if a local part is available (not taken, not soft-deleted).
      */
     public function isAddressAvailable(string $localPart): bool
     {
-        $domain = config('emailalias.domain');
+        $domain  = config('emailalias.domain');
         $address = $this->normalizeLocalPart($localPart) . "@{$domain}";
 
         return ! Alias::withTrashed()->where('address', $address)->exists();
     }
 
+    // ── Private ───────────────────────────────────────────────────────────────
+
+    /**
+     * Rate limit alias creation: max 10 per minute per user.
+     *
+     * @throws ValidationException
+     */
+    private function enforceRateLimit(User $user): void
+    {
+        $key = 'alias-create:' . $user->id;
+
+        if (RateLimiter::tooManyAttempts($key, maxAttempts: 10)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            throw ValidationException::withMessages([
+                'address' => ["Too many aliases created. Please wait {$seconds} seconds."],
+            ]);
+        }
+
+        RateLimiter::hit($key, decaySeconds: 60);
+    }
+
     private function ensureUserCanCreateAlias(User $user): void
     {
         $count = Alias::where('user_id', $user->id)->count();
-        $max = config('emailalias.max_aliases_per_user', 20);
+        $max   = config('emailalias.max_aliases_per_user', 20);
 
         if ($count >= $max) {
             throw ValidationException::withMessages([
@@ -138,9 +162,7 @@ class AliasService
         }
     }
 
-    /**
-     * @throws ValidationException
-     */
+    /** @throws ValidationException */
     private function ensureAddressAvailable(string $address): void
     {
         if (Alias::withTrashed()->where('address', $address)->exists()) {

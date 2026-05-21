@@ -86,7 +86,7 @@
                             <a
                                 wire:navigate
                                 href="{{ route('mailbox.email', $email->id) }}"
-                                wire:click="markRead({{ $email->id }})"
+                                wire:click="markRead('{{ $email->id }}')"
                                 class="block"
                             >
                                 <div class="flex items-center justify-between gap-2">
@@ -106,13 +106,13 @@
                         {{-- Actions --}}
                         <div class="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
                             @if ($email->read_at)
-                                <flux:button size="xs" variant="ghost" icon="envelope" wire:click="markUnread({{ $email->id }})" title="{{ __('Mark unread') }}" />
+                                <flux:button size="xs" variant="ghost" icon="envelope" wire:click="markUnread('{{ $email->id }}')" title="{{ __('Mark unread') }}" />
                             @endif
                             <flux:button
                                 size="xs"
                                 variant="ghost"
                                 icon="trash"
-                                wire:click="deleteEmail({{ $email->id }})"
+                                wire:click="deleteEmail('{{ $email->id }}')"
                                 wire:confirm="{{ __('Delete this email?') }}"
                                 class="text-red-400 hover:text-red-600"
                                 title="{{ __('Delete') }}"

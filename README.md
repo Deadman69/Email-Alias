@@ -406,7 +406,7 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 - [x] `CleanupExpiredAliases` job — purge scheduler
 - [x] `EmailReceived` event — broadcast sur canal privé `alias.{id}`
 - [x] `config/emailalias.php` — toutes les options métier
-- [ ] Bloquer les mails trop lourds (iamges intégrées par exemple) avec un avertissement à l'utilisateur que le mail a été bloqué (on ne garde que les informations essentielles : sender, objet...)
+- [ ] Bloquer les mails trop lourds (images intégrées par exemple) avec un avertissement à l'utilisateur que le mail a été bloqué (on ne garde que les informations essentielles : sender, objet...)
 - [ ] Gérer les pièces jointe (dans une limite de taille configurable)
     - [ ] Taille max disponible soit par mail (5mo de pièce jointe par mail par exemple) ou par utilisateur (un utilisateur ne peut avoir que 500mb de pièces jointe pour tous les mails confondus)
 - [ ] Fix le fait que les mailbox "session" ne sont pas détruite à la déconnexion

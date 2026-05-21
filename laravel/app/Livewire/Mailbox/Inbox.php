@@ -26,9 +26,6 @@ class Inbox extends Component
 
     public string $filter = 'all'; // 'all' | 'unread' | 'read'
 
-    /**
-     * Mount and authorize access to the alias.
-     */
     public function mount(Alias $alias): void
     {
         $this->authorize('view', $alias);
@@ -44,14 +41,13 @@ class Inbox extends Component
     #[Computed]
     public function emails(): \Illuminate\Pagination\LengthAwarePaginator
     {
-        $query = InboundEmail::where('alias_id', $this->aliasId)
-            ->latest();
+        $query = InboundEmail::where('alias_id', $this->aliasId)->latest();
 
-        if ($this->filter === 'unread') {
-            $query->unread();
-        } elseif ($this->filter === 'read') {
-            $query->read();
-        }
+        match ($this->filter) {
+            'unread' => $query->unread(),
+            'read'   => $query->read(),
+            default  => null,
+        };
 
         return $query->paginate(20);
     }
@@ -62,24 +58,16 @@ class Inbox extends Component
         return InboundEmail::where('alias_id', $this->aliasId)->unread()->count();
     }
 
-    /**
-     * Mark an email as read.
-     */
-    public function markRead(int $emailId, AuditLogger $auditLogger): void
+    public function markRead(string $emailId, AuditLogger $auditLogger): void
     {
         $email = InboundEmail::findOrFail($emailId);
         $this->authorize('view', $email);
-
         $email->markAsRead();
-
         $auditLogger->log(AuditEvent::EmailRead, $email);
         unset($this->emails, $this->unreadCount);
     }
 
-    /**
-     * Mark an email as unread.
-     */
-    public function markUnread(int $emailId): void
+    public function markUnread(string $emailId): void
     {
         $email = InboundEmail::findOrFail($emailId);
         $this->authorize('view', $email);
@@ -87,10 +75,7 @@ class Inbox extends Component
         unset($this->emails, $this->unreadCount);
     }
 
-    /**
-     * Delete an email (soft delete).
-     */
-    public function deleteEmail(int $emailId, AuditLogger $auditLogger): void
+    public function deleteEmail(string $emailId, AuditLogger $auditLogger): void
     {
         $email = InboundEmail::findOrFail($emailId);
         $this->authorize('delete', $email);
@@ -106,9 +91,6 @@ class Inbox extends Component
         Flux::toast(variant: 'success', text: __('Email deleted.'));
     }
 
-    /**
-     * Mark all emails as read.
-     */
     public function markAllRead(AuditLogger $auditLogger): void
     {
         InboundEmail::where('alias_id', $this->aliasId)->unread()->update(['read_at' => now()]);

@@ -2,14 +2,18 @@
 
 namespace App\Providers;
 
+use App\Listeners\DeleteSessionAliasesOnLogout;
 use App\Models\Alias;
 use App\Models\InboundEmail;
 use App\Policies\AliasPolicy;
 use App\Policies\InboundEmailPolicy;
 use App\Services\AuditLogger;
+use App\Services\HtmlSanitizer;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -22,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AuditLogger::class);
+        $this->app->singleton(HtmlSanitizer::class);
     }
 
     /**
@@ -31,11 +36,18 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configurePolicies();
         $this->configureDefaults();
+        $this->registerListeners();
     }
 
     /**
      * Register model policies.
      */
+    private function registerListeners(): void
+    {
+        // Delete session-type aliases when the user logs out
+        Event::listen(Logout::class, DeleteSessionAliasesOnLogout::class);
+    }
+
     private function configurePolicies(): void
     {
         Gate::policy(Alias::class, AliasPolicy::class);

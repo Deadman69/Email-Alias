@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('inbound_emails', function (Blueprint $table) {
-            $table->id();
+            $table->ulid('id')->primary();
             $table->foreignUlid('alias_id')->constrained()->cascadeOnDelete();
             $table->string('from_address');
             $table->string('from_name')->nullable();
@@ -17,7 +17,9 @@ return new class extends Migration
             $table->longText('body_html')->nullable();
             $table->longText('body_text')->nullable();
             $table->json('headers')->nullable();
-            $table->unsignedInteger('size_bytes')->default(0);
+            $table->unsignedBigInteger('size_bytes')->default(0);
+            $table->boolean('is_truncated')->default(false);
+            $table->string('truncated_reason')->nullable()->comment('size_exceeded | parse_error');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
             $table->softDeletes();

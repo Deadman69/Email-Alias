@@ -37,4 +37,29 @@ return [
      * Automatically delete emails older than this many days (0 = never).
      */
     'email_retention_days' => (int) env('CLEANUP_EMAIL_RETENTION_DAYS', 30),
+
+    /*
+     * Maximum size of a single inbound email (in bytes).
+     * Emails exceeding this limit are stored without body (headers + metadata only).
+     * Default: 10 MB.
+     */
+    'max_email_size_bytes' => (int) env('ALIAS_MAX_EMAIL_SIZE_BYTES', 10 * 1024 * 1024),
+
+    /*
+     * Maximum size of a single attachment (in bytes).
+     * Attachments exceeding this limit are silently skipped.
+     * Default: 5 MB.
+     */
+    'max_attachment_size_bytes' => (int) env('ALIAS_MAX_ATTACHMENT_SIZE_BYTES', 5 * 1024 * 1024),
+
+    /*
+     * Whether SSO login is enabled.
+     */
+    'sso_enabled' => (bool) env('SSO_ENABLED', false),
+
+    /*
+     * Whether local login (email + password) is enabled.
+     * Disable in production if SSO is the only authentication method.
+     */
+    'local_auth_enabled' => (bool) env('LOCAL_AUTH_ENABLED', true),
 ];
