@@ -11,6 +11,7 @@
 - [x] `Dockerfile` smtp-server (Node.js 22 Alpine)
 - [x] Caddy reverse proxy (automatic HTTPS via caddy-docker-proxy)
 - [x] `artisan admin:create` command
+- [ ] Health page for all services
 
 ---
 
