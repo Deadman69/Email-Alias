@@ -57,12 +57,17 @@
                                 >
                                     <flux:select.option
                                         value="{{ \App\Enums\Role::User->value }}"
-                                        @selected($user->role === \App\Enums\Role::User)
-                                    >{{ __('User') }}</flux:select.option>
+                                        :selected="$user->role === \App\Enums\Role::User"
+                                    >
+                                        {{ __('User') }}
+                                    </flux:select.option>
+
                                     <flux:select.option
                                         value="{{ \App\Enums\Role::Admin->value }}"
-                                        @selected($user->role === \App\Enums\Role::Admin)
-                                    >{{ __('Admin') }}</flux:select.option>
+                                        :selected="$user->role === \App\Enums\Role::Admin"
+                                    >
+                                        {{ __('Admin') }}
+                                    </flux:select.option>
                                 </flux:select>
                             @endif
                         </td>

@@ -23,10 +23,11 @@ class HealthController extends Controller
         $healthy = collect($checks)->every(fn (array $c) => $c['status'] === 'ok');
 
         $payload = [
-            'status'    => $healthy ? 'healthy' : 'degraded',
-            'version'   => config('emailalias.version', '0.0.0'),
-            'checks'    => $checks,
-            'timestamp' => now()->toIso8601String(),
+            'healthy'  => $healthy,
+            'status'   => $healthy ? 'healthy' : 'degraded',
+            'version'  => config('emailalias.version', '0.0.0'),
+            'checks'   => $checks,
+            'timestamp'=> now()->toIso8601String(),
         ];
 
         if ($request->expectsJson() || $request->is('api/*')) {
@@ -47,7 +48,7 @@ class HealthController extends Controller
             'database' => $this->checkDatabase(),
             'cache'    => $this->checkCache(),
             'storage'  => $this->checkStorage(),
-            'smtp'     => $this->checkTcp(
+            'smtp receiver'     => $this->checkTcp(
                 config('emailalias.health_smtp_host', 'smtp-server'),
                 (int) config('emailalias.health_smtp_port', 25),
             ),

@@ -9,6 +9,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // PostgreSQL only
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+
         Schema::table('inbound_emails', function (Blueprint $table): void {
             $table->tsvector('search_vector')->nullable()->after('truncated_reason');
         });
@@ -29,6 +34,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+        
         DB::statement('DROP INDEX IF EXISTS inbound_emails_search_vector_idx');
         Schema::table('inbound_emails', function (Blueprint $table): void {
             $table->dropColumn('search_vector');

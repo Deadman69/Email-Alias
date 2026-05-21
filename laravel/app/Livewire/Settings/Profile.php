@@ -73,7 +73,10 @@ class Profile extends Component
      */
     public function updateLocale(): void
     {
-        $this->validateOnly(['locale', 'timezone']);
+        $this->validate([
+            'locale' => 'nullable|string|in:en,fr',
+            'timezone' => 'nullable|string|timezone:all',
+        ]);
 
         $user = Auth::user();
         $user->locale   = $this->locale ?: null;

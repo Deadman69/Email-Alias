@@ -37,9 +37,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AuditLogger::class);
         $this->app->singleton(HtmlSanitizer::class);
         $this->app->singleton(SettingService::class);
-
-        // Use our extended token model so restricted_alias_ids and expires_at work
-        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
     }
 
     /**
@@ -47,6 +44,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Use our extended token model so restricted_alias_ids and expires_at work
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+        
         $this->configurePolicies();
         $this->configureDefaults();
         $this->registerListeners();
@@ -76,8 +76,8 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureScramble(): void
     {
-        Scramble::configure()
-            ->withDocumentTransformer(function (OpenApi $openApi): void {
+        Scramble::registerApi('default')
+            ->afterOpenApiGenerated(function (OpenApi $openApi): void {
                 $openApi->secure(
                     SecurityScheme::http('bearer')
                         ->setDescription('Personal access token — create one in Settings → API Tokens.')

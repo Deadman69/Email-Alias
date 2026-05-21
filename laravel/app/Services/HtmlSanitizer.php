@@ -71,15 +71,16 @@ class HtmlSanitizer
             'http'   => true,
             'https'  => true,
             'mailto' => true,
+            'tel'    => true,
             'data'   => true,
         ]);
 
         // Force target="_blank" on all links
         $config->set('HTML.TargetBlank', true);
+        $config->set('Cache.SerializerPath', storage_path('app/htmlpurifier'));
 
-        // Disable cache to avoid filesystem permission issues
-        // Enable in production: $config->set('Cache.SerializerPath', storage_path('app/htmlpurifier'))
-        $config->set('Cache.DefinitionImpl', null);
+        // TEMPORARY : Bug to fix
+        $config->set('URI.DisableResources', true);
 
         $this->purifier = new HTMLPurifier($config);
     }
