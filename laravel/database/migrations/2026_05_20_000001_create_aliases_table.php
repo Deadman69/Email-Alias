@@ -18,6 +18,8 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('label')->nullable()->comment('Optional user-defined label');
             $table->timestamp('expires_at')->nullable();
+            $table->string('webhook_url')->nullable()
+            $table->string('webhook_secret', 64)->nullable()
             $table->timestamps();
             $table->softDeletes();
 
