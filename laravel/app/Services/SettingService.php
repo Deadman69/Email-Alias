@@ -48,6 +48,7 @@ class SettingService
         'alias_max_mailbox_size_bytes'     => 'emailalias.max_mailbox_size_bytes',
         'alias_max_user_storage_bytes'     => 'emailalias.max_user_storage_bytes',
         'version_check_enabled'            => 'emailalias.version_check_enabled',
+        'health_check_visibility'          => 'emailalias.health_check_visibility',
         // Azure — services.azure.*
         'azure_client_id'                  => 'services.azure.client_id',
         'azure_client_secret'              => 'services.azure.client_secret',
@@ -63,6 +64,7 @@ class SettingService
         'app_name'                        => ['group' => 'app',      'cast' => 'string',  'default' => 'EmailAlias'],
         'app_locale'                      => ['group' => 'app',      'cast' => 'string',  'default' => 'en'],
         'version_check_enabled'           => ['group' => 'app',      'cast' => 'bool',    'default' => true],
+        'health_check_visibility'         => ['group' => 'app',      'cast' => 'string',  'default' => 'public'],
 
         // ── auth ─────────────────────────────────────────────────────────────────
         'sso_enabled'                     => ['group' => 'auth',     'cast' => 'bool',    'default' => false],

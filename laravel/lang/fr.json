@@ -280,5 +280,18 @@
     "Mailbox storage quota exceeded": "Quota de stockage de la boîte mail dépassé",
     "User storage quota exceeded": "Quota de stockage utilisateur dépassé",
     "This mailbox is full. Some emails were dropped.": "Cette boîte mail est pleine. Certains e-mails ont été ignorés.",
-    "Your total storage limit has been reached. Some emails were dropped.": "Votre limite de stockage totale est atteinte. Certains e-mails ont été ignorés."
+    "Your total storage limit has been reached. Some emails were dropped.": "Votre limite de stockage totale est atteinte. Certains e-mails ont été ignorés.",
+
+    "Health check visibility": "Visibilité du bilan de santé",
+    "Public — no authentication required": "Public — aucune authentification requise",
+    "Authenticated users only": "Utilisateurs authentifiés uniquement",
+    "Admins only": "Administrateurs uniquement",
+    "Controls who can access /health and /api/v1/health endpoints.": "Contrôle qui peut accéder aux endpoints /health et /api/v1/health.",
+    "Healthy": "Opérationnel",
+    "Degraded": "Dégradé",
+    "database": "base de données",
+    "cache": "cache",
+    "storage": "stockage",
+    "smtp": "smtp",
+    "reverb": "reverb"
 }

@@ -6,7 +6,13 @@ use App\Http\Controllers\Api\V1\EmailController;
 use App\Http\Controllers\Api\V1\Admin\AliasController as AdminAliasController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
+
+// ── Health check (outside auth:sanctum — visibility handled by middleware) ────
+Route::prefix('v1')->middleware(['throttle:api', 'health.access'])->group(function (): void {
+    Route::get('health', HealthController::class)->name('api.health');
+});
 
 Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
 

@@ -280,5 +280,18 @@
     "Mailbox storage quota exceeded": "Mailbox storage quota exceeded",
     "User storage quota exceeded": "User storage quota exceeded",
     "This mailbox is full. Some emails were dropped.": "This mailbox is full. Some emails were dropped.",
-    "Your total storage limit has been reached. Some emails were dropped.": "Your total storage limit has been reached. Some emails were dropped."
+    "Your total storage limit has been reached. Some emails were dropped.": "Your total storage limit has been reached. Some emails were dropped.",
+
+    "Health check visibility": "Health check visibility",
+    "Public — no authentication required": "Public — no authentication required",
+    "Authenticated users only": "Authenticated users only",
+    "Admins only": "Admins only",
+    "Controls who can access /health and /api/v1/health endpoints.": "Controls who can access /health and /api/v1/health endpoints.",
+    "Healthy": "Healthy",
+    "Degraded": "Degraded",
+    "database": "database",
+    "cache": "cache",
+    "storage": "storage",
+    "smtp": "smtp",
+    "reverb": "reverb"
 }

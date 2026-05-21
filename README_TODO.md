@@ -11,7 +11,7 @@
 - [x] `Dockerfile` smtp-server (Node.js 22 Alpine)
 - [x] Caddy reverse proxy (automatic HTTPS via caddy-docker-proxy)
 - [x] `artisan admin:create` command
-- [ ] Health page for all services
+- [x] Health page for all services (`/health` web + `/api/v1/health` JSON, configurable visibility: public/auth/admin)
 
 ---
 
@@ -69,6 +69,8 @@
 - [x] `DeleteSessionAliasesOnLogout` listener
 - [x] `BootstrapSettings` middleware — reads DB settings → `Config::set()` on every request
 - [x] `SetLocale` middleware — user locale → platform default → `'en'` fallback
+- [x] `EnsureHealthCheckAccess` middleware — public/auth/admin visibility for health endpoints
+- [x] `HealthController` — checks DB, cache, storage, SMTP, Reverb; returns HTML or JSON; 200/503
 - [x] `config/emailalias.php` — defaults overridden at runtime by `SettingService`
 - [x] Oversized emails truncated: body not stored, `is_truncated=true`, warning banner in UI
 - [x] Attachments stored on private disk, authenticated download via `AttachmentController`
@@ -76,7 +78,7 @@
 - [x] Per-mailbox storage quota (`alias_max_mailbox_size_bytes`) — drops email if quota exceeded, notifies owner
 - [x] Per-user storage quota (`alias_max_user_storage_bytes`) — drops email if total across all mailboxes exceeded, notifies owner
 - [x] `MailboxQuotaExceeded` notification — stored in DB, shown in notification bell (1 notif/hour/alias/quota_type max)
-- [x] App version field — editable by Super Admin, stored in DB, visible in admin panel (semantic versioning enforced)
+- [x] App version — hardcoded in `VERSION` file, read-only in admin panel, `version_check_enabled` toggle for future GitHub auto-check
 - [ ] NTH: Super Admin manual quota override per mailbox (column on `aliases` table: `custom_max_bytes`)
 - [ ] NTH: Super Admin manual quota override per user (column on `users` table: `custom_max_storage_bytes`)
 
@@ -119,6 +121,7 @@
 - [x] Admin API routes use `'admin'` middleware alias (not class reference)
 - [x] Mailbox routes: `/mailbox`, `/mailbox/{alias}`, `/mailbox/emails/{email}`
 - [x] Admin routes: `/admin`, `/admin/users`, `/admin/audit`, `/admin/settings`
+- [x] Health endpoints: `GET /health` (HTML/JSON) + `GET /api/v1/health` (JSON) — visibility driven by `health_check_visibility` setting
 - [x] Dedicated user stats dashboard at `/dashboard` — aliases, emails, unread, storage used, recent emails
 
 ---

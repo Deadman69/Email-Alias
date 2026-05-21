@@ -54,6 +54,17 @@
                         <flux:switch wire:model="version_check_enabled" />
                         <flux:description>{{ __('Periodically checks GitHub for a newer release and displays a badge in the admin panel.') }}</flux:description>
                     </flux:field>
+
+                    <flux:field>
+                        <flux:label>{{ __('Health check visibility') }}</flux:label>
+                        <flux:select wire:model="health_check_visibility" class="max-w-xs">
+                            <flux:select.option value="public">{{ __('Public — no authentication required') }}</flux:select.option>
+                            <flux:select.option value="auth">{{ __('Authenticated users only') }}</flux:select.option>
+                            <flux:select.option value="admin">{{ __('Admins only') }}</flux:select.option>
+                        </flux:select>
+                        <flux:description>{{ __('Controls who can access /health and /api/v1/health endpoints.') }}</flux:description>
+                        <flux:error name="health_check_visibility" />
+                    </flux:field>
                 </div>
             </flux:tab.panel>
 

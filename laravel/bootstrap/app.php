@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\BootstrapSettings;
+use App\Http\Middleware\EnsureHealthCheckAccess;
 use App\Http\Middleware\EnsureInternalRequest;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
@@ -30,9 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', SetLocale::class);
 
         $middleware->alias([
-            'admin'       => EnsureUserIsAdmin::class,
-            'super_admin' => EnsureUserIsSuperAdmin::class,
-            'internal'    => EnsureInternalRequest::class,
+            'admin'        => EnsureUserIsAdmin::class,
+            'super_admin'  => EnsureUserIsSuperAdmin::class,
+            'internal'     => EnsureInternalRequest::class,
+            'health.access' => EnsureHealthCheckAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

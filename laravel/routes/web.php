@@ -3,6 +3,7 @@
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Internal\InboundEmailController;
+use App\Http\Controllers\HealthController;
 use App\Livewire\Admin\AuditLogViewer;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\Settings as AdminSettings;
@@ -14,6 +15,9 @@ use App\Livewire\UserDashboard;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
+
+// ── Health check (visibility controlled by platform setting) ─────────────────
+Route::get('/health', HealthController::class)->middleware('health.access')->name('health');
 
 // ── SSO (Azure AD) ────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {

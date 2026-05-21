@@ -20,6 +20,7 @@ class Settings extends Component
     public string $app_name              = '';
     public string $app_locale            = 'en';
     public bool   $version_check_enabled = true;
+    public string $health_check_visibility = 'public';
 
     // ── Auth ─────────────────────────────────────────────────────────────────────
     public bool   $sso_enabled          = false;
@@ -54,7 +55,8 @@ class Settings extends Component
     {
         $this->app_name              = (string) $settings->get('app_name', 'EmailAlias');
         $this->app_locale            = (string) $settings->get('app_locale', 'en');
-        $this->version_check_enabled = (bool)   $settings->get('version_check_enabled', true);
+        $this->version_check_enabled    = (bool)   $settings->get('version_check_enabled', true);
+        $this->health_check_visibility = (string) $settings->get('health_check_visibility', 'public');
         $this->sso_enabled         = (bool) $settings->get('sso_enabled', false);
         $this->azure_client_id     = (string) $settings->get('azure_client_id', '');
         // Never expose the client secret in Livewire state — leave blank.
@@ -105,6 +107,7 @@ class Settings extends Component
             'azure_tenant_id'               => 'nullable|string|max:255',
             'alias_max_per_user'            => 'required|integer|min:1|max:1000',
             'alias_default_type'            => 'required|in:session,duration,permanent',
+            'health_check_visibility'       => 'required|in:public,auth,admin',
             'alias_max_email_size_mb'       => 'required|integer|min:1|max:100',
             'alias_max_attachment_size_mb'  => 'required|integer|min:1|max:50',
             'alias_max_mailbox_size_mb'     => 'required|integer|min:0|max:102400',
@@ -123,6 +126,7 @@ class Settings extends Component
             'app_name'                         => $this->app_name,
             'app_locale'                       => $this->app_locale,
             'version_check_enabled'            => $this->version_check_enabled,
+            'health_check_visibility'          => $this->health_check_visibility,
             'sso_enabled'                      => $this->sso_enabled,
             'azure_client_id'                  => $this->azure_client_id,
             'azure_tenant_id'                  => $this->azure_tenant_id,

@@ -111,6 +111,28 @@ return [
     'alias_default_type' => env('ALIAS_DEFAULT_TYPE', 'session'),
 
     /*
+     * Health check visibility level.
+     * Controls who can access /health and /api/v1/health.
+     *   - 'public' : no authentication required (default)
+     *   - 'auth'   : any authenticated user or valid API token
+     *   - 'admin'  : only admins and super-admins
+     */
+    'health_check_visibility' => env('HEALTH_CHECK_VISIBILITY', 'public'),
+
+    /*
+     * Health check — SMTP server connection details.
+     * Used to verify the SMTP receiver is reachable.
+     */
+    'health_smtp_host' => env('HEALTH_SMTP_HOST', 'smtp-server'),
+    'health_smtp_port' => (int) env('HEALTH_SMTP_PORT', 25),
+
+    /*
+     * Health check — Reverb WebSocket server connection details.
+     */
+    'health_reverb_host' => env('HEALTH_REVERB_HOST', 'reverb'),
+    'health_reverb_port' => (int) env('HEALTH_REVERB_PORT', 8080),
+
+    /*
      * NOTE: All values above can be overridden at runtime by a Super Admin
      * via the Settings panel (/admin/settings). Overrides are stored in the
      * `settings` database table and applied on every request by the
