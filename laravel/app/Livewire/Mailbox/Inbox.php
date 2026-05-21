@@ -116,7 +116,16 @@ class Inbox extends Component
         $alias = Alias::findOrFail($this->aliasId);
         $this->authorize('view', $alias);
 
+        $count = InboundEmail::where('alias_id', $this->aliasId)->unread()->count();
         InboundEmail::where('alias_id', $this->aliasId)->unread()->update(['read_at' => now()]);
+
+        if ($count > 0) {
+            $auditLogger->log(AuditEvent::EmailsBulkRead, $alias, [
+                'alias'   => $alias->address,
+                'count'   => $count,
+            ]);
+        }
+
         unset($this->emails, $this->unreadCount);
         Flux::toast(text: __('All emails marked as read.'));
     }

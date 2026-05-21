@@ -2,8 +2,11 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\AuditEvent;
+use App\Services\AuditLogger;
 use App\Services\SettingService;
 use Flux\Flux;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -50,7 +53,10 @@ class Settings extends Component
         $this->app_locale = (string) $settings->get('app_locale', 'en');
         $this->sso_enabled         = (bool) $settings->get('sso_enabled', false);
         $this->azure_client_id     = (string) $settings->get('azure_client_id', '');
-        $this->azure_client_secret = (string) $settings->get('azure_client_secret', '');
+        // Never expose the client secret in Livewire state — leave blank.
+        // The view shows a hint when a value is already stored.
+        // On save, an empty field means "keep the existing value".
+        $this->azure_client_secret = '';
         $this->azure_tenant_id     = (string) $settings->get('azure_tenant_id', '');
         $this->local_auth_enabled  = (bool) $settings->get('local_auth_enabled', true);
         $this->registration_enabled = (bool) $settings->get('registration_enabled', false);
@@ -77,13 +83,13 @@ class Settings extends Component
 
     // ── Actions ───────────────────────────────────────────────────────────────────
 
-    public function save(SettingService $settings): void
+    public function save(SettingService $settings, AuditLogger $auditLogger): void
     {
         $this->validate([
             'app_name'                      => 'required|string|max:100',
             'app_locale'                    => 'required|in:en,fr',
             'azure_client_id'               => 'nullable|string|max:255',
-            'azure_client_secret'           => 'nullable|string|max:255',
+            'azure_client_secret'           => 'nullable|string|max:500',
             'azure_tenant_id'               => 'nullable|string|max:255',
             'alias_max_per_user'            => 'required|integer|min:1|max:1000',
             'alias_default_type'            => 'required|in:session,duration,permanent',
@@ -92,20 +98,18 @@ class Settings extends Component
             'cleanup_email_retention_days'  => 'required|integer|min:0|max:3650',
         ]);
 
-        // Enforce: if SSO is the only auth method, local must not be the only option.
-        // Both can't be disabled at the same time.
+        // Both SSO and local auth cannot be disabled simultaneously.
         if (! $this->sso_enabled && ! $this->local_auth_enabled) {
             $this->addError('local_auth_enabled', __('At least one authentication method must be enabled.'));
 
             return;
         }
 
-        $settings->fill([
+        $data = [
             'app_name'                         => $this->app_name,
             'app_locale'                       => $this->app_locale,
             'sso_enabled'                      => $this->sso_enabled,
             'azure_client_id'                  => $this->azure_client_id,
-            'azure_client_secret'              => $this->azure_client_secret,
             'azure_tenant_id'                  => $this->azure_tenant_id,
             'local_auth_enabled'               => $this->local_auth_enabled,
             'registration_enabled'             => $this->registration_enabled,
@@ -117,6 +121,20 @@ class Settings extends Component
             'alias_max_attachment_size_bytes'  => $this->alias_max_attachment_size_mb * 1024 * 1024,
             'cleanup_email_retention_days'     => $this->cleanup_email_retention_days,
             'admin_can_read_emails'            => $this->admin_can_read_emails,
+        ];
+
+        // Only update the Azure client secret if the admin explicitly entered a new value.
+        // An empty field means "keep the existing encrypted value".
+        if ($this->azure_client_secret !== '') {
+            $data['azure_client_secret'] = $this->azure_client_secret;
+            // Clear from Livewire state immediately after saving
+            $this->azure_client_secret = '';
+        }
+
+        $settings->fill($data);
+
+        $auditLogger->log(AuditEvent::SettingsSaved, null, [
+            'actor' => Auth::user()->email,
         ]);
 
         Flux::toast(variant: 'success', text: __('Settings saved.'));

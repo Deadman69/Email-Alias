@@ -15,7 +15,7 @@ class EnsureUserIsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user()?->role->isAtLeast(Role::Admin)) {
+        if (! $request->user()?->role?->isAtLeast(Role::Admin)) {
             abort(403, 'Administrator access required.');
         }
 

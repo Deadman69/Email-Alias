@@ -231,5 +231,12 @@
     "Download email attachments": "Télécharger les pièces jointes des e-mails",
     "List and delete any alias on the platform": "Lister et supprimer tout alias de la plateforme",
     "List users and update their role or status": "Lister les utilisateurs et modifier leur rôle ou statut",
-    "Export the full audit log": "Exporter le journal d'audit complet"
+    "Export the full audit log": "Exporter le journal d'audit complet",
+
+    "Notifications": "Notifications",
+    "No notifications.": "Aucune notification.",
+    "Mark all as read": "Tout marquer comme lu",
+    "Mark as read": "Marquer comme lu",
+    "Mailbox rate-limited": "Boîte mail limitée",
+    "Too many incoming emails. Some were dropped to protect your mailbox.": "Trop d'e-mails reçus en peu de temps. Certains ont été ignorés pour protéger votre boîte mail."
 }

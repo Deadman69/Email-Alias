@@ -18,6 +18,10 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        // Defense-in-depth: token ability checked first, then role.
+        // The 'admin' middleware already enforces the role at route level,
+        // but this guards against future mis-routing or middleware removal.
+        abort_unless($request->user()->isAdmin(), 403);
         abort_unless($request->user()->tokenCan(TokenAbility::AdminUsers->value), 403);
 
         $users = User::query()
@@ -44,6 +48,7 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user, AuditLogger $auditLogger): JsonResponse
     {
+        abort_unless($request->user()->isAdmin(), 403);
         abort_unless($request->user()->tokenCan(TokenAbility::AdminUsers->value), 403);
 
         // Cannot demote/modify other super admins or self

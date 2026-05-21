@@ -22,6 +22,11 @@ class DeleteSessionAliasesOnLogout
             return;
         }
 
+        // Log the logout event before destroying the session.
+        $this->auditLogger->log(AuditEvent::UserLogout, null, [
+            'method' => 'web',
+        ], $event->user->id);
+
         $aliases = Alias::where('user_id', $event->user->id)
             ->where('type', AliasType::Session)
             ->get();

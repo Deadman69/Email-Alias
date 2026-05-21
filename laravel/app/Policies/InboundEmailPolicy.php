@@ -9,12 +9,19 @@ use App\Models\User;
 class InboundEmailPolicy
 {
     /**
-     * Admins and Super Admins bypass all policy checks.
+     * Super Admins bypass all email policy checks.
+     * Regular Admins can view email content only when the platform setting
+     * `admin_can_read_emails` is enabled (defaults to false).
+     * No admin bypass is granted for destructive actions (delete).
      */
-    public function before(User $user): ?bool
+    public function before(User $user, string $ability): ?bool
     {
-        if ($user->role->isAtLeast(Role::Admin)) {
+        if ($user->role === Role::SuperAdmin) {
             return true;
+        }
+
+        if ($user->role->isAtLeast(Role::Admin) && $ability === 'view') {
+            return config('emailalias.admin_can_read_emails', false) ? true : null;
         }
 
         return null;

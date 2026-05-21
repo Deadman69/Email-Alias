@@ -41,24 +41,36 @@ class SsoController extends Controller
             ]);
         }
 
-        // Find by azure_id first, then by email (first login)
-        $user = User::where('azure_id', $socialUser->getId())->first()
-            ?? User::where('email', $email)->first();
+        $azureId = $socialUser->getId();
 
-        if ($user) {
-            // Update azure_id if not yet set (first SSO login for an existing account)
-            if ($user->azure_id === null) {
-                $user->update(['azure_id' => $socialUser->getId()]);
+        // Find by azure_id first (fast path for returning SSO users)
+        $user = User::where('azure_id', $azureId)->first();
+
+        if (! $user) {
+            $existingByEmail = User::where('email', $email)->first();
+
+            if ($existingByEmail) {
+                // Link SSO identity to an existing local account.
+                // This is intentional — verified by matching email from the trusted SSO provider.
+                $existingByEmail->azure_id = $azureId;
+                $existingByEmail->save();
+
+                $auditLogger->log(AuditEvent::SsoAccountLinked, $existingByEmail, [
+                    'email'    => $email,
+                    'provider' => 'azure',
+                ]);
+
+                $user = $existingByEmail;
+            } else {
+                // Create account automatically — email is verified via SSO
+                $user = User::create([
+                    'name'              => $socialUser->getName() ?? $email,
+                    'email'             => $email,
+                    'azure_id'          => $azureId,
+                    'email_verified_at' => now(),
+                    'password'          => null, // SSO-only account — no local password
+                ]);
             }
-        } else {
-            // Create account automatically — email is verified via SSO
-            $user = User::create([
-                'name'              => $socialUser->getName() ?? $email,
-                'email'             => $email,
-                'azure_id'          => $socialUser->getId(),
-                'email_verified_at' => now(),
-                'password'          => null, // SSO-only account has no local password
-            ]);
         }
 
         Auth::login($user, remember: true);

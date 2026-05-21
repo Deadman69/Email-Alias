@@ -6,6 +6,7 @@ use App\Enums\AuditEvent;
 use App\Models\AuditLog;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -26,10 +27,12 @@ class DeliverWebhook implements ShouldQueue
 
     /**
      * @param  array<string, mixed>  $payload
+     * @param  string  $encryptedSecret  Secret pre-encrypted with Crypt::encryptString() by the caller.
+     *                                   Stored encrypted in the queue to avoid plaintext secrets at rest.
      */
     public function __construct(
         public readonly string $webhookUrl,
-        public readonly string $webhookSecret,
+        public readonly string $encryptedSecret,
         public readonly int    $aliasOwnerId,
         public readonly array  $payload,
     ) {}
@@ -42,10 +45,13 @@ class DeliverWebhook implements ShouldQueue
 
     public function handle(): void
     {
+        // Decrypt secret — stored encrypted in the queue payload to avoid plaintext at rest.
+        $secret = Crypt::decryptString($this->encryptedSecret);
+
         // Serialize once — the exact same bytes are signed and sent in the body.
         // Receivers must compute HMAC over the raw request body (never re-encode the parsed JSON).
         $body      = json_encode($this->payload, self::JSON_FLAGS);
-        $signature = 'sha256=' . hash_hmac('sha256', $body, $this->webhookSecret);
+        $signature = 'sha256=' . hash_hmac('sha256', $body, $secret);
 
         $response = Http::withHeaders([
             'X-Webhook-Signature'   => $signature,

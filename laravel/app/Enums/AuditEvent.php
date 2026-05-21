@@ -38,6 +38,15 @@ enum AuditEvent: string
     case WebhookDelivered = 'webhook.delivered';
     case WebhookFailed    = 'webhook.failed';
 
+    // ── Auth / profile events ──────────────────────────────────────────────────
+    case SsoAccountLinked = 'sso.account.linked';
+    case ProfileUpdated   = 'profile.updated';
+    case PasswordChanged  = 'password.changed';
+    case SettingsSaved    = 'settings.saved';
+
+    // ── Bulk actions ──────────────────────────────────────────────────────────
+    case EmailsBulkRead   = 'email.bulk_read';
+
     public function label(): string
     {
         return match ($this) {
@@ -50,10 +59,15 @@ enum AuditEvent: string
             self::EmailReceived      => 'Email received',
             self::EmailRead          => 'Email read',
             self::EmailDeleted       => 'Email deleted',
+            self::EmailsBulkRead     => 'Emails bulk read',
             self::UserLogin          => 'User login',
             self::UserLogout         => 'User logout',
             self::TwoFactorEnabled   => '2FA enabled',
             self::TwoFactorDisabled  => '2FA disabled',
+            self::SsoAccountLinked   => 'SSO account linked',
+            self::ProfileUpdated     => 'Profile updated',
+            self::PasswordChanged    => 'Password changed',
+            self::SettingsSaved      => 'Platform settings saved',
             self::AdminAliasCreated  => 'Admin: alias created',
             self::AdminAliasDeleted  => 'Admin: alias deleted',
             self::AdminViewedEmail   => 'Admin: email viewed',

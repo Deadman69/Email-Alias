@@ -100,7 +100,7 @@ class AliasController extends BaseApiController
         $this->authorize('delete', $alias);
         $this->checkTokenAliasAccess($request, $alias);
 
-        $aliasService->delete($alias);
+        $aliasService->delete($alias, actingUser: $request->user());
         $auditLogger->log(AuditEvent::ApiAliasDeleted, null, ['address' => $alias->address]);
 
         return response()->json(null, 204);

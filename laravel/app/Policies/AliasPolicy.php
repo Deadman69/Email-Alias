@@ -9,11 +9,18 @@ use App\Models\User;
 class AliasPolicy
 {
     /**
-     * Admins and Super Admins bypass all policy checks.
+     * Super Admins bypass all alias policy checks.
+     * Regular Admins can only bypass read-only checks (viewAny / view) to
+     * support the admin dashboard — they must not be able to modify or delete
+     * other users' aliases through normal web routes.
      */
-    public function before(User $user): ?bool
+    public function before(User $user, string $ability): ?bool
     {
-        if ($user->role->isAtLeast(Role::Admin)) {
+        if ($user->role === Role::SuperAdmin) {
+            return true;
+        }
+
+        if ($user->role->isAtLeast(Role::Admin) && in_array($ability, ['viewAny', 'view'], true)) {
             return true;
         }
 

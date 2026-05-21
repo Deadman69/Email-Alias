@@ -9,9 +9,13 @@ use App\Models\AuditLog;
 use App\Models\Attachment;
 use App\Models\InboundEmail;
 use App\Jobs\DeliverWebhook;
+use App\Notifications\MailboxSpamDetected;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -55,6 +59,22 @@ class ProcessInboundEmail implements ShouldQueue
         $isTruncated = $this->sizeBytes > $maxBytes;
 
         foreach ($matchedAliases as $alias) {
+            // Per-alias rate limit: max 10 emails per minute.
+            // Prevents a single mailbox from being used as a DoS amplifier and
+            // protects the platform from targeted spam floods.
+            $rateLimitKey = "inbound-alias-rate:{$alias->id}";
+
+            if (RateLimiter::tooManyAttempts($rateLimitKey, maxAttempts: 10)) {
+                $this->notifySpamIfNeeded($alias);
+                Log::info('Inbound email dropped: alias rate limit exceeded', [
+                    'alias'    => $alias->address,
+                    'alias_id' => $alias->id,
+                ]);
+                continue;
+            }
+
+            RateLimiter::hit($rateLimitKey, decaySeconds: 60);
+
             $email = InboundEmail::create([
                 'alias_id'         => $alias->id,
                 'from_address'     => $this->fromAddress,
@@ -89,15 +109,38 @@ class ProcessInboundEmail implements ShouldQueue
 
             EmailReceived::dispatch($email);
 
-            // Dispatch webhook if configured on this alias
+            // Dispatch webhook if configured on this alias.
+            // The secret is encrypted before being stored in the queue payload to avoid
+            // plaintext secrets at rest in the queue backend (Redis, DB, etc.).
             if ($alias->webhook_url && $alias->webhook_secret) {
                 DeliverWebhook::dispatch(
-                    webhookUrl:    $alias->webhook_url,
-                    webhookSecret: $alias->webhook_secret,
-                    aliasOwnerId:  $alias->user_id,
-                    payload:       $this->buildWebhookPayload($alias, $email),
+                    webhookUrl:      $alias->webhook_url,
+                    encryptedSecret: Crypt::encryptString($alias->webhook_secret),
+                    aliasOwnerId:    $alias->user_id,
+                    payload:         $this->buildWebhookPayload($alias, $email),
                 );
             }
+        }
+    }
+
+    /**
+     * Notify the alias owner that their mailbox is being rate-limited.
+     * Uses a separate cache key to send at most one notification per alias per hour,
+     * preventing notification spam if the flood persists.
+     */
+    private function notifySpamIfNeeded(Alias $alias): void
+    {
+        $notifKey = "alias-spam-notif:{$alias->id}";
+
+        if (Cache::has($notifKey)) {
+            return;
+        }
+
+        // Suppress further notifications for this alias for 1 hour
+        Cache::put($notifKey, true, 3600);
+
+        if ($alias->user) {
+            $alias->user->notify(new MailboxSpamDetected($alias->address, $alias->id));
         }
     }
 

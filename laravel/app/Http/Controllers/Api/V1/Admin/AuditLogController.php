@@ -20,10 +20,13 @@ class AuditLogController extends Controller
     {
         abort_unless($request->user()->tokenCan(TokenAbility::AdminLogs->value), 403);
 
+        // Validate event against the known enum values to prevent free-form string injection.
+        $validEvents = array_column(AuditEvent::cases(), 'value');
+
         $request->validate([
             'from'    => 'nullable|date',
             'to'      => 'nullable|date',
-            'event'   => 'nullable|string',
+            'event'   => ['nullable', 'string', \Illuminate\Validation\Rule::in($validEvents)],
             'user_id' => 'nullable|integer',
         ]);
 

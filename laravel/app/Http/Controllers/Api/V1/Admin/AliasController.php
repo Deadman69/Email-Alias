@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\AuditEvent;
 use App\Enums\TokenAbility;
 use App\Http\Controllers\Controller;
 use App\Models\Alias;
 use App\Services\AliasService;
-use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,6 +16,7 @@ class AliasController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        abort_unless($request->user()->isAdmin(), 403);
         abort_unless($request->user()->tokenCan(TokenAbility::AdminAliases->value), 403);
 
         $query = Alias::with('user')
@@ -47,16 +46,14 @@ class AliasController extends Controller
     /**
      * Delete any alias (admin action).
      */
-    public function destroy(Request $request, Alias $alias, AliasService $aliasService, AuditLogger $auditLogger): JsonResponse
+    public function destroy(Request $request, Alias $alias, AliasService $aliasService): JsonResponse
     {
+        abort_unless($request->user()->isAdmin(), 403);
         abort_unless($request->user()->tokenCan(TokenAbility::AdminAliases->value), 403);
 
-        $aliasService->delete($alias, byAdmin: true);
-        $auditLogger->log(AuditEvent::AdminAliasDeleted, null, [
-            'address'  => $alias->address,
-            'owner_id' => $alias->user_id,
-            'via'      => 'api',
-        ]);
+        // AliasService::delete() logs AdminAliasDeleted with correct actor attribution.
+        // We do NOT add a second log here to avoid double-entries in the audit trail.
+        $aliasService->delete($alias, byAdmin: true, actingUser: $request->user());
 
         return response()->json(null, 204);
     }

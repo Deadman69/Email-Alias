@@ -194,7 +194,7 @@ class Dashboard extends Component
         $alias = Alias::findOrFail($aliasId);
         $this->authorize('delete', $alias);
 
-        $aliasService->delete($alias);
+        $aliasService->delete($alias, actingUser: Auth::user());
 
         unset($this->aliases);
         Flux::toast(variant: 'success', text: __('Alias deleted.'));
@@ -341,7 +341,10 @@ class Dashboard extends Component
             default                => Str::random(40),           // first-time setup
         };
 
-        $alias->update(['webhook_url' => $url, 'webhook_secret' => $secret]);
+        // Use direct assignment — webhook_secret is excluded from $fillable for mass-assignment safety.
+        $alias->webhook_url    = $url;
+        $alias->webhook_secret = $secret;
+        $alias->save();
 
         unset($this->aliases, $this->webhookAlias);
         Flux::toast(variant: 'success', text: $url ? __('Webhook saved.') : __('Webhook removed.'));
@@ -357,7 +360,8 @@ class Dashboard extends Component
         $alias = Alias::findOrFail($this->webhookAliasId);
         $this->authorize('update', $alias);
 
-        $alias->update(['webhook_secret' => Str::random(40)]);
+        $alias->webhook_secret = Str::random(40);
+        $alias->save();
 
         unset($this->webhookAlias);
         Flux::toast(variant: 'warning', text: __('Webhook secret rotated. Update your receiver before the next delivery.'));

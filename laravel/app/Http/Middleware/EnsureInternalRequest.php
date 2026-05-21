@@ -16,7 +16,9 @@ class EnsureInternalRequest
     {
         $secret = config('emailalias.smtp_secret');
 
-        if (empty($secret) || $request->header('X-SMTP-Secret') !== $secret) {
+        $incoming = $request->header('X-SMTP-Secret', '');
+
+        if (empty($secret) || ! hash_equals($secret, $incoming)) {
             abort(403, 'Unauthorized internal request.');
         }
 

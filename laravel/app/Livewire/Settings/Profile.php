@@ -3,6 +3,8 @@
 namespace App\Livewire\Settings;
 
 use App\Concerns\ProfileValidationRules;
+use App\Enums\AuditEvent;
+use App\Services\AuditLogger;
 use Flux\Flux;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\App;
@@ -39,7 +41,7 @@ class Profile extends Component
     /**
      * Update the profile information for the currently authenticated user.
      */
-    public function updateProfileInformation(): void
+    public function updateProfileInformation(AuditLogger $auditLogger): void
     {
         $user = Auth::user();
 
@@ -52,6 +54,10 @@ class Profile extends Component
         }
 
         $user->save();
+
+        $auditLogger->log(AuditEvent::ProfileUpdated, $user, [
+            'fields' => array_keys($validated),
+        ]);
 
         Flux::toast(variant: 'success', text: __('Profile updated.'));
     }

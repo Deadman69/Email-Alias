@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AliasType;
 use Database\Factories\AliasFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -17,7 +18,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\CarbonInterface;
 
 #[UseFactory(AliasFactory::class)]
-#[Fillable(['address', 'local_part', 'type', 'duration', 'user_id', 'label', 'expires_at', 'webhook_url', 'webhook_secret'])]
+#[Fillable(['address', 'local_part', 'type', 'duration', 'user_id', 'label', 'expires_at', 'webhook_url'])]
+#[Hidden(['webhook_secret'])]
 class Alias extends Model
 {
     use HasFactory, HasUlids, SoftDeletes;

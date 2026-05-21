@@ -3,11 +3,11 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Alias;
-use App\Models\AuditLog;
 use App\Models\InboundEmail;
 use App\Models\User;
 use App\Services\AliasService;
 use Flux\Flux;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -58,7 +58,7 @@ class Dashboard extends Component
     public function deleteAlias(string $aliasId, AliasService $aliasService): void
     {
         $alias = Alias::findOrFail($aliasId);
-        $aliasService->delete($alias, byAdmin: true);
+        $aliasService->delete($alias, byAdmin: true, actingUser: Auth::user());
         unset($this->aliases, $this->stats);
         Flux::toast(variant: 'success', text: __('Alias deleted.'));
     }

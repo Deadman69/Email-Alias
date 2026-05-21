@@ -53,9 +53,9 @@
 - [x] `PersonalAccessToken` — extends Sanctum token, `restricted_alias_ids`, `canAccessAlias()`
 - [x] `AliasType` enum — `Session | Duration | Permanent`
 - [x] `Role` enum — `User | Admin | SuperAdmin`, hierarchical `isAtLeast()`
-- [x] `AuditEvent` enum — 24 events including API and webhook events
+- [x] `AuditEvent` enum — 29 events including API, webhook, auth, profile and bulk events
 - [x] `TokenAbility` enum — 9 scopes (user + admin), `label()`, `description()`, i18n-ready
-- [x] `AliasService` — `create()`, `delete()`, `extend()`, `suggestAlternative()`, `isAddressAvailable()`, `enforceRateLimit()`
+- [x] `AliasService` — `create()`, `delete(actingUser)`, `extend()`, `suggestAlternative()`, `isAddressAvailable()`, `enforceRateLimit()`
 - [x] `AuditLogger` — centralized `log()` service
 - [x] `HtmlSanitizer` — HTMLPurifier: strip `on*`, injections, external images; regex fallback if package absent
 - [x] `SettingService` — get/set/fill, cache, secret encryption, `CONFIG_MAP`; never caches empty result on fresh install
@@ -63,6 +63,7 @@
 - [x] `DeliverWebhook` job — HMAC-SHA256 signed, deterministic JSON (`JSON_UNESCAPED_UNICODE|SLASHES`), `withBody()` for exact byte match, 3 retries with exponential backoff
 - [x] `CleanupExpiredAliases` job — scheduled daily purge
 - [x] `EmailReceived` event — broadcast on private channel `alias.{id}`
+- [x] `MailboxSpamDetected` notification — stored in DB, shown in notification bell (1 notif/hour/alias max)
 - [x] `DeleteSessionAliasesOnLogout` listener
 - [x] `BootstrapSettings` middleware — reads DB settings → `Config::set()` on every request
 - [x] `SetLocale` middleware — user locale → platform default → `'en'` fallback
@@ -87,6 +88,7 @@
 - [x] Login rate limiting (Fortify)
 - [x] SSO Azure AD (Socialite + `socialiteproviders/microsoft-azure`) — configurable from UI
 - [x] Alias creation rate limiting (10/min/user via `RateLimiter`)
+- [x] Per-alias inbound email rate limiting (10/min/alias) — drops over-limit emails, notifies owner
 - [x] Enforced 2FA configurable (Super Admin panel)
 - [x] API tokens — Sanctum personal access tokens with ability scopes and optional alias restriction
 - [x] Token abilities server-side filtered by role (regular users cannot create admin-scoped tokens)

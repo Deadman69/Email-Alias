@@ -3,6 +3,8 @@
 namespace App\Livewire\Settings;
 
 use App\Concerns\PasswordValidationRules;
+use App\Enums\AuditEvent;
+use App\Services\AuditLogger;
 use Exception;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -92,7 +94,7 @@ class Security extends Component
     /**
      * Update the password for the currently authenticated user.
      */
-    public function updatePassword(): void
+    public function updatePassword(AuditLogger $auditLogger): void
     {
         try {
             $validated = $this->validate([
@@ -110,6 +112,8 @@ class Security extends Component
         ]);
 
         $this->reset('current_password', 'password', 'password_confirmation');
+
+        $auditLogger->log(AuditEvent::PasswordChanged, Auth::user());
 
         Flux::toast(variant: 'success', text: __('Password updated.'));
     }
@@ -176,13 +180,15 @@ class Security extends Component
     /**
      * Enable two-factor authentication for the user.
      */
-    public function enable(EnableTwoFactorAuthentication $enableTwoFactorAuthentication): void
+    public function enable(EnableTwoFactorAuthentication $enableTwoFactorAuthentication, AuditLogger $auditLogger): void
     {
         $enableTwoFactorAuthentication(auth()->user());
 
         if (! $this->requiresConfirmation) {
             $this->twoFactorEnabled = auth()->user()->hasEnabledTwoFactorAuthentication();
         }
+
+        $auditLogger->log(AuditEvent::TwoFactorEnabled, auth()->user());
 
         $this->loadSetupData();
 
@@ -249,9 +255,11 @@ class Security extends Component
     /**
      * Disable two-factor authentication for the user.
      */
-    public function disable(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
+    public function disable(DisableTwoFactorAuthentication $disableTwoFactorAuthentication, AuditLogger $auditLogger): void
     {
         $disableTwoFactorAuthentication(auth()->user());
+
+        $auditLogger->log(AuditEvent::TwoFactorDisabled, auth()->user());
 
         $this->twoFactorEnabled = false;
     }

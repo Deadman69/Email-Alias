@@ -8,6 +8,6 @@ use Illuminate\Support\Facades\Route;
  * Protected by EnsureInternalRequest middleware (shared secret header).
  * These routes must NEVER be exposed to the public internet.
  */
-Route::middleware(['internal'])->prefix('internal')->group(function () {
+Route::middleware(['internal', 'throttle:120,1'])->prefix('internal')->group(function () {
     Route::post('/inbound', [InboundEmailController::class, 'store'])->name('internal.inbound');
 });

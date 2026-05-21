@@ -67,14 +67,17 @@ class AliasService
 
     /**
      * Delete an alias and all its emails.
+     *
+     * Pass `$actingUser` to record the correct actor when called from a context
+     * where `Auth::id()` may be null (queue workers, listeners, etc.).
      */
-    public function delete(Alias $alias, bool $byAdmin = false): void
+    public function delete(Alias $alias, bool $byAdmin = false, ?User $actingUser = null): void
     {
         $event = $byAdmin ? AuditEvent::AdminAliasDeleted : AuditEvent::AliasDeleted;
 
         $this->auditLogger->log($event, $alias, [
             'address' => $alias->address,
-        ]);
+        ], $actingUser?->id);
 
         $alias->delete();
     }

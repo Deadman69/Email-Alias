@@ -231,5 +231,12 @@
     "Download email attachments": "Download email attachments",
     "List and delete any alias on the platform": "List and delete any alias on the platform",
     "List users and update their role or status": "List users and update their role or status",
-    "Export the full audit log": "Export the full audit log"
+    "Export the full audit log": "Export the full audit log",
+
+    "Notifications": "Notifications",
+    "No notifications.": "No notifications.",
+    "Mark all as read": "Mark all as read",
+    "Mark as read": "Mark as read",
+    "Mailbox rate-limited": "Mailbox rate-limited",
+    "Too many incoming emails. Some were dropped to protect your mailbox.": "Too many incoming emails. Some were dropped to protect your mailbox."
 }
