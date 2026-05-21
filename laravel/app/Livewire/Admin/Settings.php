@@ -24,9 +24,22 @@ class Settings extends Component
 
     // ── Auth ─────────────────────────────────────────────────────────────────────
     public bool   $sso_enabled          = false;
+    public string $sso_provider         = 'azure';
+    // Azure AD
     public string $azure_client_id      = '';
     public string $azure_client_secret  = '';
     public string $azure_tenant_id      = '';
+    // Generic OIDC (Keycloak, Okta, Auth0…)
+    public string $oidc_client_id       = '';
+    public string $oidc_client_secret   = '';
+    public string $oidc_issuer_url      = '';
+    // SAML 2.0
+    public string $saml_idp_entity_id   = '';
+    public string $saml_idp_sso_url     = '';
+    public string $saml_idp_slo_url     = '';
+    public string $saml_idp_certificate = '';
+    public string $saml_sp_entity_id    = '';
+    // General auth
     public bool   $local_auth_enabled   = true;
     public bool   $registration_enabled = false;
     public string $scim_bearer_token    = '';
@@ -58,14 +71,24 @@ class Settings extends Component
         $this->app_locale            = (string) $settings->get('app_locale', 'en');
         $this->version_check_enabled    = (bool)   $settings->get('version_check_enabled', true);
         $this->health_check_visibility = (string) $settings->get('health_check_visibility', 'public');
-        $this->sso_enabled         = (bool) $settings->get('sso_enabled', false);
+        $this->sso_enabled         = (bool)   $settings->get('sso_enabled', false);
+        $this->sso_provider        = (string) $settings->get('sso_provider', 'azure');
+        // Azure AD — never expose secrets in Livewire state
         $this->azure_client_id     = (string) $settings->get('azure_client_id', '');
-        // Never expose the client secret in Livewire state — leave blank.
-        // The view shows a hint when a value is already stored.
-        // On save, an empty field means "keep the existing value".
-        $this->azure_client_secret = '';
-        $this->scim_bearer_token   = ''; // Never expose in Livewire state
+        $this->azure_client_secret = '';  // leave blank to keep existing value
         $this->azure_tenant_id     = (string) $settings->get('azure_tenant_id', '');
+        // Generic OIDC
+        $this->oidc_client_id      = (string) $settings->get('oidc_client_id', '');
+        $this->oidc_client_secret  = '';  // leave blank to keep existing value
+        $this->oidc_issuer_url     = (string) $settings->get('oidc_issuer_url', '');
+        // SAML 2.0
+        $this->saml_idp_entity_id   = (string) $settings->get('saml_idp_entity_id', '');
+        $this->saml_idp_sso_url     = (string) $settings->get('saml_idp_sso_url', '');
+        $this->saml_idp_slo_url     = (string) $settings->get('saml_idp_slo_url', '');
+        $this->saml_idp_certificate = (string) $settings->get('saml_idp_certificate', '');
+        $this->saml_sp_entity_id    = (string) $settings->get('saml_sp_entity_id', '');
+        // SCIM
+        $this->scim_bearer_token   = ''; // Never expose in Livewire state
         $this->local_auth_enabled  = (bool) $settings->get('local_auth_enabled', true);
         $this->registration_enabled = (bool) $settings->get('registration_enabled', false);
 
@@ -104,9 +127,18 @@ class Settings extends Component
         $this->validate([
             'app_name'                      => 'required|string|max:100',
             'app_locale'                    => 'required|in:en,fr',
+            'sso_provider'                  => 'required|in:azure,keycloak,saml',
             'azure_client_id'               => 'nullable|string|max:255',
             'azure_client_secret'           => 'nullable|string|max:500',
             'azure_tenant_id'               => 'nullable|string|max:255',
+            'oidc_client_id'                => 'nullable|string|max:255',
+            'oidc_client_secret'            => 'nullable|string|max:500',
+            'oidc_issuer_url'               => 'nullable|url|max:500',
+            'saml_idp_entity_id'            => 'nullable|string|max:500',
+            'saml_idp_sso_url'              => 'nullable|url|max:500',
+            'saml_idp_slo_url'              => 'nullable|url|max:500',
+            'saml_idp_certificate'          => 'nullable|string|max:8192',
+            'saml_sp_entity_id'             => 'nullable|string|max:500',
             'scim_bearer_token'             => 'nullable|string|min:32|max:500',
             'alias_max_per_user'            => 'required|integer|min:1|max:1000',
             'alias_default_type'            => 'required|in:session,duration,permanent',
@@ -131,8 +163,16 @@ class Settings extends Component
             'version_check_enabled'            => $this->version_check_enabled,
             'health_check_visibility'          => $this->health_check_visibility,
             'sso_enabled'                      => $this->sso_enabled,
+            'sso_provider'                     => $this->sso_provider,
             'azure_client_id'                  => $this->azure_client_id,
             'azure_tenant_id'                  => $this->azure_tenant_id,
+            'oidc_client_id'                   => $this->oidc_client_id,
+            'oidc_issuer_url'                  => $this->oidc_issuer_url,
+            'saml_idp_entity_id'               => $this->saml_idp_entity_id,
+            'saml_idp_sso_url'                 => $this->saml_idp_sso_url,
+            'saml_idp_slo_url'                 => $this->saml_idp_slo_url,
+            'saml_idp_certificate'             => $this->saml_idp_certificate,
+            'saml_sp_entity_id'                => $this->saml_sp_entity_id,
             'local_auth_enabled'               => $this->local_auth_enabled,
             'registration_enabled'             => $this->registration_enabled,
             'two_factor_required'              => $this->two_factor_required,
@@ -147,12 +187,16 @@ class Settings extends Component
             'admin_can_read_emails'            => $this->admin_can_read_emails,
         ];
 
-        // Only update the Azure client secret if the admin explicitly entered a new value.
+        // Only update secrets if the admin explicitly entered a new value.
         // An empty field means "keep the existing encrypted value".
         if ($this->azure_client_secret !== '') {
             $data['azure_client_secret'] = $this->azure_client_secret;
-            // Clear from Livewire state immediately after saving
             $this->azure_client_secret = '';
+        }
+
+        if ($this->oidc_client_secret !== '') {
+            $data['oidc_client_secret'] = $this->oidc_client_secret;
+            $this->oidc_client_secret = '';
         }
 
         if ($this->scim_bearer_token !== '') {

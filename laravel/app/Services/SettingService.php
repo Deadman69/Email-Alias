@@ -25,6 +25,7 @@ class SettingService
      */
     private const ENCRYPTED_KEYS = [
         'azure_client_secret',
+        'oidc_client_secret',
         'scim_bearer_token',
     ];
 
@@ -56,6 +57,18 @@ class SettingService
         'azure_tenant_id'                  => 'services.azure.tenant_id',
         // SCIM
         'scim_bearer_token'                => 'emailalias.scim_bearer_token',
+        // SSO provider selection
+        'sso_provider'                     => 'emailalias.sso_provider',
+        // Generic OIDC (Keycloak, Okta, Auth0, Dex…)
+        'oidc_client_id'                   => 'emailalias.oidc_client_id',
+        'oidc_client_secret'               => 'emailalias.oidc_client_secret',
+        'oidc_issuer_url'                  => 'emailalias.oidc_issuer_url',
+        // SAML 2.0 (requires aacotroneo/laravel-saml2)
+        'saml_idp_entity_id'               => 'emailalias.saml_idp_entity_id',
+        'saml_idp_sso_url'                 => 'emailalias.saml_idp_sso_url',
+        'saml_idp_slo_url'                 => 'emailalias.saml_idp_slo_url',
+        'saml_idp_certificate'             => 'emailalias.saml_idp_certificate',
+        'saml_sp_entity_id'                => 'emailalias.saml_sp_entity_id',
     ];
 
     /**
@@ -77,6 +90,18 @@ class SettingService
         'local_auth_enabled'              => ['group' => 'auth',     'cast' => 'bool',    'default' => true],
         'registration_enabled'            => ['group' => 'auth',     'cast' => 'bool',    'default' => false],
         'scim_bearer_token'               => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        // SSO provider
+        'sso_provider'                    => ['group' => 'auth',     'cast' => 'string',  'default' => 'azure'],
+        // Generic OIDC
+        'oidc_client_id'                  => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'oidc_client_secret'              => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'oidc_issuer_url'                 => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        // SAML 2.0
+        'saml_idp_entity_id'              => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'saml_idp_sso_url'                => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'saml_idp_slo_url'                => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'saml_idp_certificate'            => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'saml_sp_entity_id'               => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
 
         // ── security ─────────────────────────────────────────────────────────────
         'two_factor_required'             => ['group' => 'security', 'cast' => 'bool',    'default' => false],

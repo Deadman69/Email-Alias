@@ -1,27 +1,27 @@
 # Backup & Restore Runbook
 
-## Stratégie
+## Strategy
 
-- **Dump quotidien** via le service `backup` dans `docker-compose.yml`
-- Format : PostgreSQL custom (`pg_dump -Fc`) — compressé, sélectif à la restauration
-- **Rétention** : 30 jours (les fichiers plus vieux sont supprimés automatiquement)
-- **Stockage** : volume Docker `backup_data` (local par défaut — voir ci-dessous pour externaliser)
+- **Daily dump** via the `backup` service in `docker-compose.yml`
+- Format: PostgreSQL custom format (`pg_dump -Fc`) — compressed, supports selective restore
+- **Retention**: 30 days (older files are deleted automatically)
+- **Storage**: Docker volume `backup_data` (local by default — see below to externalise)
 
 ---
 
-## Localisation des backups
+## List available backups
 
 ```bash
-# Lister les backups disponibles
+# Via the running backup container
 docker compose exec backup ls /backups/
 
-# Ou directement via le volume
+# Or directly via the named volume
 docker run --rm -v emailalias_backup_data:/backups alpine ls /backups/
 ```
 
 ---
 
-## Déclencher un backup manuel
+## Trigger a manual backup
 
 ```bash
 docker compose exec backup sh -c '
@@ -33,56 +33,55 @@ docker compose exec backup sh -c '
 
 ---
 
-## Restaurer un backup
+## Restore a backup
 
 ```bash
-# 1. Copier le fichier de backup sur la machine hôte (si nécessaire)
+# 1. Copy the dump to the host machine (if needed)
 docker cp $(docker compose ps -q backup):/backups/emailalias_20260521_030000.dump ./restore.dump
 
-# 2. Arrêter l'application (évite les écritures pendant la restauration)
+# 2. Stop the application to prevent writes during restore
 docker compose stop app worker scheduler reverb
 
-# 3. Supprimer la base existante et en recréer une vide
+# 3. Drop and recreate the database
 docker compose exec db psql -U $DB_USERNAME -c "DROP DATABASE emailalias;"
 docker compose exec db psql -U $DB_USERNAME -c "CREATE DATABASE emailalias;"
 
-# 4. Restaurer
+# 4. Restore
 docker run --rm \
   -v $(pwd)/restore.dump:/restore.dump \
   --network emailalias_internal \
   postgres:16-alpine \
   pg_restore -h db -U $DB_USERNAME -d $DB_DATABASE /restore.dump
 
-# 5. Redémarrer
+# 5. Restart
 docker compose start app worker scheduler reverb
 ```
 
 ---
 
-## Externaliser les backups (recommandé en production)
+## Externalise backups (recommended for production)
 
-Monter un répertoire NFS, un bucket S3 (via rclone), ou utiliser `restic` :
+Mount an NFS directory, sync to an S3 bucket via rclone, or use `restic` for encrypted snapshots:
 
 ```bash
-# Exemple avec rclone vers S3/MinIO
+# Example: rclone sync to S3/MinIO
 rclone copy /backups s3:emailalias-backups/$(hostname) --min-age 0
 ```
 
-Ou remplacer le service `backup` par un service `restic` avec snapshot + chiffrement.
+Or replace the `backup` service entirely with a `restic` container for deduplication and encryption at rest.
 
 ---
 
-## Sauvegarder les pièces jointes
+## Back up email attachments
 
-Si `ATTACHMENT_DISK=local` (volume Docker `laravel_storage`) :
+If `ATTACHMENT_DISK=local` (Docker volume `laravel_storage`):
 
 ```bash
-# Backup du volume storage
 docker run --rm \
   -v emailalias_laravel_storage:/data \
   -v $(pwd)/storage-backup:/backup \
   alpine tar czf /backup/storage_$(date +%Y%m%d).tar.gz /data
 ```
 
-Si `ATTACHMENT_DISK=s3` (MinIO) — MinIO gère lui-même la réplication. Configurer
-le mirroring ou les snapshots au niveau de l'objet store.
+If `ATTACHMENT_DISK=s3` (MinIO): configure replication or snapshots at the object-store level.
+MinIO supports bucket replication natively — see https://min.io/docs/minio/linux/administration/bucket-replication.html

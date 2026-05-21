@@ -103,7 +103,10 @@
 - [x] API tokens — Sanctum personal access tokens with ability scopes and optional alias restriction
 - [x] Token abilities server-side filtered by role (regular users cannot create admin-scoped tokens)
 - [x] Super Admins cannot be modified via API; `super_admin` role cannot be assigned via API
-- [ ] Add other providers other than Azure (SAML, Keycloak...)
+- [x] Multi-provider SSO — Azure AD, Keycloak/Generic OIDC (zero extra packages, OIDC discovery), SAML 2.0 stubs (requires `aacotroneo/laravel-saml2`)
+- [x] `is_active` flag on `users` — SCIM deprovision blocks login (Fortify + SSO callback)
+- [x] `external_id` on `users` — `"{provider}:{sub}"` for provider-scoped SSO identity; backward compat with `azure_id`
+- [x] `SsoProvider` enum — `azure | keycloak | saml`; configurable from Super Admin settings panel
 
 ---
 
@@ -111,7 +114,8 @@
 
 - [x] `InboundEmailController` — `POST /internal/inbound` → dispatch job → 202
 - [x] `AttachmentController` (web) — authenticated download via Gate
-- [x] `SsoController` — Azure AD redirect + callback
+- [x] `SsoController` — provider-agnostic redirect + callback (Azure / OIDC / SAML)
+- [x] `SamlController` — SAML metadata, login, ACS (CSRF-exempt), SLS; stubs ready for `aacotroneo/laravel-saml2`
 - [x] `DocsController` removed — API docs served by Scramble at `/docs/api`
 - [x] `Api/V1/AliasController` — index, store, show, destroy (IDOR protected, token alias check)
 - [x] `Api/V1/EmailController` — index (brief), show (full + mark read), destroy
@@ -176,7 +180,7 @@
 ## i18n
 
 - [x] `SetLocale` middleware — user locale → platform `app_locale` → `'en'` fallback
-- [x] `lang/en.json` — full English translation file (~170 keys)
+- [x] `lang/en.json` — full English translation file (~195 keys)
 - [x] `lang/fr.json` — full French translation file
 - [x] Per-user locale preference (profile settings)
 - [x] Platform default language setting (Super Admin panel)

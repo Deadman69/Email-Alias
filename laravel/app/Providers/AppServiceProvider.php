@@ -12,10 +12,12 @@ use App\Models\PersonalAccessToken;
 use App\Services\AuditLogger;
 use App\Services\HtmlSanitizer;
 use App\Services\SettingService;
+use App\Services\Sso\OidcProvider;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Laravel\Sanctum\Sanctum;
+use Laravel\Socialite\Facades\Socialite;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
@@ -49,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->registerListeners();
         $this->configureScramble();
+        $this->registerSsoDrivers();
     }
 
     /**
@@ -85,6 +88,22 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Configure default behaviors for production-ready applications.
      */
+    /**
+     * Register custom Socialite drivers for non-default SSO providers.
+     * The generic OIDC driver covers Keycloak and any OIDC-compliant IdP.
+     */
+    private function registerSsoDrivers(): void
+    {
+        Socialite::extend('oidc', function () {
+            return new OidcProvider(
+                request: $this->app['request'],
+                clientId: (string) config('emailalias.oidc_client_id', ''),
+                clientSecret: (string) config('emailalias.oidc_client_secret', ''),
+                redirectUrl: route('sso.callback'),
+            );
+        });
+    }
+
     private function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);

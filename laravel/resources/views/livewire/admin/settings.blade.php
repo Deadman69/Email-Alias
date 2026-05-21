@@ -87,44 +87,136 @@
                         <flux:description>{{ __('If disabled, only admins can create accounts.') }}</flux:description>
                     </flux:field>
 
-                    <flux:separator text="{{ __('SSO — Azure AD') }}" />
+                    <flux:separator text="{{ __('SSO') }}" />
 
                     <flux:field variant="inline">
-                        <flux:label>{{ __('Enable SSO (Azure AD)') }}</flux:label>
+                        <flux:label>{{ __('Enable SSO') }}</flux:label>
                         <flux:switch wire:model="sso_enabled" />
                     </flux:field>
 
                     <div @class(['space-y-4', 'opacity-40 pointer-events-none' => ! $sso_enabled])>
-                        <flux:field>
-                            <flux:label>{{ __('Client ID') }}</flux:label>
-                            <flux:input wire:model="azure_client_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-                            <flux:error name="azure_client_id" />
-                        </flux:field>
 
                         <flux:field>
-                            <flux:label>{{ __('Client Secret') }}</flux:label>
-                            <flux:input wire:model="azure_client_secret" type="password" placeholder="{{ __('Leave blank to keep current value') }}" />
-                            <flux:description>{{ __('Stored encrypted in the database.') }}</flux:description>
-                            <flux:error name="azure_client_secret" />
+                            <flux:label>{{ __('SSO provider') }}</flux:label>
+                            <flux:select wire:model.live="sso_provider" class="max-w-xs">
+                                <flux:select.option value="azure">{{ __('Azure AD') }}</flux:select.option>
+                                <flux:select.option value="keycloak">{{ __('Keycloak / Generic OIDC') }}</flux:select.option>
+                                <flux:select.option value="saml">{{ __('SAML 2.0') }}</flux:select.option>
+                            </flux:select>
+                            <flux:description>{{ __('The identity provider users will authenticate against.') }}</flux:description>
+                            <flux:error name="sso_provider" />
                         </flux:field>
 
-                        <flux:field>
-                            <flux:label>{{ __('Tenant ID') }}</flux:label>
-                            <flux:input wire:model="azure_tenant_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-                            <flux:description>{{ __('Use "common" for multi-tenant apps.') }}</flux:description>
-                            <flux:error name="azure_tenant_id" />
-                        </flux:field>
+                        {{-- Azure AD ──────────────────────────────────────────────── --}}
+                        @if ($sso_provider === 'azure')
+                            <flux:field>
+                                <flux:label>{{ __('Client ID') }}</flux:label>
+                                <flux:input wire:model="azure_client_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                                <flux:error name="azure_client_id" />
+                            </flux:field>
 
-                        <flux:callout variant="info" icon="information-circle">
-                            <flux:callout.heading>{{ __('Azure redirect URI') }}</flux:callout.heading>
-                            <flux:callout.text>
-                                {{ __('Register this URI in your Azure App Registration:') }}
-                                <code class="font-mono text-sm">{{ $this->appUrl }}/auth/sso/callback</code>
-                            </flux:callout.text>
-                        </flux:callout>
+                            <flux:field>
+                                <flux:label>{{ __('Client Secret') }}</flux:label>
+                                <flux:input wire:model="azure_client_secret" type="password" placeholder="{{ __('Leave blank to keep current value') }}" />
+                                <flux:description>{{ __('Stored encrypted in the database.') }}</flux:description>
+                                <flux:error name="azure_client_secret" />
+                            </flux:field>
+
+                            <flux:field>
+                                <flux:label>{{ __('Tenant ID') }}</flux:label>
+                                <flux:input wire:model="azure_tenant_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                                <flux:description>{{ __('Use "common" for multi-tenant apps.') }}</flux:description>
+                                <flux:error name="azure_tenant_id" />
+                            </flux:field>
+
+                            <flux:callout variant="info" icon="information-circle">
+                                <flux:callout.heading>{{ __('Azure redirect URI') }}</flux:callout.heading>
+                                <flux:callout.text>
+                                    {{ __('Register this URI in your Azure App Registration:') }}
+                                    <code class="font-mono text-sm">{{ $this->appUrl }}/auth/sso/callback</code>
+                                </flux:callout.text>
+                            </flux:callout>
+                        @endif
+
+                        {{-- Generic OIDC (Keycloak, Okta, Auth0, Dex…) ───────────── --}}
+                        @if ($sso_provider === 'keycloak')
+                            <flux:field>
+                                <flux:label>{{ __('Issuer URL') }}</flux:label>
+                                <flux:input wire:model="oidc_issuer_url" placeholder="https://keycloak.example.com/realms/myrealm" />
+                                <flux:description>{{ __('Discovery document is fetched automatically from {issuer}/.well-known/openid-configuration.') }}</flux:description>
+                                <flux:error name="oidc_issuer_url" />
+                            </flux:field>
+
+                            <flux:field>
+                                <flux:label>{{ __('Client ID') }}</flux:label>
+                                <flux:input wire:model="oidc_client_id" />
+                                <flux:error name="oidc_client_id" />
+                            </flux:field>
+
+                            <flux:field>
+                                <flux:label>{{ __('Client Secret') }}</flux:label>
+                                <flux:input wire:model="oidc_client_secret" type="password" placeholder="{{ __('Leave blank to keep current value') }}" />
+                                <flux:description>{{ __('Stored encrypted in the database.') }}</flux:description>
+                                <flux:error name="oidc_client_secret" />
+                            </flux:field>
+
+                            <flux:callout variant="info" icon="information-circle">
+                                <flux:callout.heading>{{ __('OIDC redirect URI') }}</flux:callout.heading>
+                                <flux:callout.text>
+                                    {{ __('Register this redirect URI in your OIDC client:') }}
+                                    <code class="font-mono text-sm">{{ $this->appUrl }}/auth/sso/callback</code>
+                                </flux:callout.text>
+                            </flux:callout>
+                        @endif
+
+                        {{-- SAML 2.0 ──────────────────────────────────────────────── --}}
+                        @if ($sso_provider === 'saml')
+                            <flux:callout variant="warning" icon="exclamation-triangle">
+                                <flux:callout.heading>{{ __('SAML package required') }}</flux:callout.heading>
+                                <flux:callout.text>
+                                    {{ __('SAML 2.0 requires') }}
+                                    <code class="font-mono text-xs">composer require aacotroneo/laravel-saml2</code>.
+                                    {{ __('Your SP metadata is available at') }}
+                                    <code class="font-mono text-xs">{{ $this->appUrl }}/auth/saml/metadata</code>.
+                                </flux:callout.text>
+                            </flux:callout>
+
+                            <flux:field>
+                                <flux:label>{{ __('IdP Entity ID') }}</flux:label>
+                                <flux:input wire:model="saml_idp_entity_id" placeholder="https://idp.example.com/metadata" />
+                                <flux:error name="saml_idp_entity_id" />
+                            </flux:field>
+
+                            <flux:field>
+                                <flux:label>{{ __('IdP SSO URL') }}</flux:label>
+                                <flux:input wire:model="saml_idp_sso_url" placeholder="https://idp.example.com/sso/saml" />
+                                <flux:error name="saml_idp_sso_url" />
+                            </flux:field>
+
+                            <flux:field>
+                                <flux:label>{{ __('IdP SLO URL') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional') }})</span></flux:label>
+                                <flux:input wire:model="saml_idp_slo_url" placeholder="https://idp.example.com/slo/saml" />
+                                <flux:error name="saml_idp_slo_url" />
+                            </flux:field>
+
+                            <flux:field>
+                                <flux:label>{{ __('IdP X.509 certificate') }}</flux:label>
+                                <flux:textarea wire:model="saml_idp_certificate" rows="5" placeholder="MIIDXTCCAkWg..." class="font-mono text-xs" />
+                                <flux:description>{{ __('PEM-encoded certificate — without the -----BEGIN/END CERTIFICATE----- header and footer.') }}</flux:description>
+                                <flux:error name="saml_idp_certificate" />
+                            </flux:field>
+
+                            <flux:field>
+                                <flux:label>{{ __('SP Entity ID') }}</flux:label>
+                                <flux:input wire:model="saml_sp_entity_id" :placeholder="$this->appUrl" />
+                                <flux:description>{{ __('Defaults to the application URL if left blank.') }}</flux:description>
+                                <flux:error name="saml_sp_entity_id" />
+                            </flux:field>
+                        @endif
+
                     </div>
 
-                    <flux:separator text="{{ __('SCIM provisioning (Azure AD)') }}" />
+                    <flux:separator text="{{ __('SCIM provisioning') }}" />
 
                     <flux:field>
                         <flux:label>{{ __('SCIM bearer token') }}</flux:label>

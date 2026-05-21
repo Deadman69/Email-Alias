@@ -90,6 +90,28 @@ return [
     'sso_enabled' => (bool) env('SSO_ENABLED', false),
 
     /*
+     * Active SSO provider: 'azure' | 'keycloak' | 'saml'
+     *   'azure'    — Azure AD via Socialite (default)
+     *   'keycloak' — generic OIDC discovery (Keycloak, Okta, Auth0, Dex, …)
+     *   'saml'     — SAML 2.0 (requires composer require aacotroneo/laravel-saml2)
+     */
+    'sso_provider' => env('SSO_PROVIDER', 'azure'),
+
+    // ── Generic OIDC — covers Keycloak and any OIDC-compliant IdP ────────────────
+    'oidc_client_id'     => env('OIDC_CLIENT_ID', ''),
+    'oidc_client_secret' => env('OIDC_CLIENT_SECRET', ''),
+    // Issuer URL — e.g. https://keycloak.example.com/realms/myrealm
+    // The /.well-known/openid-configuration endpoint is auto-discovered from this.
+    'oidc_issuer_url'    => env('OIDC_ISSUER_URL', ''),
+
+    // ── SAML 2.0 — requires aacotroneo/laravel-saml2 (see README_TODO.md) ────────
+    'saml_idp_entity_id'   => env('SAML_IDP_ENTITY_ID', ''),
+    'saml_idp_sso_url'     => env('SAML_IDP_SSO_URL', ''),
+    'saml_idp_slo_url'     => env('SAML_IDP_SLO_URL', ''),     // optional
+    'saml_idp_certificate' => env('SAML_IDP_CERTIFICATE', ''), // PEM — no header/footer
+    'saml_sp_entity_id'    => env('SAML_SP_ENTITY_ID', ''),    // defaults to APP_URL
+
+    /*
      * Whether local login (email + password) is enabled.
      * Disable in production if SSO is the only authentication method.
      */

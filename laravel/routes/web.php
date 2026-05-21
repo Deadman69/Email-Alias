@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\Auth\SamlController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Internal\InboundEmailController;
 use App\Http\Controllers\HealthController;
@@ -19,11 +20,23 @@ Route::view('/', 'welcome')->name('home');
 // ── Health check (visibility controlled by platform setting) ─────────────────
 Route::get('/health', HealthController::class)->middleware('health.access')->name('health');
 
-// ── SSO (Azure AD) ────────────────────────────────────────────────────────────
+// ── SSO — OAuth2 / OIDC (Azure AD, Keycloak, generic OIDC) ───────────────────
 Route::middleware('guest')->group(function () {
     Route::get('/auth/sso/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
     Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 });
+
+// ── SSO — SAML 2.0 ───────────────────────────────────────────────────────────
+// Metadata is public (IdP needs to read it to configure the SP trust).
+// ACS (POST from IdP) must be exempt from CSRF — it comes from the IdP server.
+Route::get('/auth/saml/metadata', [SamlController::class, 'metadata'])->name('saml.metadata');
+Route::middleware('guest')->group(function () {
+    Route::get('/auth/saml/login', [SamlController::class, 'login'])->name('saml.login');
+    Route::get('/auth/saml/sls', [SamlController::class, 'sls'])->name('saml.sls');
+});
+// ACS is POST from the IdP — exempt from CSRF via VerifyCsrfToken middleware
+Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->post('/auth/saml/acs', [SamlController::class, 'acs'])->name('saml.acs');
 
 // ── API documentation — redirects to Scramble's auto-generated Swagger UI ────
 // Scramble serves its own UI at /docs/api and spec at /docs/api.json.
