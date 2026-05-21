@@ -11,3 +11,10 @@ scrape_configs:
     bearer_token: 'CHANGE_ME_METRICS_BEARER_TOKEN'
     # Replace with your actual METRICS_BEARER_TOKEN value.
     # Do NOT commit this file with a real token.
+
+  # SMTP server metrics (no auth — internal network only)
+  - job_name: smtp-server
+    scheme: http
+    static_configs:
+      - targets: ['smtp-server:8025']
+    metrics_path: /metrics

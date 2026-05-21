@@ -1,6 +1,7 @@
 {
   "name": "emailalias-smtp-server",
   "version": "1.0.0",
+  "type": "module",
   "description": "Minimal SMTP receiver — forwards inbound emails to Laravel",
   "main": "src/index.js",
   "scripts": {

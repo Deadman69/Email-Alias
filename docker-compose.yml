@@ -32,11 +32,18 @@ services:
     environment:
       - LARAVEL_INBOUND_URL=http://app:9000/internal/inbound
       - SMTP_INTERNAL_SECRET=${SMTP_INTERNAL_SECRET}
+      - SMTP_ALLOWED_DOMAIN=${SMTP_ALLOWED_DOMAIN:-}
       - NODE_ENV=production
     depends_on:
       - app
     networks:
       - internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8025/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ── WebSocket (Laravel Reverb) ────────────────────────────────────────────────
   reverb:
