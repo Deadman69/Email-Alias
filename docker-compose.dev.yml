@@ -33,3 +33,14 @@ services:
   db:
     ports:
       - "5432:5432"   # Accès direct à la BDD pour les outils (TablePlus, DBeaver...)
+
+  minio:
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console web MinIO
+
+  backup:
+    environment:
+      - DB_USERNAME=${DB_USERNAME:-emailalias}
+      - DB_PASSWORD=${DB_PASSWORD:-changeme_db_password}
+      - DB_DATABASE=${DB_DATABASE:-emailalias}

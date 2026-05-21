@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Middleware\BootstrapSettings;
+use App\Http\Middleware\EnsureMetricsAccess;
 use App\Http\Middleware\EnsureHealthCheckAccess;
 use App\Http\Middleware\EnsureInternalRequest;
+use App\Http\Middleware\EnsureScimAuth;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\SetLocale;
@@ -21,6 +23,17 @@ return Application::configure(basePath: dirname(__DIR__))
             // Internal routes (SMTP receiver webhook) — no CSRF, no session
             Route::middleware([])
                 ->group(base_path('routes/internal.php'));
+
+            // SCIM 2.0 provisioning — no CSRF, no session
+            Route::middleware([])
+                ->group(base_path('routes/scim.php'));
+
+            // Metrics endpoint (Prometheus scraper)
+            Route::middleware(['throttle:60,1', 'metrics.access'])
+                ->group(function (): void {
+                    Route::get('/metrics', \App\Http\Controllers\MetricsController::class)
+                        ->name('metrics');
+                });
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -34,7 +47,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin'        => EnsureUserIsAdmin::class,
             'super_admin'  => EnsureUserIsSuperAdmin::class,
             'internal'     => EnsureInternalRequest::class,
-            'health.access' => EnsureHealthCheckAccess::class,
+            'health.access'  => EnsureHealthCheckAccess::class,
+            'scim.auth'      => EnsureScimAuth::class,
+            'metrics.access' => EnsureMetricsAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

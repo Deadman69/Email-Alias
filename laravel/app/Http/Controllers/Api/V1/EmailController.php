@@ -31,6 +31,11 @@ class EmailController extends BaseApiController
             default  => null,
         };
 
+        $search = $request->query('search', '');
+        if ($search !== '') {
+            $query->search($search);
+        }
+
         $emails = $query->paginate(50);
 
         return response()->json([

@@ -27,6 +27,8 @@ class Inbox extends Component
 
     public string $filter = 'all'; // 'all' | 'unread' | 'read'
 
+    public string $search = '';
+
     /**
      * @param  Alias  $alias  Route-model bound alias — authorization checked here.
      */
@@ -57,6 +59,10 @@ class Inbox extends Component
             'read'   => $query->read(),
             default  => null,
         };
+
+        if ($this->search !== '') {
+            $query->search($this->search);
+        }
 
         return $query->paginate(20);
     }
@@ -136,6 +142,12 @@ class Inbox extends Component
 
     /** Reset pagination when the filter tab changes. */
     public function updatedFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    /** Reset pagination when the search term changes. */
+    public function updatedSearch(): void
     {
         $this->resetPage();
     }

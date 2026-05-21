@@ -23,6 +23,15 @@
 
         <flux:input wire:model.live="dateFrom" type="date" label="{{ __('From') }}" />
         <flux:input wire:model.live="dateTo" type="date" label="{{ __('To') }}" />
+
+        <div class="ml-auto flex items-center gap-2">
+            <flux:button size="sm" icon="arrow-down-tray" wire:click="download('csv')" wire:loading.attr="disabled">
+                {{ __('Export CSV') }}
+            </flux:button>
+            <flux:button size="sm" icon="arrow-down-tray" wire:click="download('json')" wire:loading.attr="disabled">
+                {{ __('Export JSON') }}
+            </flux:button>
+        </div>
     </div>
 
     {{-- Table --}}

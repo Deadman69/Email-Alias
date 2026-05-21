@@ -46,6 +46,10 @@ services:
     restart: unless-stopped
     env_file: .env
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    environment:
+      # Tune REVERB_MAX_CONNECTIONS based on available memory (~2 MB per connection).
+      # For >500 concurrent users, run multiple replicas behind a sticky-session load balancer.
+      REVERB_MAX_CONNECTIONS: "${REVERB_MAX_CONNECTIONS:-1000}"
     depends_on:
       db:
         condition: service_healthy
@@ -56,6 +60,8 @@ services:
       caddy: "${APP_URL}"
       caddy.handle_path: "/app/*"
       caddy.handle_path.reverse_proxy: "{{upstreams 8080}}"
+      # Sticky-session hint — enable when running multiple Reverb replicas:
+      # caddy.handle_path.reverse_proxy.lb_policy: "cookie"
 
   # ── Queue Worker ──────────────────────────────────────────────────────────────
   worker:
@@ -103,6 +109,70 @@ services:
     networks:
       - internal
 
+  # ── Object Storage (MinIO — S3-compatible) ────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-emailalias}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changeme_minio_password}
+    volumes:
+      - minio_data:/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backup automatique PostgreSQL ─────────────────────────────────────────────
+  # Dump quotidien, rétention 30 jours, fichiers stockés dans le volume backup_data.
+  # Pour restaurer : docker compose run --rm backup pg_restore -h db -U $DB_USERNAME
+  #                   -d $DB_DATABASE /backups/<fichier>.dump
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          PGPASSWORD=$$DB_PASSWORD pg_dump \
+            -Fc -h db -U $$DB_USERNAME $$DB_DATABASE \
+            > /backups/emailalias_$$(date +%Y%m%d_%H%M%S).dump
+          find /backups -name '*.dump' -mtime +30 -delete
+          sleep 86400
+        done
+    environment:
+      DB_USERNAME: ${DB_USERNAME:-emailalias}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme_db_password}
+      DB_DATABASE: ${DB_DATABASE:-emailalias}
+    volumes:
+      - backup_data:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Prometheus (scraper de métriques) ─────────────────────────────────────────
+  # Optionnel — commenter ce service si vous n'utilisez pas Prometheus.
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - internal
+    depends_on:
+      - app
+
   # ── Reverse Proxy (Caddy — HTTPS automatique) ─────────────────────────────────
   caddy:
     image: lucaslorentz/caddy-docker-proxy:ci-alpine
@@ -120,6 +190,9 @@ volumes:
   postgres_data:
   laravel_storage:
   caddy_data:
+  minio_data:
+  backup_data:
+  prometheus_data:
 
 networks:
   internal:

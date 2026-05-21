@@ -187,6 +187,28 @@
 
 ---
 
+## Enterprise / Scale
+
+### 🔴 P0 — Bloquants production
+
+- [x] Object storage (MinIO / S3) — `ATTACHMENT_DISK=s3`, driver S3 path-style, MinIO service dans docker-compose
+- [x] Full-text search dans les e-mails — `tsvector` PostgreSQL, GIN index, scope `search()`, UI + API
+- [x] Tests IDOR & isolation utilisateurs — user A ne peut pas accéder aux ressources de user B
+- [x] SCIM 2.0 provisioning (Azure AD) — endpoints Users CRUD, bearer token, déprovision via `active=false`
+
+### 🟡 P1 — Avant généralisation
+
+- [x] Export audit logs — téléchargement CSV / JSON depuis le panel admin
+- [x] Reverb scaling — config sticky-session Caddy, `REVERB_MAX_CONNECTIONS`, doc horizontale
+- [x] Backup & restore — service pg_dump schedulé dans docker-compose + runbook BACKUP.md
+
+### 🟢 P2 — Itératif
+
+- [x] Métriques Prometheus — endpoint `/metrics` (format texte Prometheus), scraper dans docker-compose
+- [x] Gestion des sessions actives — liste sessions en cours + révocation individuelle / globale
+
+---
+
 ## Tests
 
 - [x] `CreateAliasTest` — creation, custom, duplicates, limits, deletion, extension

@@ -29,6 +29,7 @@ class Settings extends Component
     public string $azure_tenant_id      = '';
     public bool   $local_auth_enabled   = true;
     public bool   $registration_enabled = false;
+    public string $scim_bearer_token    = '';
 
     // ── Security ─────────────────────────────────────────────────────────────────
     public bool $two_factor_required = false;
@@ -63,6 +64,7 @@ class Settings extends Component
         // The view shows a hint when a value is already stored.
         // On save, an empty field means "keep the existing value".
         $this->azure_client_secret = '';
+        $this->scim_bearer_token   = ''; // Never expose in Livewire state
         $this->azure_tenant_id     = (string) $settings->get('azure_tenant_id', '');
         $this->local_auth_enabled  = (bool) $settings->get('local_auth_enabled', true);
         $this->registration_enabled = (bool) $settings->get('registration_enabled', false);
@@ -105,6 +107,7 @@ class Settings extends Component
             'azure_client_id'               => 'nullable|string|max:255',
             'azure_client_secret'           => 'nullable|string|max:500',
             'azure_tenant_id'               => 'nullable|string|max:255',
+            'scim_bearer_token'             => 'nullable|string|min:32|max:500',
             'alias_max_per_user'            => 'required|integer|min:1|max:1000',
             'alias_default_type'            => 'required|in:session,duration,permanent',
             'health_check_visibility'       => 'required|in:public,auth,admin',
@@ -150,6 +153,11 @@ class Settings extends Component
             $data['azure_client_secret'] = $this->azure_client_secret;
             // Clear from Livewire state immediately after saving
             $this->azure_client_secret = '';
+        }
+
+        if ($this->scim_bearer_token !== '') {
+            $data['scim_bearer_token'] = $this->scim_bearer_token;
+            $this->scim_bearer_token = '';
         }
 
         $settings->fill($data);

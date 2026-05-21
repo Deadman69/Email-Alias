@@ -92,7 +92,7 @@ class HealthController extends Controller
     private function checkStorage(): array
     {
         try {
-            $disk  = Storage::disk('local');
+            $disk  = Storage::disk(config('filesystems.attachment_disk', 'local'));
             $file  = 'health_check_' . bin2hex(random_bytes(4)) . '.tmp';
             $start = microtime(true);
             $disk->put($file, 'ok');

@@ -55,7 +55,7 @@ return [
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
             'throw' => false,
             'report' => false,
         ],
@@ -76,5 +76,16 @@ return [
     'links' => [
         public_path('storage') => storage_path('app/public'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Attachment Storage Disk
+    |--------------------------------------------------------------------------
+    |
+    | Disk used for storing email attachments. Set ATTACHMENT_DISK=s3 to
+    | store attachments on MinIO (or any S3-compatible service).
+    |
+    */
+    'attachment_disk' => env('ATTACHMENT_DISK', 'local'),
 
 ];

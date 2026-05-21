@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: emailalias
+    scheme: http
+    static_configs:
+      - targets: ['app:9000']
+    metrics_path: /metrics
+    bearer_token: 'CHANGE_ME_METRICS_BEARER_TOKEN'
+    # Replace with your actual METRICS_BEARER_TOKEN value.
+    # Do NOT commit this file with a real token.

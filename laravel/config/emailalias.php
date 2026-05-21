@@ -133,6 +133,13 @@ return [
     'health_reverb_port' => (int) env('HEALTH_REVERB_PORT', 8080),
 
     /*
+     * Prometheus metrics bearer token.
+     * Set this to a strong random string to enable the /metrics endpoint.
+     * Leave empty to disable (returns 503).
+     */
+    'metrics_bearer_token' => env('METRICS_BEARER_TOKEN', ''),
+
+    /*
      * NOTE: All values above can be overridden at runtime by a Super Admin
      * via the Settings panel (/admin/settings). Overrides are stored in the
      * `settings` database table and applied on every request by the

@@ -123,6 +123,23 @@
                             </flux:callout.text>
                         </flux:callout>
                     </div>
+
+                    <flux:separator text="{{ __('SCIM provisioning (Azure AD)') }}" />
+
+                    <flux:field>
+                        <flux:label>{{ __('SCIM bearer token') }}</flux:label>
+                        <flux:input wire:model="scim_bearer_token" type="password" placeholder="{{ __('Leave blank to keep current value') }}" />
+                        <flux:description>{{ __('Token Azure AD uses to authenticate against /scim/v2/Users. Generate a strong random string (min. 32 chars). Stored encrypted.') }}</flux:description>
+                        <flux:error name="scim_bearer_token" />
+                    </flux:field>
+
+                    <flux:callout variant="info" icon="information-circle">
+                        <flux:callout.heading>{{ __('Azure SCIM endpoint') }}</flux:callout.heading>
+                        <flux:callout.text>
+                            {{ __('Configure this URL in your Azure Enterprise Application → Provisioning:') }}
+                            <code class="font-mono text-sm">{{ $this->appUrl }}/scim/v2</code>
+                        </flux:callout.text>
+                    </flux:callout>
                 </div>
             </flux:tab.panel>
 

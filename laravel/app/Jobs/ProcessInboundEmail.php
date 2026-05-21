@@ -267,14 +267,15 @@ class ProcessInboundEmail implements ShouldQueue
 
             $path = 'attachments/' . $email->id . '/' . $safeFilename;
 
-            Storage::disk('local')->put($path, $content);
+            $attachmentDisk = config('filesystems.attachment_disk', 'local');
+            Storage::disk($attachmentDisk)->put($path, $content);
 
             Attachment::create([
                 'email_id'   => $email->id,
                 'filename'   => $att['filename'],
                 'mime_type'  => $att['content_type'] ?? 'application/octet-stream',
                 'size_bytes' => $att['size_bytes'] ?? strlen($content),
-                'disk'       => 'local',
+                'disk'       => $attachmentDisk,
                 'path'       => $path,
                 'checksum'   => $att['checksum'] ?? null,
             ]);

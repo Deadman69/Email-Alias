@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 #[UseFactory(InboundEmailFactory::class)]
 #[Fillable([
@@ -63,6 +64,21 @@ class InboundEmail extends Model
             // Load fresh so we still catch attachments even on forceDelete
             $email->attachments()->each(fn (Attachment $a) => $a->delete());
         });
+
+        // Keep search_vector in sync whenever subject, sender, or body changes.
+        static::saved(function (self $email): void {
+            if ($email->wasRecentlyCreated || $email->wasChanged(['subject', 'from_address', 'from_name', 'body_text'])) {
+                DB::statement("
+                    UPDATE inbound_emails
+                    SET search_vector =
+                        setweight(to_tsvector('simple', coalesce(subject, '')), 'A') ||
+                        setweight(to_tsvector('simple', coalesce(from_address, '')), 'B') ||
+                        setweight(to_tsvector('simple', coalesce(from_name, '')), 'C') ||
+                        setweight(to_tsvector('simple', coalesce(body_text, '')), 'D')
+                    WHERE id = ?
+                ", [$email->id]);
+            }
+        });
     }
 
     public function alias(): BelongsTo
@@ -107,5 +123,25 @@ class InboundEmail extends Model
     public function scopeRead(\Illuminate\Database\Eloquent\Builder $query): void
     {
         $query->whereNotNull('read_at');
+    }
+
+    /**
+     * Full-text search on subject, sender, and body.
+     * Uses PostgreSQL tsvector + plainto_tsquery for multi-word queries.
+     */
+    public function scopeSearch(Builder $query, string $term): Builder
+    {
+        $term = trim($term);
+        if ($term === '') {
+            return $query;
+        }
+
+        return $query->whereRaw(
+            "search_vector @@ plainto_tsquery('simple', ?)",
+            [$term]
+        )->orderByRaw(
+            "ts_rank(search_vector, plainto_tsquery('simple', ?)) DESC",
+            [$term]
+        );
     }
 }

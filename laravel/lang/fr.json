@@ -293,5 +293,30 @@
     "cache": "cache",
     "storage": "stockage",
     "smtp": "smtp",
-    "reverb": "reverb"
+    "reverb": "reverb",
+    "Search emails…": "Rechercher des e-mails…",
+    "No emails match your search.": "Aucun e-mail ne correspond à votre recherche.",
+
+    "SCIM provisioning (Azure AD)": "Provisionnement SCIM (Azure AD)",
+    "SCIM bearer token": "Token Bearer SCIM",
+    "Token Azure AD uses to authenticate against /scim/v2/Users. Generate a strong random string (min. 32 chars). Stored encrypted.": "Token qu'Azure AD utilise pour s'authentifier sur /scim/v2/Users. Générez une chaîne aléatoire forte (min. 32 cars). Stocké chiffré.",
+    "Azure SCIM endpoint": "Endpoint SCIM Azure",
+    "Configure this URL in your Azure Enterprise Application → Provisioning:": "Configurez cette URL dans votre Azure Enterprise Application → Approvisionnement :",
+    "Export CSV": "Exporter CSV",
+    "Export JSON": "Exporter JSON",
+
+    "Active Sessions": "Sessions actives",
+    "Manage and revoke your active sessions on other devices.": "Gérez et révoquez vos sessions actives sur d'autres appareils.",
+    "Session tracking unavailable": "Suivi de sessions indisponible",
+    "Set SESSION_DRIVER=database in your .env to enable session management.": "Définissez SESSION_DRIVER=database dans votre .env pour activer la gestion des sessions.",
+    "Current": "Actuelle",
+    "Last active": "Dernière activité",
+    "Revoke": "Révoquer",
+    "No active sessions found.": "Aucune session active trouvée.",
+    "Revoke this session?": "Révoquer cette session ?",
+    "Session revoked.": "Session révoquée.",
+    "Revoke all other sessions": "Révoquer toutes les autres sessions",
+    "Revoke all other sessions? You will remain logged in on this device.": "Révoquer toutes les autres sessions ? Vous resterez connecté sur cet appareil.",
+    "All other sessions have been revoked.": "Toutes les autres sessions ont été révoquées.",
+    "Sessions": "Sessions"
 }

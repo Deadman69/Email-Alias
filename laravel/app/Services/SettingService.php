@@ -25,6 +25,7 @@ class SettingService
      */
     private const ENCRYPTED_KEYS = [
         'azure_client_secret',
+        'scim_bearer_token',
     ];
 
     /**
@@ -53,6 +54,8 @@ class SettingService
         'azure_client_id'                  => 'services.azure.client_id',
         'azure_client_secret'              => 'services.azure.client_secret',
         'azure_tenant_id'                  => 'services.azure.tenant_id',
+        // SCIM
+        'scim_bearer_token'                => 'emailalias.scim_bearer_token',
     ];
 
     /**
@@ -73,6 +76,7 @@ class SettingService
         'azure_tenant_id'                 => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
         'local_auth_enabled'              => ['group' => 'auth',     'cast' => 'bool',    'default' => true],
         'registration_enabled'            => ['group' => 'auth',     'cast' => 'bool',    'default' => false],
+        'scim_bearer_token'               => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
 
         // ── security ─────────────────────────────────────────────────────────────
         'two_factor_required'             => ['group' => 'security', 'cast' => 'bool',    'default' => false],

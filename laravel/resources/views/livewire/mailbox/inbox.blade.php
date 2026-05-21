@@ -60,6 +60,16 @@
             </div>
         </div>
 
+        {{-- Full-text search --}}
+        <div class="mb-3">
+            <flux:input
+                wire:model.live.debounce.300ms="search"
+                placeholder="{{ __('Search emails…') }}"
+                icon="magnifying-glass"
+                clearable
+            />
+        </div>
+
         {{-- Filter tabs --}}
         <div class="flex gap-1 border-b border-zinc-200 dark:border-zinc-700">
             @foreach (['all' => __('All'), 'unread' => __('Unread'), 'read' => __('Read')] as $val => $filterLabel)

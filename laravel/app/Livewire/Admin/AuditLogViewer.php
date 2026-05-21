@@ -65,4 +65,56 @@ class AuditLogViewer extends Component
     public function updatedDateFrom(): void { $this->resetPage(); }
 
     public function updatedDateTo(): void { $this->resetPage(); }
+
+    public function download(string $format): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $logs = AuditLog::with('user')
+            ->when($this->search, function ($q) {
+                $term = $this->search;
+                $q->whereHas('user', fn ($q2) => $q2->where('name', 'like', "%{$term}%")
+                    ->orWhere('email', 'like', "%{$term}%"));
+            })
+            ->when($this->eventFilter, fn ($q) => $q->where('event', $this->eventFilter))
+            ->when($this->userFilter, fn ($q) => $q->where('user_id', $this->userFilter))
+            ->when($this->dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+            ->when($this->dateTo, fn ($q) => $q->whereDate('created_at', '<=', $this->dateTo))
+            ->latest()
+            ->get();
+
+        $date     = now()->format('Y-m-d');
+        $filename = "audit-log-{$date}.{$format}";
+
+        if ($format === 'csv') {
+            return response()->streamDownload(function () use ($logs) {
+                $out = fopen('php://output', 'w');
+                fputcsv($out, ['date', 'user', 'event', 'ip', 'details']);
+                foreach ($logs as $log) {
+                    fputcsv($out, [
+                        $log->created_at->toDateTimeString(),
+                        $log->user?->name ?? 'System',
+                        $log->event->value,
+                        $log->ip_address ?? '',
+                        json_encode($log->metadata ?? []),
+                    ]);
+                }
+                fclose($out);
+            }, $filename, ['Content-Type' => 'text/csv']);
+        }
+
+        return response()->streamDownload(function () use ($logs) {
+            $data = $logs->map(fn ($log) => [
+                'date'    => $log->created_at->toDateTimeString(),
+                'user'    => $log->user?->name ?? 'System',
+                'event'   => $log->event->value,
+                'ip'      => $log->ip_address ?? '',
+                'details' => $log->metadata ?? [],
+            ])->all();
+
+            echo json_encode([
+                'exported_at' => now()->toIso8601String(),
+                'count'       => count($data),
+                'logs'        => $data,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }, $filename, ['Content-Type' => 'application/json']);
+    }
 }
