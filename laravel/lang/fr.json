@@ -351,5 +351,32 @@
     "Registration disabled": "Inscription désactivée",
     "Contact your administrator to request access.": "Contactez votre administrateur pour demander un accès.",
     "Back to login": "Retour à la connexion",
-    "The type pre-selected when a user creates a new alias.": "Le type pré-sélectionné lors de la création d'un alias."
+    "The type pre-selected when a user creates a new alias.": "Le type pré-sélectionné lors de la création d'un alias.",
+
+    "Status": "Statut",
+    "Active": "Actif",
+    "Suspended": "Suspendu",
+    "Suspend user": "Suspendre l'utilisateur",
+    "Reactivate user": "Réactiver l'utilisateur",
+    "User suspended.": "Utilisateur suspendu.",
+    "User reactivated.": "Utilisateur réactivé.",
+    "or, enter the code manually": "ou saisir le code manuellement",
+    "login using a recovery code": "se connecter avec un code de récupération",
+    "login using an authentication code": "se connecter avec un code d'authentification",
+    "or you can": "ou vous pouvez",
+    "Copied": "Copié",
+
+    "Audit log retention (days)": "Rétention des journaux d'audit (jours)",
+    "Audit logs older than this many days are automatically deleted. Set to 0 to keep logs indefinitely.": "Les journaux d'audit plus anciens que ce nombre de jours sont automatiquement supprimés. Mettre 0 pour les conserver indéfiniment.",
+
+    "Permanently delete this user and all their data? This cannot be undone.": "Supprimer définitivement cet utilisateur et toutes ses données ? Cette action est irréversible.",
+    "Delete user and all data": "Supprimer l'utilisateur et toutes ses données",
+    "User data permanently deleted.": "Données utilisateur supprimées définitivement.",
+    "You cannot delete your own account.": "Vous ne pouvez pas supprimer votre propre compte.",
+    "Cannot delete a Super Admin.": "Impossible de supprimer un Super Admin.",
+
+    "You signed in via SSO. No password confirmation is required.": "Vous vous êtes connecté via SSO. Aucune confirmation de mot de passe n'est requise.",
+
+    "Alias expiring soon": "Alias bientôt expiré",
+    "Expires in :hours hour(s)": "Expire dans :hours heure(s)"
 }

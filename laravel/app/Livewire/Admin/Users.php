@@ -3,11 +3,15 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\AliasType;
+use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Models\Alias;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\AliasService;
+use App\Services\AuditLogger;
 use Flux\Flux;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -108,6 +112,123 @@ class Users extends Component
 
         unset($this->users);
         Flux::toast(variant: 'success', text: __('Role updated.'));
+    }
+
+    // ── User status management ────────────────────────────────────────────────────
+
+    /**
+     * Toggle the is_active flag for a user. Super Admins cannot be suspended.
+     */
+    public function toggleUserStatus(string $userId, AuditLogger $auditLogger): void
+    {
+        $user = User::findOrFail($userId);
+
+        if ($user->role === Role::SuperAdmin) {
+            Flux::toast(variant: 'danger', text: __('Cannot modify a Super Admin.'));
+
+            return;
+        }
+
+        $before = $user->is_active;
+        $user->is_active = ! $user->is_active;
+        $user->save();
+
+        $auditLogger->log(AuditEvent::AdminUserUpdated, null, [
+            'user_id' => $user->id,
+            'before'  => ['is_active' => $before],
+            'after'   => ['is_active' => $user->is_active],
+        ]);
+
+        unset($this->users);
+
+        Flux::toast(
+            variant: 'success',
+            text: $user->is_active ? __('User reactivated.') : __('User suspended.'),
+        );
+    }
+
+    // ── GDPR force-delete user ────────────────────────────────────────────────────
+
+    /**
+     * Permanently erase all data belonging to a user (GDPR right to erasure).
+     *
+     * Only Super Admins can call this. The user record itself is anonymised rather
+     * than hard-deleted so that FK references in audit_logs remain intact.
+     */
+    public function forceDeleteUser(string $userId, AuditLogger $auditLogger): void
+    {
+        // ── Authorization ─────────────────────────────────────────────────────
+        if (! Auth::user()->isSuperAdmin()) {
+            Flux::toast(variant: 'danger', text: __('Unauthorized.'));
+
+            return;
+        }
+
+        if (Auth::id() === $userId) {
+            Flux::toast(variant: 'danger', text: __('You cannot delete your own account.'));
+
+            return;
+        }
+
+        $target = User::findOrFail($userId);
+
+        if ($target->role === Role::SuperAdmin) {
+            Flux::toast(variant: 'danger', text: __('Cannot delete a Super Admin.'));
+
+            return;
+        }
+
+        // ── Data erasure ──────────────────────────────────────────────────────
+        // 1. Load aliases with their emails and attachments.
+        $target->load(['aliases.inboundEmails.attachments', 'aliases.shares']);
+
+        foreach ($target->aliases as $alias) {
+            foreach ($alias->inboundEmails as $email) {
+                // Delete physical attachment files then DB rows.
+                foreach ($email->attachments as $attachment) {
+                    $attachment->delete(); // booted() deletes the file from storage
+                }
+
+                $email->forceDelete();
+            }
+
+            // Hard-delete alias shares.
+            $alias->shares()->delete();
+
+            $alias->forceDelete();
+        }
+
+        // 2. Revoke API tokens.
+        $target->tokens()->delete();
+
+        // 3. Purge audit logs linked to this user.
+        AuditLog::where('user_id', $target->id)->delete();
+
+        // 4. Purge database sessions.
+        \Illuminate\Support\Facades\DB::table('sessions')
+            ->where('user_id', $target->id)
+            ->delete();
+
+        // 5. Log the deletion BEFORE anonymising (so we still have the email in metadata).
+        $auditLogger->log(AuditEvent::AdminUserDeleted, null, [
+            'deleted_user_id'    => $target->id,
+            'deleted_user_email' => $target->email,
+            'actor'              => Auth::user()->email,
+        ]);
+
+        // 6. Anonymise the user record (keep FK integrity for future audit references).
+        $target->forceFill([
+            'name'        => 'Deleted User',
+            'email'       => 'deleted_' . \Illuminate\Support\Str::ulid() . '@deleted.invalid',
+            'password'    => null,
+            'azure_id'    => null,
+            'external_id' => null,
+            'is_active'   => false,
+        ])->saveQuietly();
+
+        unset($this->users);
+
+        Flux::toast(variant: 'success', text: __('User data permanently deleted.'));
     }
 
     // ── Create alias for user ─────────────────────────────────────────────────────

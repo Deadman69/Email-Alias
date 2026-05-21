@@ -20,7 +20,13 @@
                 </flux:subheading>
             </div>
 
-            <flux:input wire:model="password" :label="__('Password')" type="password" viewable />
+            @if (auth()->user()->password)
+                <flux:input wire:model="password" :label="__('Password')" type="password" viewable />
+            @else
+                <flux:callout variant="info" icon="information-circle">
+                    <flux:callout.text>{{ __('You signed in via SSO. No password confirmation is required.') }}</flux:callout.text>
+                </flux:callout>
+            @endif
 
             <div class="flex justify-end space-x-2 rtl:space-x-reverse">
                 <flux:modal.close>

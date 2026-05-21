@@ -313,6 +313,13 @@
                         <flux:error name="cleanup_retention_days" />
                     </flux:field>
 
+                    <flux:field>
+                        <flux:label>{{ __('Audit log retention (days)') }}</flux:label>
+                        <flux:input wire:model="audit_log_retention_days" type="number" min="0" max="3650" />
+                        <flux:description>{{ __('Audit logs older than this many days are automatically deleted. Set to 0 to keep logs indefinitely.') }}</flux:description>
+                        <flux:error name="audit_log_retention_days" />
+                    </flux:field>
+
                     <flux:field variant="inline">
                         <flux:label>{{ __('Allow admins to read email bodies') }}</flux:label>
                         <flux:switch wire:model="admin_can_read_emails" />

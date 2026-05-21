@@ -3,6 +3,7 @@
 
     <flux:heading class="sr-only">{{ __('Security settings') }}</flux:heading>
 
+    @if (config('emailalias.local_auth_enabled', true))
     <x-settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
         <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
             <flux:input
@@ -183,15 +184,10 @@
                         </div>
 
                         <div class="space-y-4">
-                            <div class="relative flex items-center justify-center w-full">
-                                <div class="absolute inset-0 w-full h-px top-1/2 bg-stone-200 dark:bg-stone-600"></div>
-                                <span class="relative px-2 text-sm bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-400">
-                                    {{ __('or, enter the code manually') }}
-                                </span>
-                            </div>
+                            <flux:separator :text="__('or, enter the code manually')" />
 
                             <div
-                                class="flex items-center space-x-2"
+                                class="flex items-center gap-2"
                                 x-data="{
                                     copied: false,
                                     async copy() {
@@ -205,32 +201,25 @@
                                     }
                                 }"
                             >
-                                <div class="flex items-stretch w-full border rounded-xl dark:border-stone-700">
-                                    @empty($manualSetupKey)
-                                        <div class="flex items-center justify-center w-full p-3 bg-stone-100 dark:bg-stone-700">
-                                            <flux:icon.loading variant="mini"/>
-                                        </div>
-                                    @else
-                                        <input
-                                            type="text"
-                                            readonly
-                                            value="{{ $manualSetupKey }}"
-                                            class="w-full p-3 bg-transparent outline-none text-stone-900 dark:text-stone-100"
-                                        />
-
-                                        <button
-                                            @click="copy()"
-                                            class="px-3 transition-colors border-l cursor-pointer border-stone-200 dark:border-stone-600"
-                                        >
-                                            <flux:icon.document-duplicate x-show="!copied" variant="outline"></flux:icon>
-                                            <flux:icon.check
-                                                x-show="copied"
-                                                variant="solid"
-                                                class="text-green-500"
-                                            ></flux:icon>
-                                        </button>
-                                    @endempty
-                                </div>
+                                @empty($manualSetupKey)
+                                    <flux:input disabled value="" class="flex-1 font-mono text-sm" />
+                                @else
+                                    <flux:input type="text" :value="$manualSetupKey" :readonly="true" class="flex-1 font-mono text-sm" />
+                                    <flux:button
+                                        variant="ghost"
+                                        icon="document-duplicate"
+                                        x-show="!copied"
+                                        @click="copy()"
+                                        title="{{ __('Copy') }}"
+                                    />
+                                    <flux:button
+                                        variant="ghost"
+                                        icon="check"
+                                        x-show="copied"
+                                        class="text-green-500"
+                                        title="{{ __('Copied') }}"
+                                    />
+                                @endempty
                             </div>
                         </div>
                     @endif
@@ -293,6 +282,7 @@
             </section>
         @endif
     </x-settings.layout>
+    @endif
 
     <flux:modal
         name="delete-passkey-modal"

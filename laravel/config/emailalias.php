@@ -41,6 +41,12 @@ return [
     'cleanup_retention_days' => (int) env('CLEANUP_RETENTION_DAYS', 7),
 
     /*
+     * How many days to keep audit log entries before automatically purging them.
+     * 0 = keep indefinitely. Purge is performed daily by the CleanupAuditLogs job.
+     */
+    'audit_log_retention_days' => (int) env('AUDIT_LOG_RETENTION_DAYS', 365),
+
+    /*
      * Maximum size of a single inbound email (in bytes).
      * Emails exceeding this limit are stored without body (headers + metadata only).
      * Default: 10 MB.

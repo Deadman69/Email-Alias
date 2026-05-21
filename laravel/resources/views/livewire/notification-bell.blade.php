@@ -46,6 +46,8 @@
                             <flux:icon.exclamation-triangle class="h-4 w-4 text-amber-500" />
                         @elseif ($type === 'mailbox_quota')
                             <flux:icon.archive-box-x-mark class="h-4 w-4 text-red-500" />
+                        @elseif ($type === 'alias_expiry_warning')
+                            <flux:icon.clock class="h-4 w-4 text-amber-500" />
                         @else
                             <flux:icon.bell class="h-4 w-4 text-zinc-400" />
                         @endif
@@ -76,6 +78,14 @@
                                     ? __('Your total storage limit has been reached. Some emails were dropped.')
                                     : __('This mailbox is full. Some emails were dropped.') }}
                             </p>
+                        @elseif ($type === 'alias_expiry_warning')
+                            <div class="flex items-start gap-2">
+                                <div>
+                                    <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100">{{ __('Alias expiring soon') }}</p>
+                                    <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">{{ $data['alias_address'] ?? '' }}</p>
+                                    <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{{ __('Expires in :hours hour(s)', ['hours' => $data['expires_in_hours'] ?? '?']) }}</p>
+                                </div>
+                            </div>
                         @else
                             <p class="text-sm text-zinc-700 dark:text-zinc-300">{{ $type }}</p>
                         @endif

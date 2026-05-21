@@ -351,5 +351,32 @@
     "Registration disabled": "Registration disabled",
     "Contact your administrator to request access.": "Contact your administrator to request access.",
     "Back to login": "Back to login",
-    "The type pre-selected when a user creates a new alias.": "The type pre-selected when a user creates a new alias."
+    "The type pre-selected when a user creates a new alias.": "The type pre-selected when a user creates a new alias.",
+
+    "Status": "Status",
+    "Active": "Active",
+    "Suspended": "Suspended",
+    "Suspend user": "Suspend user",
+    "Reactivate user": "Reactivate user",
+    "User suspended.": "User suspended.",
+    "User reactivated.": "User reactivated.",
+    "or, enter the code manually": "or, enter the code manually",
+    "login using a recovery code": "login using a recovery code",
+    "login using an authentication code": "login using an authentication code",
+    "or you can": "or you can",
+    "Copied": "Copied",
+
+    "Audit log retention (days)": "Audit log retention (days)",
+    "Audit logs older than this many days are automatically deleted. Set to 0 to keep logs indefinitely.": "Audit logs older than this many days are automatically deleted. Set to 0 to keep logs indefinitely.",
+
+    "Permanently delete this user and all their data? This cannot be undone.": "Permanently delete this user and all their data? This cannot be undone.",
+    "Delete user and all data": "Delete user and all data",
+    "User data permanently deleted.": "User data permanently deleted.",
+    "You cannot delete your own account.": "You cannot delete your own account.",
+    "Cannot delete a Super Admin.": "Cannot delete a Super Admin.",
+
+    "You signed in via SSO. No password confirmation is required.": "You signed in via SSO. No password confirmation is required.",
+
+    "Alias expiring soon": "Alias expiring soon",
+    "Expires in :hours hour(s)": "Expires in :hours hour(s)"
 }

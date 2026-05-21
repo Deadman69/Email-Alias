@@ -23,6 +23,7 @@
                 <tr>
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('User') }}</th>
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Role') }}</th>
+                    <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Status') }}</th>
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Aliases') }}</th>
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Joined') }}</th>
                     <th class="px-4 py-3"></th>
@@ -66,6 +67,15 @@
                             @endif
                         </td>
 
+                        {{-- Status --}}
+                        <td class="px-4 py-3">
+                            @if ($user->is_active === false)
+                                <flux:badge color="red" size="sm">{{ __('Suspended') }}</flux:badge>
+                            @else
+                                <flux:badge color="green" size="sm">{{ __('Active') }}</flux:badge>
+                            @endif
+                        </td>
+
                         {{-- Aliases count --}}
                         <td class="px-4 py-3 text-zinc-600 dark:text-zinc-400">
                             {{ $user->aliases_count }}
@@ -80,18 +90,50 @@
 
                         {{-- Actions --}}
                         <td class="px-4 py-3">
-                            <flux:button
-                                size="xs"
-                                variant="ghost"
-                                icon="at-symbol"
-                                wire:click="openCreateModal('{{ $user->id }}')"
-                                title="{{ __('Create alias for this user') }}"
-                            />
+                            <div class="flex items-center gap-1">
+                                <flux:button
+                                    size="xs"
+                                    variant="ghost"
+                                    icon="at-symbol"
+                                    wire:click="openCreateModal('{{ $user->id }}')"
+                                    title="{{ __('Create alias for this user') }}"
+                                />
+                                @if (! $isSuperAdmin)
+                                    @if ($user->is_active)
+                                        <flux:button
+                                            size="xs"
+                                            variant="ghost"
+                                            icon="no-symbol"
+                                            wire:click="toggleUserStatus('{{ $user->id }}')"
+                                            title="{{ __('Suspend user') }}"
+                                        />
+                                    @else
+                                        <flux:button
+                                            size="xs"
+                                            variant="ghost"
+                                            icon="check-circle"
+                                            wire:click="toggleUserStatus('{{ $user->id }}')"
+                                            title="{{ __('Reactivate user') }}"
+                                        />
+                                    @endif
+                                @endif
+                                @if (auth()->user()?->isSuperAdmin() && ! $isSuperAdmin)
+                                    <flux:button
+                                        size="xs"
+                                        variant="ghost"
+                                        icon="trash"
+                                        wire:click="forceDeleteUser('{{ $user->id }}')"
+                                        wire:confirm="{{ __('Permanently delete this user and all their data? This cannot be undone.') }}"
+                                        class="text-red-400 hover:text-red-600"
+                                        title="{{ __('Delete user and all data') }}"
+                                    />
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-8 text-center text-zinc-400">
+                        <td colspan="6" class="px-4 py-8 text-center text-zinc-400">
                             {{ __('No users found.') }}
                         </td>
                     </tr>
@@ -125,16 +167,14 @@
                     <flux:label>{{ __('Type') }}</flux:label>
                     <div class="mt-1 flex gap-2">
                         @foreach ($this->aliasTypes as $type)
-                            <button
+                            <flux:button
                                 type="button"
                                 wire:click="$set('createAliasType', '{{ $type->value }}')"
-                                class="flex-1 rounded-lg border px-3 py-2 text-sm transition
-                                    {{ $createAliasType === $type->value
-                                        ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                                        : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}"
+                                :variant="$createAliasType === $type->value ? 'primary' : 'filled'"
+                                class="flex-1"
                             >
                                 {{ $type->label() }}
-                            </button>
+                            </flux:button>
                         @endforeach
                     </div>
                 </flux:field>
@@ -152,16 +192,22 @@
                 <flux:field>
                     <flux:label>{{ __('Address format') }}</flux:label>
                     <div class="mt-1 flex gap-2">
-                        <button type="button" wire:click="$set('createAliasMode', 'random')"
-                            class="flex-1 rounded-lg border px-3 py-2 text-sm transition
-                                {{ $createAliasMode === 'random' ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}">
+                        <flux:button
+                            type="button"
+                            wire:click="$set('createAliasMode', 'random')"
+                            :variant="$createAliasMode === 'random' ? 'primary' : 'filled'"
+                            class="flex-1"
+                        >
                             {{ __('Random') }}
-                        </button>
-                        <button type="button" wire:click="$set('createAliasMode', 'custom')"
-                            class="flex-1 rounded-lg border px-3 py-2 text-sm transition
-                                {{ $createAliasMode === 'custom' ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}">
+                        </flux:button>
+                        <flux:button
+                            type="button"
+                            wire:click="$set('createAliasMode', 'custom')"
+                            :variant="$createAliasMode === 'custom' ? 'primary' : 'filled'"
+                            class="flex-1"
+                        >
                             {{ __('Custom') }}
-                        </button>
+                        </flux:button>
                     </div>
                 </flux:field>
 

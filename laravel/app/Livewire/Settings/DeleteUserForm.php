@@ -15,11 +15,15 @@ class DeleteUserForm extends Component
 
     /**
      * Delete the currently authenticated user.
+     *
+     * For SSO users (no local password), password confirmation is skipped.
      */
     public function deleteUser(Logout $logout): void
     {
         $this->validate([
-            'password' => $this->currentPasswordRules(),
+            'password' => Auth::user()->password
+                ? $this->currentPasswordRules()
+                : 'nullable',
         ]);
 
         tap(Auth::user(), $logout(...))->delete();

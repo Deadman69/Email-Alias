@@ -24,6 +24,7 @@ enum AuditEvent: string
     case AdminAliasDeleted = 'admin.alias.deleted';
     case AdminViewedEmail  = 'admin.email.viewed';
     case AdminUserUpdated  = 'admin.user.updated';
+    case AdminUserDeleted  = 'admin.user.deleted';
 
     case ApiTokenCreated = 'api.token.created';
     case ApiTokenRevoked = 'api.token.revoked';
@@ -72,6 +73,7 @@ enum AuditEvent: string
             self::AdminAliasDeleted  => 'Admin: alias deleted',
             self::AdminViewedEmail   => 'Admin: email viewed',
             self::AdminUserUpdated   => 'Admin: user updated',
+            self::AdminUserDeleted   => 'Admin: user deleted',
             self::ApiTokenCreated    => 'API token created',
             self::ApiTokenRevoked    => 'API token revoked',
             self::ApiAliasCreated    => 'API: alias created',

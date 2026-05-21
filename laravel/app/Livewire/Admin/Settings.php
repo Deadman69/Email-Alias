@@ -58,6 +58,7 @@ class Settings extends Component
     public int  $alias_max_mailbox_size_mb    = 0;   // 0 = unlimited
     public int  $alias_max_user_storage_mb    = 0;   // 0 = unlimited
     public int  $cleanup_retention_days       = 7;
+    public int  $audit_log_retention_days     = 365;
     public bool $admin_can_read_emails        = false;
 
     // ── Active tab ────────────────────────────────────────────────────────────────
@@ -103,6 +104,7 @@ class Settings extends Component
         $this->alias_max_mailbox_size_mb    = (int) round($settings->get('alias_max_mailbox_size_bytes', 0) / 1024 / 1024);
         $this->alias_max_user_storage_mb    = (int) round($settings->get('alias_max_user_storage_bytes', 0) / 1024 / 1024);
         $this->cleanup_retention_days       = (int) $settings->get('cleanup_retention_days', 7);
+        $this->audit_log_retention_days     = (int) $settings->get('audit_log_retention_days', 365);
         $this->admin_can_read_emails        = (bool) $settings->get('admin_can_read_emails', false);
     }
 
@@ -162,6 +164,7 @@ class Settings extends Component
             'alias_max_mailbox_size_mb'     => 'required|integer|min:0|max:102400',
             'alias_max_user_storage_mb'     => 'required|integer|min:0|max:1048576',
             'cleanup_retention_days'        => 'required|integer|min:0|max:3650',
+            'audit_log_retention_days'      => 'required|integer|min:0|max:3650',
         ]);
 
         // Both SSO and local auth cannot be disabled simultaneously.
@@ -198,6 +201,7 @@ class Settings extends Component
             'alias_max_mailbox_size_bytes'     => $this->alias_max_mailbox_size_mb * 1024 * 1024,
             'alias_max_user_storage_bytes'     => $this->alias_max_user_storage_mb * 1024 * 1024,
             'cleanup_retention_days'           => $this->cleanup_retention_days,
+            'audit_log_retention_days'         => $this->audit_log_retention_days,
             'admin_can_read_emails'            => $this->admin_can_read_emails,
         ];
 
