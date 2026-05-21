@@ -33,6 +33,7 @@ class SettingService
      */
     public const CONFIG_MAP = [
         'app_name'                         => 'app.name',
+        'app_locale'                       => 'app.locale',
         'sso_enabled'                      => 'emailalias.sso_enabled',
         'local_auth_enabled'               => 'emailalias.local_auth_enabled',
         'registration_enabled'             => 'emailalias.registration_enabled',
@@ -57,6 +58,7 @@ class SettingService
     public const DEFINITIONS = [
         // ── app ──────────────────────────────────────────────────────────────────
         'app_name'                        => ['group' => 'app',      'cast' => 'string',  'default' => 'EmailAlias'],
+        'app_locale'                      => ['group' => 'app',      'cast' => 'string',  'default' => 'en'],
 
         // ── auth ─────────────────────────────────────────────────────────────────
         'sso_enabled'                     => ['group' => 'auth',     'cast' => 'bool',    'default' => false],

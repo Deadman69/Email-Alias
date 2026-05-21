@@ -22,11 +22,6 @@ class Alias extends Model
 {
     use HasFactory, HasUlids, SoftDeletes;
 
-    // HasUlids positionne automatiquement :
-    //   $incrementing = false
-    //   $keyType      = 'string'
-    // et génère un ULID à la création si la PK n'est pas fournie.
-
     /**
      * @return array<string, string>
      */

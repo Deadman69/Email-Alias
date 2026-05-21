@@ -26,18 +26,23 @@ class Inbox extends Component
 
     public string $filter = 'all'; // 'all' | 'unread' | 'read'
 
+    /**
+     * @param  Alias  $alias  Route-model bound alias — authorization checked here.
+     */
     public function mount(Alias $alias): void
     {
         $this->authorize('view', $alias);
         $this->aliasId = $alias->id;
     }
 
+    /** @return Alias */
     #[Computed]
     public function alias(): Alias
     {
         return Alias::findOrFail($this->aliasId);
     }
 
+    /** @return \Illuminate\Pagination\LengthAwarePaginator<InboundEmail> */
     #[Computed]
     public function emails(): \Illuminate\Pagination\LengthAwarePaginator
     {
@@ -58,6 +63,9 @@ class Inbox extends Component
         return InboundEmail::where('alias_id', $this->aliasId)->unread()->count();
     }
 
+    /**
+     * Mark a single email as read and log the event.
+     */
     public function markRead(string $emailId, AuditLogger $auditLogger): void
     {
         $email = InboundEmail::findOrFail($emailId);
@@ -67,6 +75,9 @@ class Inbox extends Component
         unset($this->emails, $this->unreadCount);
     }
 
+    /**
+     * Mark a single email as unread.
+     */
     public function markUnread(string $emailId): void
     {
         $email = InboundEmail::findOrFail($emailId);
@@ -75,6 +86,9 @@ class Inbox extends Component
         unset($this->emails, $this->unreadCount);
     }
 
+    /**
+     * Permanently delete an email. Only the alias owner can delete.
+     */
     public function deleteEmail(string $emailId, AuditLogger $auditLogger): void
     {
         $email = InboundEmail::findOrFail($emailId);
@@ -91,10 +105,14 @@ class Inbox extends Component
         Flux::toast(variant: 'success', text: __('Email deleted.'));
     }
 
+    /**
+     * Mark all unread emails as read.
+     *
+     * Authorization is checked explicitly even though $aliasId is #[Locked],
+     * as a defense-in-depth measure against future attribute changes.
+     */
     public function markAllRead(AuditLogger $auditLogger): void
     {
-        // Explicit authorization belt-and-suspenders — $aliasId is already #[Locked]
-        // but we enforce ownership here in case the attribute is ever removed.
         $alias = Alias::findOrFail($this->aliasId);
         $this->authorize('view', $alias);
 
@@ -103,6 +121,7 @@ class Inbox extends Component
         Flux::toast(text: __('All emails marked as read.'));
     }
 
+    /** Reset pagination when the filter tab changes. */
     public function updatedFilter(): void
     {
         $this->resetPage();

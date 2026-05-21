@@ -14,7 +14,8 @@ use Livewire\Component;
 class Settings extends Component
 {
     // ── General ───────────────────────────────────────────────────────────────────
-    public string $app_name = '';
+    public string $app_name   = '';
+    public string $app_locale = 'en';
 
     // ── Auth ─────────────────────────────────────────────────────────────────────
     public bool   $sso_enabled          = false;
@@ -45,7 +46,8 @@ class Settings extends Component
 
     public function mount(SettingService $settings): void
     {
-        $this->app_name            = (string) $settings->get('app_name', 'EmailAlias');
+        $this->app_name   = (string) $settings->get('app_name', 'EmailAlias');
+        $this->app_locale = (string) $settings->get('app_locale', 'en');
         $this->sso_enabled         = (bool) $settings->get('sso_enabled', false);
         $this->azure_client_id     = (string) $settings->get('azure_client_id', '');
         $this->azure_client_secret = (string) $settings->get('azure_client_secret', '');
@@ -79,6 +81,7 @@ class Settings extends Component
     {
         $this->validate([
             'app_name'                      => 'required|string|max:100',
+            'app_locale'                    => 'required|in:en,fr',
             'azure_client_id'               => 'nullable|string|max:255',
             'azure_client_secret'           => 'nullable|string|max:255',
             'azure_tenant_id'               => 'nullable|string|max:255',
@@ -99,6 +102,7 @@ class Settings extends Component
 
         $settings->fill([
             'app_name'                         => $this->app_name,
+            'app_locale'                       => $this->app_locale,
             'sso_enabled'                      => $this->sso_enabled,
             'azure_client_id'                  => $this->azure_client_id,
             'azure_client_secret'              => $this->azure_client_secret,

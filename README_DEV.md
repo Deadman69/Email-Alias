@@ -1,330 +1,222 @@
-# EmailAlias — Guide de développement
+# EmailAlias — Developer Guide
 
-Ce guide couvre tout ce qu'il faut pour faire tourner EmailAlias en local, **sans domaine réel, sans DNS, sans accès admin**.
-
----
-
-## Prérequis
-
-| Outil | Version min | Notes |
-|---|---|---|
-| Podman Desktop | 1.x | [podman-desktop.io](https://podman-desktop.io) |
-| Git | — | |
-| Un terminal PowerShell | — | Intégré à Windows |
-
-> **Pas de PHP, Node, ni Composer requis en local.** Tout tourne dans des containers.
+Everything you need to run EmailAlias locally — no real domain, no DNS, no server required.
 
 ---
 
-## 1. Premier démarrage
+## Prerequisites
 
-### 1.1 Activer la virtualisation (une seule fois, nécessite un admin)
+| Tool | Min version |
+|---|---|
+| Docker Desktop | 4.x |
+| Git | — |
 
-```powershell
-# En PowerShell administrateur :
-dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-# Redémarrer le PC
-```
-
-### 1.2 Initialiser la machine virtuelle Podman (une seule fois)
-
-```powershell
-podman machine init
-podman machine start
-```
-
-Vérification :
-```powershell
-podman run --rm hello-world
-# Doit afficher "Hello from Docker!"
-```
+> **No PHP, Node, or Composer needed locally.** Everything runs inside containers.
 
 ---
 
-## 2. Installation du projet
+## Setup
 
-```powershell
-# Cloner le repo
-git clone <repo-url> Email-Alias
-cd Email-Alias
-
-# Copier la config dev
-cp laravel\.env.example laravel\.env
+```bash
+git clone <repo-url> email-alias
+cd email-alias
+cp .env.example .env
 ```
 
-Ouvrir `laravel\.env` et vérifier / ajuster ces valeurs minimum :
+Minimum `.env` values for local development:
 
 ```env
 APP_URL=http://localhost:8000
-APP_DOMAIN=dev.local              # Domaine fictif, pas besoin de DNS
-SMTP_INTERNAL_SECRET=dev-secret   # Doit correspondre à smtp-server
+APP_DOMAIN=dev.local              # Fictional domain — no DNS needed
+SMTP_INTERNAL_SECRET=dev-secret   # Must match between smtp-server and Laravel
+DB_PASSWORD=localpassword
 ```
 
-### 2.1 Installer les dépendances Laravel
+Install dependencies:
 
-```powershell
-podman run --rm `
-  -v "${PWD}\laravel:/app" `
-  -w /app `
-  composer:2 `
-  composer install
-```
+```bash
+# Laravel
+docker run --rm -v "$PWD/laravel:/app" -w /app composer:2 composer install
 
-### 2.2 Installer les dépendances Node (smtp-server)
-
-```powershell
-podman run --rm `
-  -v "${PWD}\smtp-server:/app" `
-  -w /app `
-  node:22-alpine `
-  npm install
+# SMTP server
+docker run --rm -v "$PWD/smtp-server:/app" -w /app node:22-alpine npm install
 ```
 
 ---
 
-## 3. Démarrer l'environnement
+## Start
 
-```powershell
-# Depuis la racine du projet
-podman compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
-Les services disponibles :
-
-| Service | URL locale | Description |
+| Service | URL | Description |
 |---|---|---|
-| App Laravel | http://localhost:8000 | Interface principale |
-| PostgreSQL | localhost:5432 | BDD (user: emailalias / pw: dans .env) |
-| Reverb WebSocket | localhost:8080 | Temps réel |
-| SMTP receiver | localhost:2525 | Réception emails (port non-privilégié en dev) |
-
-### Voir les logs en direct
-
-```powershell
-podman compose logs -f              # Tous les services
-podman compose logs -f app          # Laravel uniquement
-podman compose logs -f smtp-server  # SMTP receiver
-```
+| Laravel app | http://localhost:8000 | Main UI |
+| PostgreSQL | localhost:5432 | Database |
+| Reverb WebSocket | localhost:8080 | Real-time |
+| SMTP receiver | localhost:2525 | Email ingestion (non-privileged port in dev) |
 
 ---
 
-## 4. Initialiser la base de données
+## Database
 
-```powershell
-# Migrations
-podman compose exec app php artisan migrate
+```bash
+# Migrations only
+docker compose exec app php artisan migrate
 
-# Migrations + données de démo (admin + développeur + aliases + emails)
-podman compose exec app php artisan migrate --seed
+# Migrations + demo data
+docker compose exec app php artisan migrate --seed
 ```
 
-Les comptes créés par le seeder :
+Demo accounts created by the seeder:
 
-| Email | Mot de passe | Rôle |
+| Email | Password | Role |
 |---|---|---|
-| admin@example.com | password | Admin |
-| paul@example.com | password | Développeur |
-
-### Créer un admin manuellement
-
-```powershell
-podman compose exec app php artisan admin:create
-```
+| admin@example.com | password | Super Admin |
+| paul@example.com | password | User |
 
 ---
 
-## 5. Compiler les assets frontend
+## Frontend assets
 
-```powershell
-# Build une fois
-podman compose exec app npm run build
+```bash
+# One-time build
+docker compose exec app npm run build
 
-# Ou mode watch (hot-reload)
-podman compose exec app npm run dev
+# Watch mode (hot-reload)
+docker compose exec app npm run dev
 ```
 
-> Si vous voyez une erreur `Vite manifest not found`, lancez `npm run build`.
+> If you see `Vite manifest not found`, run `npm run build` first.
 
 ---
 
-## 6. Tester la réception d'emails (sans DNS)
+## Testing email ingestion
 
-Pas besoin de domaine réel. Deux méthodes :
+No real domain needed. Two approaches:
 
-### Méthode A — Webhook direct (recommandé)
+### Option A — Direct webhook (recommended)
 
-Créez d'abord une alias dans l'UI (http://localhost:8000/mailbox), notez l'adresse générée (ex: `xk3f9a2b@dev.local`), puis :
+Create an alias in the UI (`http://localhost:8000/mailbox`), then POST directly to the internal endpoint:
 
-```powershell
-curl -X POST http://localhost:8000/internal/inbound `
-  -H "Content-Type: application/json" `
-  -H "X-SMTP-Secret: dev-secret" `
+```bash
+curl -X POST http://localhost:8000/internal/inbound \
+  -H "Content-Type: application/json" \
+  -H "X-SMTP-Secret: dev-secret" \
   -d '{
     "to": ["xk3f9a2b@dev.local"],
-    "from_address": "expediteur@example.com",
+    "from_address": "sender@example.com",
     "from_name": "Test Sender",
-    "subject": "Mon premier email de test",
-    "body_html": "<h1>Bonjour</h1><p>Ceci est un <strong>test</strong>.</p><img src=\"https://example.com/tracker.png\">",
-    "body_text": "Bonjour. Ceci est un test.",
-    "headers": {"message-id": "<test-123@example.com>"},
-    "size_bytes": 1024
+    "subject": "Hello from curl",
+    "body_html": "<h1>Test</h1><p>External image: <img src=\"https://example.com/tracker.png\"></p>",
+    "body_text": "Test email.",
+    "headers": {},
+    "size_bytes": 512
   }'
 ```
 
-L'email apparaît en temps réel dans l'inbox sans rafraîchir la page.
+The email appears in real time without a page refresh.
 
-### Méthode B — Via le SMTP receiver (test end-to-end)
+### Option B — SMTP end-to-end
 
-```powershell
-# Avec telnet (natif Windows)
-telnet localhost 2525
-```
-
-```
-EHLO dev.local
-MAIL FROM:<expediteur@example.com>
-RCPT TO:<xk3f9a2b@dev.local>
-DATA
-Subject: Test SMTP complet
-From: expediteur@example.com
-To: xk3f9a2b@dev.local
-
-Corps du message de test.
-.
-QUIT
-```
-
-Ou avec **swaks** si installé (`scoop install swaks`) :
-
-```powershell
-swaks --to xk3f9a2b@dev.local `
-      --from expediteur@example.com `
-      --server localhost --port 2525 `
-      --header "Subject: Test swaks" `
-      --body "Bonjour depuis swaks"
+```bash
+# Using swaks (install with: brew install swaks / scoop install swaks)
+swaks --to xk3f9a2b@dev.local \
+      --from sender@example.com \
+      --server localhost --port 2525 \
+      --header "Subject: SMTP test" \
+      --body "Hello from swaks"
 ```
 
 ---
 
-## 7. Commandes utiles au quotidien
+## Daily commands
 
-```powershell
-# Artisan (migrations, cache, etc.)
-podman compose exec app php artisan migrate
-podman compose exec app php artisan migrate:fresh --seed
-podman compose exec app php artisan route:list
-podman compose exec app php artisan queue:work   # Si pas déjà démarré
+```bash
+# Artisan
+docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate:fresh --seed
+docker compose exec app php artisan route:list
+docker compose exec app php artisan tinker
 
-# Tests Pest
-podman compose exec app php artisan test --compact
-podman compose exec app php artisan test --compact --filter=CreateAlias
-podman compose exec app php artisan test --compact --filter=InboundEmail
+# Tests (Pest)
+docker compose exec app php artisan test --compact
+docker compose exec app php artisan test --compact --filter=AliasService
 
-# Pint (formatage du code)
-podman compose exec app vendor/bin/pint --dirty
+# Code style (Pint)
+docker compose exec app vendor/bin/pint --dirty
 
-# Tinker (REPL PHP dans le contexte Laravel)
-podman compose exec app php artisan tinker
+# Clear all caches
+docker compose exec app php artisan optimize:clear
 
-# Vider les caches
-podman compose exec app php artisan optimize:clear
+# Logs
+docker compose logs -f app
+docker compose logs -f smtp-server
 ```
 
 ---
 
-## 8. Arrêter / relancer
-
-```powershell
-# Arrêter sans supprimer les données
-podman compose down
-
-# Arrêter ET supprimer la BDD (repart de zéro)
-podman compose down -v
-
-# Relancer après un reboot (la machine Podman s'arrête)
-podman machine start
-podman compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-```
-
----
-
-## 9. Variables d'environnement importantes
-
-Toutes dans `laravel/.env`. Les valeurs par défaut du `.env.example` fonctionnent en dev.
-
-| Variable | Valeur dev recommandée | Effet |
-|---|---|---|
-| `APP_DOMAIN` | `dev.local` | Domaine des adresses générées |
-| `SMTP_INTERNAL_SECRET` | `dev-secret` | Clé partagée SMTP ↔ Laravel |
-| `ADMIN_CAN_READ_EMAILS` | `false` | Admins peuvent lire le contenu des mails |
-| `ALIAS_MAX_PER_USER` | `20` | Limite d'aliases par utilisateur |
-| `ALIAS_ALLOW_PERMANENT` | `true` | Autoriser les aliases sans expiration |
-| `CLEANUP_EMAIL_RETENTION_DAYS` | `30` | Purge auto des emails supprimés |
-| `BROADCAST_CONNECTION` | `reverb` | Temps réel via Reverb |
-
----
-
-## 10. Structure du projet
+## Project structure
 
 ```
-Email-Alias/
-├── docker-compose.yml         # Config production
-├── docker-compose.dev.yml     # Overrides dev (ports exposés, volumes)
-├── .env.example               # Variables globales (SMTP secret, domain...)
-├── README.md                  # Spec fonctionnelle complète
-├── README_DEV.md              # Ce fichier
+email-alias/
+├── docker-compose.yml          # Production services
+├── docker-compose.dev.yml      # Dev overrides (exposed ports, volumes)
+├── .env.example                # Infrastructure variables template
 │
-├── smtp-server/               # Micro-service réception SMTP (Node.js)
-│   └── src/index.js           # ~100 lignes, reçoit SMTP → POST /internal/inbound
+├── smtp-server/                # SMTP micro-service (Node.js)
+│   └── src/index.js            # Receives SMTP → POST /internal/inbound
 │
-└── laravel/                   # Application principale (Laravel 13)
+└── laravel/                    # Main application (Laravel 13)
     ├── app/
-    │   ├── Enums/             # AliasType, AuditEvent
-    │   ├── Events/            # EmailReceived (broadcast Reverb)
+    │   ├── Console/Commands/   # admin:create
+    │   ├── Enums/              # AliasType, AuditEvent, Role
+    │   ├── Events/             # EmailReceived (Reverb broadcast)
     │   ├── Http/
-    │   │   ├── Controllers/Internal/  # Webhook SMTP (InboundEmailController)
-    │   │   └── Middleware/    # EnsureUserIsAdmin, EnsureInternalRequest
-    │   ├── Jobs/              # ProcessInboundEmail, CleanupExpiredAliases
+    │   │   ├── Controllers/    # Internal webhook, AttachmentController, SsoController
+    │   │   └── Middleware/     # EnsureUserIsAdmin, EnsureUserIsSuperAdmin,
+    │   │                       # EnsureInternalRequest, BootstrapSettings, SetLocale
+    │   ├── Jobs/               # ProcessInboundEmail, CleanupExpiredAliases
     │   ├── Livewire/
-    │   │   ├── Mailbox/       # Dashboard, Inbox, ViewEmail
-    │   │   └── Admin/         # Dashboard, AuditLogViewer
-    │   ├── Models/            # Alias, InboundEmail, AuditLog, User
-    │   ├── Policies/          # AliasPolicy, InboundEmailPolicy
-    │   └── Services/          # AliasService, AuditLogger
-    ├── config/emailalias.php  # Config spécifique EmailAlias
+    │   │   ├── Mailbox/        # Dashboard, Inbox, ViewEmail
+    │   │   ├── Admin/          # Dashboard, AuditLogViewer, Settings
+    │   │   └── Settings/       # Profile, Security, Appearance
+    │   ├── Models/             # User, Alias, AliasShare, InboundEmail,
+    │   │                       # Attachment, AuditLog, Setting
+    │   ├── Policies/           # AliasPolicy, InboundEmailPolicy
+    │   └── Services/           # AliasService, AuditLogger, SettingService,
+    │                           # HtmlSanitizer
+    ├── config/emailalias.php   # EmailAlias-specific config (overridden by SettingService)
     ├── database/
-    │   ├── migrations/        # Schema BDD
-    │   └── seeders/           # DemoSeeder (admin + dev + data)
-    ├── resources/views/
-    │   └── livewire/
-    │       ├── mailbox/       # Vues mailbox
-    │       └── admin/         # Vues admin
-    ├── routes/
-    │   ├── web.php            # Routes mailbox + admin
-    │   └── internal.php       # Webhook SMTP (non exposé publiquement)
-    └── tests/Feature/
-        ├── Mailbox/           # CreateAliasTest, InboundEmailTest
-        └── Admin/             # AdminAccessTest
+    │   ├── migrations/         # Database schema
+    │   └── seeders/            # DemoSeeder
+    ├── lang/
+    │   ├── en.json             # English translations
+    │   └── fr.json             # French translations
+    ├── resources/views/livewire/
+    │   ├── mailbox/            # Mailbox views
+    │   └── admin/              # Admin views
+    └── routes/
+        ├── web.php             # Mailbox + admin routes
+        └── internal.php        # SMTP webhook (not publicly routable)
 ```
 
 ---
 
-## 11. Dépannage
-
-**`podman: command not found`**
-→ Podman Desktop est installé mais le CLI n'est pas dans le PATH. Ouvrir Podman Desktop, aller dans Settings → Resources → Podman Machine et vérifier que la machine est démarrée.
+## Troubleshooting
 
 **`Error: no such container: email-alias-app-1`**
-→ Les containers ne sont pas démarrés. Lancer `podman compose up -d`.
+→ Containers are not running. Run `docker compose up -d`.
 
-**`SQLSTATE[HY000]: unable to open database file`**
-→ Si vous utilisez SQLite, le fichier `database/database.sqlite` n'existe pas. Lancer `podman compose exec app touch database/database.sqlite` puis `php artisan migrate`.
+**`Vite manifest not found`**
+→ Assets not compiled. Run `docker compose exec app npm run build`.
 
-**L'email ne s'affiche pas en temps réel**
-→ Vérifier que `BROADCAST_CONNECTION=reverb` dans `.env` et que le service `reverb` tourne (`podman compose ps`). Vérifier aussi les variables `VITE_REVERB_*` et relancer `npm run build`.
+**Email doesn't appear in real time**
+→ Check `BROADCAST_CONNECTION=reverb` in `.env`. Verify the `reverb` service is running (`docker compose ps`). Check `VITE_REVERB_*` variables and rebuild assets.
 
-**`403 Unauthorized internal request` sur /internal/inbound**
-→ Le header `X-SMTP-Secret` ne correspond pas à `SMTP_INTERNAL_SECRET` dans `.env`.
+**`403 Unauthorized internal request` on `/internal/inbound`**
+→ The `X-SMTP-Secret` header doesn't match `SMTP_INTERNAL_SECRET` in `.env`.
 
-**Port 2525 déjà utilisé**
-→ Changer `SMTP_RECEIVER_PORT` dans `.env` et le port dans `docker-compose.dev.yml`.
+**Port 2525 already in use**
+→ Change `SMTP_RECEIVER_PORT` in `.env` and the port mapping in `docker-compose.dev.yml`.

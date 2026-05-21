@@ -23,6 +23,9 @@ class ViewEmail extends Component
 
     public string $viewMode = 'rendered'; // 'rendered' | 'raw'
 
+    /**
+     * @param  InboundEmail  $email  Route-model bound email — authorization + read receipt logged here.
+     */
     public function mount(InboundEmail $email, AuditLogger $auditLogger): void
     {
         $this->authorize('view', $email);
@@ -68,12 +71,18 @@ class ViewEmail extends Component
         return app(HtmlSanitizer::class)->hasExternalContent($html);
     }
 
+    /** Allow external images for this session — user explicitly opted in. */
     public function allowExternalImages(): void
     {
         $this->showExternalImages = true;
         unset($this->safeHtml);
     }
 
+    /**
+     * Switch between rendered and raw HTML view modes.
+     *
+     * @param  string  $mode  'rendered' | 'raw'
+     */
     public function setViewMode(string $mode): void
     {
         if (! in_array($mode, ['rendered', 'raw'], true)) {

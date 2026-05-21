@@ -5,9 +5,11 @@ namespace App\Livewire\Settings;
 use App\Concerns\ProfileValidationRules;
 use Flux\Flux;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
 
 #[Title('Profile settings')]
@@ -19,13 +21,19 @@ class Profile extends Component
 
     public string $email = '';
 
+    /** @var string|null null = use platform default */
+    #[Validate('nullable|string|in:en,fr')]
+    public ?string $locale = null;
+
     /**
      * Mount the component.
      */
     public function mount(): void
     {
-        $this->name = Auth::user()->name;
-        $this->email = Auth::user()->email;
+        $user = Auth::user();
+        $this->name  = $user->name;
+        $this->email = $user->email;
+        $this->locale = $user->locale;
     }
 
     /**
@@ -44,6 +52,27 @@ class Profile extends Component
         }
 
         $user->save();
+
+        Flux::toast(variant: 'success', text: __('Profile updated.'));
+    }
+
+    /**
+     * Update the authenticated user's locale preference.
+     * Applies immediately without a full page reload.
+     */
+    public function updateLocale(): void
+    {
+        $this->validateOnly('locale');
+
+        $user = Auth::user();
+        $user->locale = $this->locale ?: null;
+        $user->save();
+
+        // Apply immediately for the current request
+        $locale = $this->locale ?: config('app.locale', 'en');
+        if (in_array($locale, ['en', 'fr'], true)) {
+            App::setLocale($locale);
+        }
 
         Flux::toast(variant: 'success', text: __('Profile updated.'));
     }

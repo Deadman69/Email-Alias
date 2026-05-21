@@ -17,6 +17,9 @@ class CreateAdminCommand extends Command
 
     protected $description = 'Create a new user or promote an existing user to Admin or Super Admin';
 
+    /**
+     * @return int  Command::SUCCESS or Command::FAILURE
+     */
     public function handle(): int
     {
         $targetRole = $this->option('super-admin') ? Role::SuperAdmin : Role::Admin;

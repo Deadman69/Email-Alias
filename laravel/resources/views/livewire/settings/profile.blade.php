@@ -19,7 +19,6 @@
                                 {{ __('Click here to re-send the verification email.') }}
                             </flux:link>
                         </flux:text>
-
                     </div>
                 @endif
             </div>
@@ -28,6 +27,25 @@
                 <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>
             </div>
         </form>
+
+        {{-- Language preference --}}
+        <flux:separator class="my-6" />
+
+        <div class="space-y-4">
+            <div>
+                <flux:heading size="sm">{{ __('Language') }}</flux:heading>
+                <flux:text class="text-sm text-zinc-500">{{ __('Your preferred display language.') }}</flux:text>
+            </div>
+
+            <form wire:submit="updateLocale" class="flex items-end gap-4">
+                <flux:select wire:model="locale" class="max-w-xs">
+                    <flux:select.option value="">{{ __('Platform default') }}</flux:select.option>
+                    <flux:select.option value="en">{{ __('English') }}</flux:select.option>
+                    <flux:select.option value="fr">{{ __('French') }}</flux:select.option>
+                </flux:select>
+                <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>
+            </form>
+        </div>
 
         @if ($this->showDeleteUser)
             <livewire:settings.delete-user-form />

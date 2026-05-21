@@ -32,6 +32,16 @@
                         <flux:input value="{{ $this->appUrl }}" disabled />
                         <flux:description>{{ __('Set via APP_URL in .env — cannot be changed here.') }}</flux:description>
                     </flux:field>
+
+                    <flux:field>
+                        <flux:label>{{ __('Default language') }}</flux:label>
+                        <flux:select wire:model="app_locale" class="max-w-xs">
+                            <flux:select.option value="en">{{ __('English') }}</flux:select.option>
+                            <flux:select.option value="fr">{{ __('French') }}</flux:select.option>
+                        </flux:select>
+                        <flux:description>{{ __('Users can override this in their profile settings.') }}</flux:description>
+                        <flux:error name="app_locale" />
+                    </flux:field>
                 </div>
             </flux:tab.panel>
 

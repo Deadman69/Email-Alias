@@ -4,6 +4,7 @@ use App\Http\Middleware\BootstrapSettings;
 use App\Http\Middleware\EnsureInternalRequest;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Load DB settings early so config('emailalias.*') reflects admin choices
         $middleware->prependToGroup('web', BootstrapSettings::class);
+
+        // Set per-user or platform locale — must run after session/auth are resolved
+        $middleware->appendToGroup('web', SetLocale::class);
 
         $middleware->alias([
             'admin'       => EnsureUserIsAdmin::class,
