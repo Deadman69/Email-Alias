@@ -103,6 +103,7 @@
 - [x] API tokens — Sanctum personal access tokens with ability scopes and optional alias restriction
 - [x] Token abilities server-side filtered by role (regular users cannot create admin-scoped tokens)
 - [x] Super Admins cannot be modified via API; `super_admin` role cannot be assigned via API
+- [ ] Add other providers other than Azure (SAML, Keycloak...)
 
 ---
 
