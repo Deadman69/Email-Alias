@@ -139,14 +139,22 @@ class SettingService
      */
     public function all(): array
     {
-        return Cache::rememberForever(self::CACHE_KEY, function () {
-            try {
-                return Setting::all()->pluck('value', 'key')->toArray();
-            } catch (\Throwable) {
-                // Table may not exist yet (fresh install before migration)
-                return [];
-            }
-        });
+        $cached = Cache::get(self::CACHE_KEY);
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        try {
+            $settings = Setting::all()->pluck('value', 'key')->toArray();
+            Cache::forever(self::CACHE_KEY, $settings);
+
+            return $settings;
+        } catch (\Throwable) {
+            // Settings table does not exist yet (fresh install before migrations).
+            // Return defaults without caching so the next request retries the DB.
+            return [];
+        }
     }
 
     /**
