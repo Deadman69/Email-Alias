@@ -120,6 +120,16 @@ class Settings extends Component
         return config('emailalias.version', '0.0.0');
     }
 
+    // ── Updaters ──────────────────────────────────────────────────────────────
+
+    /** Auto-reset default type when permanent aliases are disabled. */
+    public function updatedAliasAllowPermanent(bool $value): void
+    {
+        if (! $value && $this->alias_default_type === 'permanent') {
+            $this->alias_default_type = 'session';
+        }
+    }
+
     // ── Actions ───────────────────────────────────────────────────────────────────
 
     public function save(SettingService $settings, AuditLogger $auditLogger): void
@@ -141,7 +151,11 @@ class Settings extends Component
             'saml_sp_entity_id'             => 'nullable|string|max:500',
             'scim_bearer_token'             => 'nullable|string|min:32|max:500',
             'alias_max_per_user'            => 'required|integer|min:1|max:1000',
-            'alias_default_type'            => 'required|in:session,duration,permanent',
+            'alias_default_type'            => ['required', \Illuminate\Validation\Rule::in(
+                                                   $this->alias_allow_permanent
+                                                       ? ['session', 'duration', 'permanent']
+                                                       : ['session', 'duration']
+                                               )],
             'health_check_visibility'       => 'required|in:public,auth,admin',
             'alias_max_email_size_mb'       => 'required|integer|min:1|max:100',
             'alias_max_attachment_size_mb'  => 'required|integer|min:1|max:50',

@@ -7,14 +7,14 @@
                 <div class="flex items-center gap-2">
                     <flux:button variant="ghost" icon="arrow-left" wire:navigate :href="route('mailbox.dashboard')" size="sm" />
                     <flux:heading size="xl" class="font-mono">{{ $this->alias->address }}</flux:heading>
-                    <button
-                        type="button"
+                    <flux:button
+                        variant="ghost"
+                        icon="clipboard"
+                        size="sm"
                         x-data
                         x-on:click="navigator.clipboard.writeText('{{ $this->alias->address }}')"
-                        class="text-zinc-400 hover:text-zinc-600"
-                    >
-                        <flux:icon name="clipboard" class="size-4" />
-                    </button>
+                        title="{{ __('Copy address') }}"
+                    />
                 </div>
                 <div class="mt-1 flex items-center gap-2">
                     <flux:badge
@@ -71,18 +71,16 @@
         </div>
 
         {{-- Filter tabs --}}
-        <div class="flex gap-1 border-b border-zinc-200 dark:border-zinc-700">
+        <div class="flex gap-1">
             @foreach (['all' => __('All'), 'unread' => __('Unread'), 'read' => __('Read')] as $val => $filterLabel)
-                <button
+                <flux:button
                     type="button"
                     wire:click="$set('filter', '{{ $val }}')"
-                    class="px-4 py-2 text-sm font-medium transition border-b-2
-                        {{ $filter === $val
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
+                    size="sm"
+                    :variant="$filter === $val ? 'primary' : 'ghost'"
                 >
                     {{ $filterLabel }}
-                </button>
+                </flux:button>
             @endforeach
         </div>
 

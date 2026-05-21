@@ -191,16 +191,14 @@
                     <flux:label>{{ __('Type') }}</flux:label>
                     <div class="mt-1 flex gap-2">
                         @foreach ($this->aliasTypes as $type)
-                            <button
+                            <flux:button
                                 type="button"
                                 wire:click="$set('aliasType', '{{ $type->value }}')"
-                                class="flex-1 rounded-lg border px-3 py-2 text-sm transition
-                                    {{ $aliasType === $type->value
-                                        ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                                        : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}"
+                                :variant="$aliasType === $type->value ? 'primary' : 'filled'"
+                                class="flex-1"
                             >
                                 {{ $type->label() }}
-                            </button>
+                            </flux:button>
                         @endforeach
                     </div>
                 </flux:field>
@@ -218,16 +216,22 @@
                 <flux:field>
                     <flux:label>{{ __('Address format') }}</flux:label>
                     <div class="mt-1 flex gap-2">
-                        <button type="button" wire:click="$set('aliasMode', 'random')"
-                            class="flex-1 rounded-lg border px-3 py-2 text-sm transition
-                                {{ $aliasMode === 'random' ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}">
+                        <flux:button
+                            type="button"
+                            wire:click="$set('aliasMode', 'random')"
+                            :variant="$aliasMode === 'random' ? 'primary' : 'filled'"
+                            class="flex-1"
+                        >
                             {{ __('Random') }}
-                        </button>
-                        <button type="button" wire:click="$set('aliasMode', 'custom')"
-                            class="flex-1 rounded-lg border px-3 py-2 text-sm transition
-                                {{ $aliasMode === 'custom' ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}">
+                        </flux:button>
+                        <flux:button
+                            type="button"
+                            wire:click="$set('aliasMode', 'custom')"
+                            :variant="$aliasMode === 'custom' ? 'primary' : 'filled'"
+                            class="flex-1"
+                        >
                             {{ __('Custom') }}
-                        </button>
+                        </flux:button>
                     </div>
                 </flux:field>
 

@@ -60,34 +60,26 @@
 
         {{-- WARNING: email too large, body not stored --}}
         @if ($this->email->is_truncated)
-            <div class="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950">
-                <flux:icon name="exclamation-triangle" class="mt-0.5 size-5 shrink-0 text-red-500" />
-                <div>
-                    <flux:text class="font-semibold text-red-700 dark:text-red-300">
-                        {{ __('Email body not available') }}
-                    </flux:text>
-                    <flux:text class="mt-0.5 text-sm text-red-600 dark:text-red-400">
-                        {{ __('This email exceeded the maximum size limit (:size). Only the sender, subject and headers were kept.', [
-                            'size' => round(config('emailalias.max_email_size_bytes') / (1024 * 1024), 0) . ' MB',
-                        ]) }}
-                    </flux:text>
-                </div>
-            </div>
+            <flux:callout variant="danger" icon="exclamation-triangle">
+                <flux:callout.heading>{{ __('Email body not available') }}</flux:callout.heading>
+                <flux:callout.text>
+                    {{ __('This email exceeded the maximum size limit (:size). Only the sender, subject and headers were kept.', [
+                        'size' => round(config('emailalias.max_email_size_bytes') / (1024 * 1024), 0) . ' MB',
+                    ]) }}
+                </flux:callout.text>
+            </flux:callout>
         @endif
 
         {{-- WARNING: external content blocked --}}
         @if (! $this->email->is_truncated && ! $showExternalImages && $this->hasBlockedExternalContent && $viewMode === 'rendered')
-            <div class="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 dark:border-amber-800 dark:bg-amber-950">
-                <div class="flex items-center gap-2">
-                    <flux:icon name="eye-slash" class="size-4 text-amber-600" />
-                    <flux:text class="text-sm text-amber-700 dark:text-amber-300">
-                        {{ __('External images and trackers are blocked.') }}
-                    </flux:text>
-                </div>
-                <flux:button size="xs" variant="ghost" wire:click="allowExternalImages">
-                    {{ __('Load external content') }}
-                </flux:button>
-            </div>
+            <flux:callout variant="warning" icon="eye-slash">
+                <flux:callout.heading>{{ __('External images and trackers are blocked.') }}</flux:callout.heading>
+                <flux:callout.text>
+                    <flux:button size="xs" variant="ghost" wire:click="allowExternalImages" class="mt-1">
+                        {{ __('Load external content') }}
+                    </flux:button>
+                </flux:callout.text>
+            </flux:callout>
         @endif
 
         {{-- Email body --}}

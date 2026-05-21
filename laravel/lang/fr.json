@@ -343,5 +343,13 @@
     "SP Entity ID": "Entity ID du SP",
     "Defaults to the application URL if left blank.": "Par défaut, l'URL de l'application si laissé vide.",
     "SCIM provisioning": "Provisionnement SCIM",
-    "Your account has been deactivated.": "Votre compte a été désactivé."
+    "Your account has been deactivated.": "Votre compte a été désactivé.",
+
+    "Continue with :provider": "Continuer avec :provider",
+    "or": "ou",
+    "Click below to sign in with your organization account": "Cliquez ci-dessous pour vous connecter avec votre compte d'organisation",
+    "Registration disabled": "Inscription désactivée",
+    "Contact your administrator to request access.": "Contactez votre administrateur pour demander un accès.",
+    "Back to login": "Retour à la connexion",
+    "The type pre-selected when a user creates a new alias.": "Le type pré-sélectionné lors de la création d'un alias."
 }

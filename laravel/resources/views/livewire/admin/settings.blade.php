@@ -257,16 +257,19 @@
 
                     <flux:field>
                         <flux:label>{{ __('Default alias type') }}</flux:label>
-                        <flux:select wire:model="alias_default_type">
-                            <flux:option value="session">{{ __('Session') }}</flux:option>
-                            <flux:option value="duration">{{ __('Duration') }}</flux:option>
-                            <flux:option value="permanent">{{ __('Permanent') }}</flux:option>
+                        <flux:select wire:model="alias_default_type" class="max-w-xs">
+                            <flux:select.option value="session">{{ __('Session') }}</flux:select.option>
+                            <flux:select.option value="duration">{{ __('Duration') }}</flux:select.option>
+                            @if ($alias_allow_permanent)
+                                <flux:select.option value="permanent">{{ __('Permanent') }}</flux:select.option>
+                            @endif
                         </flux:select>
+                        <flux:description>{{ __('The type pre-selected when a user creates a new alias.') }}</flux:description>
                     </flux:field>
 
                     <flux:field variant="inline">
                         <flux:label>{{ __('Allow permanent aliases') }}</flux:label>
-                        <flux:switch wire:model="alias_allow_permanent" />
+                        <flux:switch wire:model.live="alias_allow_permanent" />
                         <flux:description>{{ __('If disabled, users can only create session or duration aliases.') }}</flux:description>
                     </flux:field>
                 </div>
