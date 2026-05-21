@@ -121,8 +121,8 @@
     "Emails exceeding this limit are stored as headers-only (body truncated).": "Emails exceeding this limit are stored as headers-only (body truncated).",
     "Max attachment size (MB)": "Max attachment size (MB)",
     "Attachments larger than this are discarded (metadata kept).": "Attachments larger than this are discarded (metadata kept).",
-    "Email retention (days)": "Email retention (days)",
-    "Emails older than this are automatically deleted. Set to 0 to keep forever.": "Emails older than this are automatically deleted. Set to 0 to keep forever.",
+    "Retention period (days)": "Retention period (days)",
+    "Soft-deleted aliases and emails are permanently removed after this many days. Set to 0 to purge immediately on the next cleanup run.": "Soft-deleted aliases and emails are permanently removed after this many days. Set to 0 to purge immediately on the next cleanup run.",
     "Allow admins to read email bodies": "Allow admins to read email bodies",
     "Enabling this gives admins full access to email content. Use with caution.": "Enabling this gives admins full access to email content. Use with caution.",
     "Save settings": "Save settings",
@@ -238,5 +238,8 @@
     "Mark all as read": "Mark all as read",
     "Mark as read": "Mark as read",
     "Mailbox rate-limited": "Mailbox rate-limited",
-    "Too many incoming emails. Some were dropped to protect your mailbox.": "Too many incoming emails. Some were dropped to protect your mailbox."
+    "Too many incoming emails. Some were dropped to protect your mailbox.": "Too many incoming emails. Some were dropped to protect your mailbox.",
+    "This mailbox no longer exists.": "This mailbox no longer exists.",
+    "This email no longer exists.": "This email no longer exists.",
+    "Email deleted.": "Email deleted."
 }

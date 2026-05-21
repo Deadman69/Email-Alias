@@ -36,6 +36,27 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
+    /**
+     * When a user is deleted, cascade their aliases through Eloquent so each
+     * Alias::booted() hook fires, which cascades to emails then attachments.
+     *
+     * This ensures physical files on disk are always deleted — the DB-level FK
+     * cascade (cascadeOnDelete) only fires raw SQL and bypasses model events.
+     *
+     * chunkById prevents loading all aliases into memory for users with many aliases.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (self $user) {
+            $user->aliases()
+                ->when(
+                    method_exists($user, 'isForceDeleting') && $user->isForceDeleting(),
+                    fn ($q) => $q->withTrashed()
+                )
+                ->chunkById(50, fn ($aliases) => $aliases->each->delete());
+        });
+    }
+
     // ── Backward-compatible accessors ────────────────────────────────────────────
 
     /**

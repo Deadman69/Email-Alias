@@ -121,8 +121,8 @@
     "Emails exceeding this limit are stored as headers-only (body truncated).": "Les e-mails dépassant cette limite sont stockés sans corps (en-têtes uniquement).",
     "Max attachment size (MB)": "Taille max des pièces jointes (Mo)",
     "Attachments larger than this are discarded (metadata kept).": "Les pièces jointes plus volumineuses sont ignorées (métadonnées conservées).",
-    "Email retention (days)": "Rétention des e-mails (jours)",
-    "Emails older than this are automatically deleted. Set to 0 to keep forever.": "Les e-mails plus anciens sont supprimés automatiquement. Mettre 0 pour conserver indéfiniment.",
+    "Retention period (days)": "Période de rétention (jours)",
+    "Soft-deleted aliases and emails are permanently removed after this many days. Set to 0 to purge immediately on the next cleanup run.": "Les alias et e-mails supprimés sont définitivement effacés après ce délai. Mettre 0 pour purger immédiatement au prochain passage du job.",
     "Allow admins to read email bodies": "Autoriser les admins à lire le contenu des e-mails",
     "Enabling this gives admins full access to email content. Use with caution.": "Activer ceci donne aux admins un accès complet au contenu des e-mails. À utiliser avec précaution.",
     "Save settings": "Enregistrer les paramètres",
@@ -238,5 +238,8 @@
     "Mark all as read": "Tout marquer comme lu",
     "Mark as read": "Marquer comme lu",
     "Mailbox rate-limited": "Boîte mail limitée",
-    "Too many incoming emails. Some were dropped to protect your mailbox.": "Trop d'e-mails reçus en peu de temps. Certains ont été ignorés pour protéger votre boîte mail."
+    "Too many incoming emails. Some were dropped to protect your mailbox.": "Trop d'e-mails reçus en peu de temps. Certains ont été ignorés pour protéger votre boîte mail.",
+    "This mailbox no longer exists.": "Cette boîte mail n'existe plus.",
+    "This email no longer exists.": "Cet e-mail n'existe plus.",
+    "Email deleted.": "E-mail supprimé."
 }

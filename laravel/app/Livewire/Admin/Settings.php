@@ -37,10 +37,10 @@ class Settings extends Component
     public string $alias_default_type     = 'session';
 
     // ── Email (displayed in MB in the UI, stored in bytes) ────────────────────────
-    public int  $alias_max_email_size_mb       = 10;
-    public int  $alias_max_attachment_size_mb  = 5;
-    public int  $cleanup_email_retention_days  = 30;
-    public bool $admin_can_read_emails         = false;
+    public int  $alias_max_email_size_mb   = 10;
+    public int  $alias_max_attachment_size_mb = 5;
+    public int  $cleanup_retention_days    = 7;
+    public bool $admin_can_read_emails     = false;
 
     // ── Active tab ────────────────────────────────────────────────────────────────
     public string $activeTab = 'general';
@@ -69,7 +69,7 @@ class Settings extends Component
 
         $this->alias_max_email_size_mb      = (int) round($settings->get('alias_max_email_size_bytes', 10485760) / 1024 / 1024);
         $this->alias_max_attachment_size_mb = (int) round($settings->get('alias_max_attachment_size_bytes', 5242880) / 1024 / 1024);
-        $this->cleanup_email_retention_days = (int) $settings->get('cleanup_email_retention_days', 30);
+        $this->cleanup_retention_days       = (int) $settings->get('cleanup_retention_days', 7);
         $this->admin_can_read_emails        = (bool) $settings->get('admin_can_read_emails', false);
     }
 
@@ -95,7 +95,7 @@ class Settings extends Component
             'alias_default_type'            => 'required|in:session,duration,permanent',
             'alias_max_email_size_mb'       => 'required|integer|min:1|max:100',
             'alias_max_attachment_size_mb'  => 'required|integer|min:1|max:50',
-            'cleanup_email_retention_days'  => 'required|integer|min:0|max:3650',
+            'cleanup_retention_days'        => 'required|integer|min:0|max:3650',
         ]);
 
         // Both SSO and local auth cannot be disabled simultaneously.
@@ -119,7 +119,7 @@ class Settings extends Component
             'alias_default_type'               => $this->alias_default_type,
             'alias_max_email_size_bytes'       => $this->alias_max_email_size_mb * 1024 * 1024,
             'alias_max_attachment_size_bytes'  => $this->alias_max_attachment_size_mb * 1024 * 1024,
-            'cleanup_email_retention_days'     => $this->cleanup_email_retention_days,
+            'cleanup_retention_days'           => $this->cleanup_retention_days,
             'admin_can_read_emails'            => $this->admin_can_read_emails,
         ];
 

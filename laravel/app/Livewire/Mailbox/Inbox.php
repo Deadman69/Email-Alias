@@ -14,6 +14,7 @@ use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\View\View;
 
 #[Title('Inbox')]
 #[Layout('layouts.app')]
@@ -35,11 +36,14 @@ class Inbox extends Component
         $this->aliasId = $alias->id;
     }
 
-    /** @return Alias */
+    /**
+     * Returns null if the alias was deleted while the user was on this page.
+     * render() detects the null and redirects gracefully.
+     */
     #[Computed]
-    public function alias(): Alias
+    public function alias(): ?Alias
     {
-        return Alias::findOrFail($this->aliasId);
+        return Alias::find($this->aliasId);
     }
 
     /** @return \Illuminate\Pagination\LengthAwarePaginator<InboundEmail> */
@@ -134,5 +138,19 @@ class Inbox extends Component
     public function updatedFilter(): void
     {
         $this->resetPage();
+    }
+
+    /**
+     * Redirect gracefully if the alias was deleted while the user was on this page.
+     * This handles both explicit deletion by the owner and background cleanup jobs.
+     */
+    public function render(): View
+    {
+        if ($this->alias === null) {
+            Flux::toast(variant: 'warning', text: __('This mailbox no longer exists.'));
+            $this->redirectRoute('mailbox.dashboard', navigate: true);
+        }
+
+        return view('livewire.mailbox.inbox');
     }
 }

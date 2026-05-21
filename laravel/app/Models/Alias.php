@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AliasType;
+use Carbon\CarbonInterface;
 use Database\Factories\AliasFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -15,7 +16,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Carbon\CarbonInterface;
 
 #[UseFactory(AliasFactory::class)]
 #[Fillable(['address', 'local_part', 'type', 'duration', 'user_id', 'label', 'expires_at', 'webhook_url'])]
@@ -23,6 +23,28 @@ use Carbon\CarbonInterface;
 class Alias extends Model
 {
     use HasFactory, HasUlids, SoftDeletes;
+
+    /**
+     * Cascade soft-deletes to emails (and their attachments) so no orphan data
+     * or physical files are left behind when an alias is deleted.
+     *
+     * DB-level FK cascades only fire on hard deletes, so we must do this in
+     * Eloquent to guarantee the InboundEmail booted() hook (→ Attachment
+     * booted() → Storage::delete) runs for every email.
+     *
+     * Shares are hard-deleted immediately (no soft-delete on alias_shares).
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (self $alias) {
+            // Include already-soft-deleted emails when force-deleting
+            $alias->inboundEmails()
+                ->when($alias->isForceDeleting(), fn ($q) => $q->withTrashed())
+                ->chunkById(100, fn ($emails) => $emails->each->delete());
+
+            $alias->shares()->delete();
+        });
+    }
 
     /**
      * @return array<string, string>

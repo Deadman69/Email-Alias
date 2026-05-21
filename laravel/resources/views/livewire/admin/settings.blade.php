@@ -158,10 +158,10 @@
                     </flux:field>
 
                     <flux:field>
-                        <flux:label>{{ __('Email retention (days)') }}</flux:label>
-                        <flux:input wire:model="cleanup_email_retention_days" type="number" min="0" max="3650" />
-                        <flux:description>{{ __('Emails older than this are automatically deleted. Set to 0 to keep forever.') }}</flux:description>
-                        <flux:error name="cleanup_email_retention_days" />
+                        <flux:label>{{ __('Retention period (days)') }}</flux:label>
+                        <flux:input wire:model="cleanup_retention_days" type="number" min="0" max="3650" />
+                        <flux:description>{{ __('Soft-deleted aliases and emails are permanently removed after this many days. Set to 0 to purge immediately on the next cleanup run.') }}</flux:description>
+                        <flux:error name="cleanup_retention_days" />
                     </flux:field>
 
                     <flux:field variant="inline">

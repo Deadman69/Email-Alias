@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\InboundEmailFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -49,6 +50,19 @@ class InboundEmail extends Model
                 return round($bytes / (1024 * 1024), 1) . ' MB';
             }
         );
+    }
+
+    /**
+     * When an email is deleted (soft or force), delete its attachments first so
+     * physical files on disk are always cleaned up — DB-level FK cascades would
+     * bypass Eloquent model events and leave orphan files.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (self $email) {
+            // Load fresh so we still catch attachments even on forceDelete
+            $email->attachments()->each(fn (Attachment $a) => $a->delete());
+        });
     }
 
     public function alias(): BelongsTo

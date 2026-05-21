@@ -43,7 +43,7 @@ class SettingService
         'alias_default_type'               => 'emailalias.alias_default_type',
         'alias_max_email_size_bytes'       => 'emailalias.max_email_size_bytes',
         'alias_max_attachment_size_bytes'  => 'emailalias.max_attachment_size_bytes',
-        'cleanup_email_retention_days'     => 'emailalias.email_retention_days',
+        'cleanup_retention_days'           => 'emailalias.cleanup_retention_days',
         'admin_can_read_emails'            => 'emailalias.admin_can_read_emails',
         // Azure — services.azure.*
         'azure_client_id'                  => 'services.azure.client_id',
@@ -79,7 +79,7 @@ class SettingService
         // ── email ────────────────────────────────────────────────────────────────
         'alias_max_email_size_bytes'      => ['group' => 'email',    'cast' => 'int',     'default' => 10485760],
         'alias_max_attachment_size_bytes' => ['group' => 'email',    'cast' => 'int',     'default' => 5242880],
-        'cleanup_email_retention_days'    => ['group' => 'email',    'cast' => 'int',     'default' => 30],
+        'cleanup_retention_days'          => ['group' => 'email',    'cast' => 'int',     'default' => 7],
         'admin_can_read_emails'           => ['group' => 'email',    'cast' => 'bool',    'default' => false],
     ];
 

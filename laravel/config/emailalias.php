@@ -34,9 +34,11 @@ return [
     'admin_can_read_emails' => (bool) env('ADMIN_CAN_READ_EMAILS', false),
 
     /*
-     * Automatically delete emails older than this many days (0 = never).
+     * How many days to keep soft-deleted aliases and emails before permanently
+     * removing them (0 = purge immediately on the next cleanup run).
+     * This is the grace period; hard-purge happens via the CleanupExpiredAliases job.
      */
-    'email_retention_days' => (int) env('CLEANUP_EMAIL_RETENTION_DAYS', 30),
+    'cleanup_retention_days' => (int) env('CLEANUP_RETENTION_DAYS', 7),
 
     /*
      * Maximum size of a single inbound email (in bytes).
