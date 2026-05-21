@@ -17,8 +17,9 @@ use Livewire\Component;
 class Settings extends Component
 {
     // ── General ───────────────────────────────────────────────────────────────────
-    public string $app_name   = '';
-    public string $app_locale = 'en';
+    public string $app_name              = '';
+    public string $app_locale            = 'en';
+    public bool   $version_check_enabled = true;
 
     // ── Auth ─────────────────────────────────────────────────────────────────────
     public bool   $sso_enabled          = false;
@@ -37,10 +38,12 @@ class Settings extends Component
     public string $alias_default_type     = 'session';
 
     // ── Email (displayed in MB in the UI, stored in bytes) ────────────────────────
-    public int  $alias_max_email_size_mb   = 10;
+    public int  $alias_max_email_size_mb      = 10;
     public int  $alias_max_attachment_size_mb = 5;
-    public int  $cleanup_retention_days    = 7;
-    public bool $admin_can_read_emails     = false;
+    public int  $alias_max_mailbox_size_mb    = 0;   // 0 = unlimited
+    public int  $alias_max_user_storage_mb    = 0;   // 0 = unlimited
+    public int  $cleanup_retention_days       = 7;
+    public bool $admin_can_read_emails        = false;
 
     // ── Active tab ────────────────────────────────────────────────────────────────
     public string $activeTab = 'general';
@@ -49,8 +52,9 @@ class Settings extends Component
 
     public function mount(SettingService $settings): void
     {
-        $this->app_name   = (string) $settings->get('app_name', 'EmailAlias');
-        $this->app_locale = (string) $settings->get('app_locale', 'en');
+        $this->app_name              = (string) $settings->get('app_name', 'EmailAlias');
+        $this->app_locale            = (string) $settings->get('app_locale', 'en');
+        $this->version_check_enabled = (bool)   $settings->get('version_check_enabled', true);
         $this->sso_enabled         = (bool) $settings->get('sso_enabled', false);
         $this->azure_client_id     = (string) $settings->get('azure_client_id', '');
         // Never expose the client secret in Livewire state — leave blank.
@@ -69,6 +73,8 @@ class Settings extends Component
 
         $this->alias_max_email_size_mb      = (int) round($settings->get('alias_max_email_size_bytes', 10485760) / 1024 / 1024);
         $this->alias_max_attachment_size_mb = (int) round($settings->get('alias_max_attachment_size_bytes', 5242880) / 1024 / 1024);
+        $this->alias_max_mailbox_size_mb    = (int) round($settings->get('alias_max_mailbox_size_bytes', 0) / 1024 / 1024);
+        $this->alias_max_user_storage_mb    = (int) round($settings->get('alias_max_user_storage_bytes', 0) / 1024 / 1024);
         $this->cleanup_retention_days       = (int) $settings->get('cleanup_retention_days', 7);
         $this->admin_can_read_emails        = (bool) $settings->get('admin_can_read_emails', false);
     }
@@ -79,6 +85,12 @@ class Settings extends Component
     public function appUrl(): string
     {
         return config('app.url', '');
+    }
+
+    #[Computed]
+    public function appVersion(): string
+    {
+        return config('emailalias.version', '0.0.0');
     }
 
     // ── Actions ───────────────────────────────────────────────────────────────────
@@ -95,6 +107,8 @@ class Settings extends Component
             'alias_default_type'            => 'required|in:session,duration,permanent',
             'alias_max_email_size_mb'       => 'required|integer|min:1|max:100',
             'alias_max_attachment_size_mb'  => 'required|integer|min:1|max:50',
+            'alias_max_mailbox_size_mb'     => 'required|integer|min:0|max:102400',
+            'alias_max_user_storage_mb'     => 'required|integer|min:0|max:1048576',
             'cleanup_retention_days'        => 'required|integer|min:0|max:3650',
         ]);
 
@@ -108,6 +122,7 @@ class Settings extends Component
         $data = [
             'app_name'                         => $this->app_name,
             'app_locale'                       => $this->app_locale,
+            'version_check_enabled'            => $this->version_check_enabled,
             'sso_enabled'                      => $this->sso_enabled,
             'azure_client_id'                  => $this->azure_client_id,
             'azure_tenant_id'                  => $this->azure_tenant_id,
@@ -119,6 +134,8 @@ class Settings extends Component
             'alias_default_type'               => $this->alias_default_type,
             'alias_max_email_size_bytes'       => $this->alias_max_email_size_mb * 1024 * 1024,
             'alias_max_attachment_size_bytes'  => $this->alias_max_attachment_size_mb * 1024 * 1024,
+            'alias_max_mailbox_size_bytes'     => $this->alias_max_mailbox_size_mb * 1024 * 1024,
+            'alias_max_user_storage_bytes'     => $this->alias_max_user_storage_mb * 1024 * 1024,
             'cleanup_retention_days'           => $this->cleanup_retention_days,
             'admin_can_read_emails'            => $this->admin_can_read_emails,
         ];

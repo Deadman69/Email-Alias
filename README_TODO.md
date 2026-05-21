@@ -64,13 +64,20 @@
 - [x] `CleanupExpiredAliases` job — scheduled daily purge
 - [x] `EmailReceived` event — broadcast on private channel `alias.{id}`
 - [x] `MailboxSpamDetected` notification — stored in DB, shown in notification bell (1 notif/hour/alias max)
+- [x] `MailboxQuotaExceeded` notification — stored in DB, shown in notification bell (1 notif/hour/alias/quota_type max)
 - [x] `DeleteSessionAliasesOnLogout` listener
 - [x] `BootstrapSettings` middleware — reads DB settings → `Config::set()` on every request
 - [x] `SetLocale` middleware — user locale → platform default → `'en'` fallback
 - [x] `config/emailalias.php` — defaults overridden at runtime by `SettingService`
 - [x] Oversized emails truncated: body not stored, `is_truncated=true`, warning banner in UI
 - [x] Attachments stored on private disk, authenticated download via `AttachmentController`
-- [ ] Total attachment quota per user (e.g. 500 MB across all emails)
+- [x] Per-email storage limit (`alias_max_email_size_bytes`) — body truncated, `is_truncated=true`
+- [x] Per-mailbox storage quota (`alias_max_mailbox_size_bytes`) — drops email if quota exceeded, notifies owner
+- [x] Per-user storage quota (`alias_max_user_storage_bytes`) — drops email if total across all mailboxes exceeded, notifies owner
+- [x] `MailboxQuotaExceeded` notification — stored in DB, shown in notification bell (1 notif/hour/alias/quota_type max)
+- [x] App version field — editable by Super Admin, stored in DB, visible in admin panel (semantic versioning enforced)
+- [ ] NTH: Super Admin manual quota override per mailbox (column on `aliases` table: `custom_max_bytes`)
+- [ ] NTH: Super Admin manual quota override per user (column on `users` table: `custom_max_storage_bytes`)
 
 ---
 

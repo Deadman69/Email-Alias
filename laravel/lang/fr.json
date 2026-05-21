@@ -241,5 +241,18 @@
     "Too many incoming emails. Some were dropped to protect your mailbox.": "Trop d'e-mails reçus en peu de temps. Certains ont été ignorés pour protéger votre boîte mail.",
     "This mailbox no longer exists.": "Cette boîte mail n'existe plus.",
     "This email no longer exists.": "Cet e-mail n'existe plus.",
-    "Email deleted.": "E-mail supprimé."
+    "Email deleted.": "E-mail supprimé.",
+
+    "App version": "Version de l'application",
+    "Defined in the VERSION file. Update by deploying a new release.": "Définie dans le fichier VERSION. Mise à jour en déployant une nouvelle release.",
+    "Check for updates automatically": "Vérifier les mises à jour automatiquement",
+    "Periodically checks GitHub for a newer release and displays a badge in the admin panel.": "Vérifie périodiquement GitHub pour une nouvelle release et affiche un badge dans le panneau admin.",
+    "Max mailbox size (MB)": "Taille max par boîte mail (Mo)",
+    "Maximum total storage per mailbox. 0 means unlimited.": "Stockage total maximum par boîte mail. 0 = illimité.",
+    "Max user storage (MB)": "Stockage max par utilisateur (Mo)",
+    "Maximum total storage across all mailboxes for a single user. 0 means unlimited.": "Stockage total maximum pour toutes les boîtes mail d'un utilisateur. 0 = illimité.",
+    "Mailbox storage quota exceeded": "Quota de stockage de la boîte mail dépassé",
+    "User storage quota exceeded": "Quota de stockage utilisateur dépassé",
+    "This mailbox is full. Some emails were dropped.": "Cette boîte mail est pleine. Certains e-mails ont été ignorés.",
+    "Your total storage limit has been reached. Some emails were dropped.": "Votre limite de stockage totale est atteinte. Certains e-mails ont été ignorés."
 }

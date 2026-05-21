@@ -44,6 +44,8 @@
                     <div class="mt-0.5 shrink-0">
                         @if ($type === 'mailbox_spam')
                             <flux:icon.exclamation-triangle class="h-4 w-4 text-amber-500" />
+                        @elseif ($type === 'mailbox_quota')
+                            <flux:icon.archive-box-x-mark class="h-4 w-4 text-red-500" />
                         @else
                             <flux:icon.bell class="h-4 w-4 text-zinc-400" />
                         @endif
@@ -59,6 +61,20 @@
                             </p>
                             <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
                                 {{ __('Too many incoming emails. Some were dropped to protect your mailbox.') }}
+                            </p>
+                        @elseif ($type === 'mailbox_quota')
+                            <p class="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                                {{ ($data['quota_type'] ?? '') === 'user'
+                                    ? __('User storage quota exceeded')
+                                    : __('Mailbox storage quota exceeded') }}
+                            </p>
+                            <p class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                                {{ $data['alias_address'] ?? '' }}
+                            </p>
+                            <p class="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+                                {{ ($data['quota_type'] ?? '') === 'user'
+                                    ? __('Your total storage limit has been reached. Some emails were dropped.')
+                                    : __('This mailbox is full. Some emails were dropped.') }}
                             </p>
                         @else
                             <p class="text-sm text-zinc-700 dark:text-zinc-300">{{ $type }}</p>

@@ -55,6 +55,36 @@ return [
     'max_attachment_size_bytes' => (int) env('ALIAS_MAX_ATTACHMENT_SIZE_BYTES', 5 * 1024 * 1024),
 
     /*
+     * Application version — read from the VERSION file at the project root.
+     * This value is never stored in the database; bump the VERSION file to
+     * release a new version. Format: semantic versioning (MAJOR.MINOR.PATCH).
+     *
+     * Compatible with future automatic GitHub release checks:
+     * compare this against the latest tag returned by the GitHub Releases API.
+     */
+    'version' => trim((string) @file_get_contents(base_path('VERSION'))) ?: '0.0.0',
+
+    /*
+     * Whether the admin panel should automatically check GitHub for a newer
+     * release and display an update badge when one is available.
+     * Can be toggled by a Super Admin in the Settings panel.
+     */
+    'version_check_enabled' => (bool) env('VERSION_CHECK_ENABLED', true),
+
+    /*
+     * Maximum total size of emails stored in a single mailbox (alias), in bytes.
+     * New emails that would exceed this limit are silently dropped and the owner
+     * is notified. 0 = unlimited.
+     */
+    'max_mailbox_size_bytes' => (int) env('ALIAS_MAX_MAILBOX_SIZE_BYTES', 0),
+
+    /*
+     * Maximum total size of emails stored across ALL mailboxes owned by a single
+     * user, in bytes. 0 = unlimited.
+     */
+    'max_user_storage_bytes' => (int) env('ALIAS_MAX_USER_STORAGE_BYTES', 0),
+
+    /*
      * Whether SSO login is enabled.
      */
     'sso_enabled' => (bool) env('SSO_ENABLED', false),

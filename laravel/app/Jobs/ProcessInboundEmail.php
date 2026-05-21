@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\Attachment;
 use App\Models\InboundEmail;
 use App\Jobs\DeliverWebhook;
+use App\Notifications\MailboxQuotaExceeded;
 use App\Notifications\MailboxSpamDetected;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -74,6 +75,48 @@ class ProcessInboundEmail implements ShouldQueue
             }
 
             RateLimiter::hit($rateLimitKey, decaySeconds: 60);
+
+            // Per-mailbox storage quota check.
+            // Counts only non-deleted emails for this alias.
+            $maxMailboxBytes = config('emailalias.max_mailbox_size_bytes', 0);
+            if ($maxMailboxBytes > 0) {
+                $mailboxUsage = InboundEmail::where('alias_id', $alias->id)->sum('size_bytes');
+
+                if ($mailboxUsage + $this->sizeBytes > $maxMailboxBytes) {
+                    $this->notifyQuotaIfNeeded($alias, 'mailbox');
+                    Log::info('Inbound email dropped: mailbox quota exceeded', [
+                        'alias'     => $alias->address,
+                        'alias_id'  => $alias->id,
+                        'usage'     => $mailboxUsage,
+                        'incoming'  => $this->sizeBytes,
+                        'limit'     => $maxMailboxBytes,
+                    ]);
+                    continue;
+                }
+            }
+
+            // Per-user storage quota check.
+            // Counts all non-deleted emails across all aliases owned by this user.
+            $maxUserBytes = config('emailalias.max_user_storage_bytes', 0);
+            if ($maxUserBytes > 0 && $alias->user_id !== null) {
+                $userUsage = InboundEmail::whereIn(
+                    'alias_id',
+                    Alias::where('user_id', $alias->user_id)->select('id'),
+                )->sum('size_bytes');
+
+                if ($userUsage + $this->sizeBytes > $maxUserBytes) {
+                    $this->notifyQuotaIfNeeded($alias, 'user');
+                    Log::info('Inbound email dropped: user storage quota exceeded', [
+                        'alias'    => $alias->address,
+                        'alias_id' => $alias->id,
+                        'user_id'  => $alias->user_id,
+                        'usage'    => $userUsage,
+                        'incoming' => $this->sizeBytes,
+                        'limit'    => $maxUserBytes,
+                    ]);
+                    continue;
+                }
+            }
 
             $email = InboundEmail::create([
                 'alias_id'         => $alias->id,
@@ -141,6 +184,26 @@ class ProcessInboundEmail implements ShouldQueue
 
         if ($alias->user) {
             $alias->user->notify(new MailboxSpamDetected($alias->address, $alias->id));
+        }
+    }
+
+    /**
+     * Notify the alias owner that an email was dropped due to storage quota.
+     * Uses a separate cache key (alias + quota type) to send at most one
+     * notification per alias per quota type per hour.
+     */
+    private function notifyQuotaIfNeeded(Alias $alias, string $quotaType): void
+    {
+        $notifKey = "alias-quota-notif:{$alias->id}:{$quotaType}";
+
+        if (Cache::has($notifKey)) {
+            return;
+        }
+
+        Cache::put($notifKey, true, 3600);
+
+        if ($alias->user) {
+            $alias->user->notify(new MailboxQuotaExceeded($alias->address, $alias->id, $quotaType));
         }
     }
 

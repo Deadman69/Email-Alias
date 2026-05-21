@@ -42,6 +42,18 @@
                         <flux:description>{{ __('Users can override this in their profile settings.') }}</flux:description>
                         <flux:error name="app_locale" />
                     </flux:field>
+
+                    <flux:field>
+                        <flux:label>{{ __('App version') }}</flux:label>
+                        <flux:input value="{{ $this->appVersion }}" disabled class="max-w-xs font-mono" />
+                        <flux:description>{{ __('Defined in the VERSION file. Update by deploying a new release.') }}</flux:description>
+                    </flux:field>
+
+                    <flux:field variant="inline">
+                        <flux:label>{{ __('Check for updates automatically') }}</flux:label>
+                        <flux:switch wire:model="version_check_enabled" />
+                        <flux:description>{{ __('Periodically checks GitHub for a newer release and displays a badge in the admin panel.') }}</flux:description>
+                    </flux:field>
                 </div>
             </flux:tab.panel>
 
@@ -155,6 +167,20 @@
                         <flux:input wire:model="alias_max_attachment_size_mb" type="number" min="1" max="50" />
                         <flux:description>{{ __('Attachments larger than this are discarded (metadata kept).') }}</flux:description>
                         <flux:error name="alias_max_attachment_size_mb" />
+                    </flux:field>
+
+                    <flux:field>
+                        <flux:label>{{ __('Max mailbox size (MB)') }}</flux:label>
+                        <flux:input wire:model="alias_max_mailbox_size_mb" type="number" min="0" max="102400" />
+                        <flux:description>{{ __('Maximum total storage per mailbox. 0 means unlimited.') }}</flux:description>
+                        <flux:error name="alias_max_mailbox_size_mb" />
+                    </flux:field>
+
+                    <flux:field>
+                        <flux:label>{{ __('Max user storage (MB)') }}</flux:label>
+                        <flux:input wire:model="alias_max_user_storage_mb" type="number" min="0" max="1048576" />
+                        <flux:description>{{ __('Maximum total storage across all mailboxes for a single user. 0 means unlimited.') }}</flux:description>
+                        <flux:error name="alias_max_user_storage_mb" />
                     </flux:field>
 
                     <flux:field>

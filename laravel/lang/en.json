@@ -241,5 +241,18 @@
     "Too many incoming emails. Some were dropped to protect your mailbox.": "Too many incoming emails. Some were dropped to protect your mailbox.",
     "This mailbox no longer exists.": "This mailbox no longer exists.",
     "This email no longer exists.": "This email no longer exists.",
-    "Email deleted.": "Email deleted."
+    "Email deleted.": "Email deleted.",
+
+    "App version": "App version",
+    "Defined in the VERSION file. Update by deploying a new release.": "Defined in the VERSION file. Update by deploying a new release.",
+    "Check for updates automatically": "Check for updates automatically",
+    "Periodically checks GitHub for a newer release and displays a badge in the admin panel.": "Periodically checks GitHub for a newer release and displays a badge in the admin panel.",
+    "Max mailbox size (MB)": "Max mailbox size (MB)",
+    "Maximum total storage per mailbox. 0 means unlimited.": "Maximum total storage per mailbox. 0 means unlimited.",
+    "Max user storage (MB)": "Max user storage (MB)",
+    "Maximum total storage across all mailboxes for a single user. 0 means unlimited.": "Maximum total storage across all mailboxes for a single user. 0 means unlimited.",
+    "Mailbox storage quota exceeded": "Mailbox storage quota exceeded",
+    "User storage quota exceeded": "User storage quota exceeded",
+    "This mailbox is full. Some emails were dropped.": "This mailbox is full. Some emails were dropped.",
+    "Your total storage limit has been reached. Some emails were dropped.": "Your total storage limit has been reached. Some emails were dropped."
 }

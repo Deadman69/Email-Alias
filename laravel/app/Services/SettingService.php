@@ -45,6 +45,9 @@ class SettingService
         'alias_max_attachment_size_bytes'  => 'emailalias.max_attachment_size_bytes',
         'cleanup_retention_days'           => 'emailalias.cleanup_retention_days',
         'admin_can_read_emails'            => 'emailalias.admin_can_read_emails',
+        'alias_max_mailbox_size_bytes'     => 'emailalias.max_mailbox_size_bytes',
+        'alias_max_user_storage_bytes'     => 'emailalias.max_user_storage_bytes',
+        'version_check_enabled'            => 'emailalias.version_check_enabled',
         // Azure — services.azure.*
         'azure_client_id'                  => 'services.azure.client_id',
         'azure_client_secret'              => 'services.azure.client_secret',
@@ -59,6 +62,7 @@ class SettingService
         // ── app ──────────────────────────────────────────────────────────────────
         'app_name'                        => ['group' => 'app',      'cast' => 'string',  'default' => 'EmailAlias'],
         'app_locale'                      => ['group' => 'app',      'cast' => 'string',  'default' => 'en'],
+        'version_check_enabled'           => ['group' => 'app',      'cast' => 'bool',    'default' => true],
 
         // ── auth ─────────────────────────────────────────────────────────────────
         'sso_enabled'                     => ['group' => 'auth',     'cast' => 'bool',    'default' => false],
@@ -81,6 +85,8 @@ class SettingService
         'alias_max_attachment_size_bytes' => ['group' => 'email',    'cast' => 'int',     'default' => 5242880],
         'cleanup_retention_days'          => ['group' => 'email',    'cast' => 'int',     'default' => 7],
         'admin_can_read_emails'           => ['group' => 'email',    'cast' => 'bool',    'default' => false],
+        'alias_max_mailbox_size_bytes'    => ['group' => 'email',    'cast' => 'int',     'default' => 0],
+        'alias_max_user_storage_bytes'    => ['group' => 'email',    'cast' => 'int',     'default' => 0],
     ];
 
     // ── Public API ────────────────────────────────────────────────────────────────
