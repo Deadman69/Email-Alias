@@ -19,6 +19,13 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 });
 
+// ── API documentation — redirects to Scramble's auto-generated Swagger UI ────
+// Scramble serves its own UI at /docs/api and spec at /docs/api.json.
+// The named route 'api.docs' is kept so existing links in the UI don't break.
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::redirect('/api/docs', '/docs/api')->name('api.docs');
+});
+
 // ── Mailbox (authenticated users) ────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::redirect('/dashboard', '/mailbox')->name('dashboard');

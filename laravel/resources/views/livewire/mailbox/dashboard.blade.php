@@ -142,6 +142,16 @@
                                     title="{{ __('Share this alias') }}"
                                 />
 
+                                {{-- Webhook --}}
+                                <flux:button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon="bolt"
+                                    wire:click="openWebhookModal('{{ $alias->id }}')"
+                                    title="{{ __('Configure webhook') }}"
+                                    class="{{ $alias->webhook_url ? 'text-green-600' : '' }}"
+                                />
+
                                 {{-- Delete --}}
                                 <flux:button
                                     size="sm"
@@ -252,6 +262,107 @@
                     <flux:button variant="primary" type="submit">
                         {{ __('Create') }}
                     </flux:button>
+                </div>
+            </form>
+        </div>
+    </flux:modal>
+
+    {{-- ── Webhook Modal ──────────────────────────────────────────────────────── --}}
+    <flux:modal wire:model="showWebhookModal" name="webhook-alias" class="max-w-md">
+        <div class="space-y-5 p-6">
+            <div>
+                <flux:heading size="lg">{{ __('Webhook') }}</flux:heading>
+                @if ($this->webhookAlias)
+                    <flux:text class="mt-1 font-mono text-sm">{{ $this->webhookAlias->address }}</flux:text>
+                @endif
+            </div>
+
+            <form wire:submit="saveWebhook" class="space-y-4">
+                <flux:field>
+                    <flux:label>{{ __('Webhook URL') }}</flux:label>
+                    <flux:input
+                        wire:model="webhookUrl"
+                        type="url"
+                        placeholder="https://your-app.com/webhook"
+                        autocomplete="off"
+                    />
+                    <flux:description>{{ __('Leave blank to disable.') }}</flux:description>
+                    <flux:error name="webhookUrl" />
+                </flux:field>
+
+                {{-- Show secret + verification guide when a webhook is configured --}}
+                @if ($this->webhookAlias?->webhook_url && $this->webhookAlias?->webhook_secret)
+                    <flux:field>
+                        <flux:label>{{ __('Signing secret') }}</flux:label>
+                        <div class="flex items-center gap-2">
+                            <code class="flex-1 truncate rounded bg-zinc-100 px-2 py-1 font-mono text-xs dark:bg-zinc-800">
+                                {{ $this->webhookAlias->webhook_secret }}
+                            </code>
+                            {{-- Copy --}}
+                            <button
+                                type="button"
+                                x-data
+                                x-on:click="navigator.clipboard.writeText('{{ $this->webhookAlias->webhook_secret }}')"
+                                class="shrink-0 text-zinc-400 hover:text-zinc-600"
+                                title="{{ __('Copy') }}"
+                            >
+                                <flux:icon name="clipboard" class="size-4" />
+                            </button>
+                            {{-- Rotate (explicit, confirmed) --}}
+                            <flux:button
+                                size="xs"
+                                variant="ghost"
+                                icon="arrow-path"
+                                wire:click="rotateWebhookSecret"
+                                wire:confirm="{{ __('Rotate the webhook secret? Your receiver will reject all deliveries until you update it with the new secret.') }}"
+                                class="shrink-0 text-amber-500 hover:text-amber-600"
+                                title="{{ __('Rotate secret') }}"
+                            />
+                        </div>
+                        <flux:description>{{ __('Verify the X-Webhook-Signature header (HMAC-SHA256) to authenticate deliveries.') }}</flux:description>
+                    </flux:field>
+
+                    {{-- Verification guide --}}
+                    <details class="rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">
+                            {{ __('How to verify the signature') }}
+                        </summary>
+                        <div class="border-t border-zinc-200 px-3 pb-3 pt-2 dark:border-zinc-700">
+                            <flux:callout variant="warning" icon="exclamation-triangle" class="mb-3 text-xs">
+                                <flux:callout.text>{{ __('Always verify against the raw request body — never against re-parsed or re-serialized JSON.') }}</flux:callout.text>
+                            </flux:callout>
+                            <p class="mb-1.5 text-xs font-medium text-zinc-500">PHP</p>
+                            <pre class="overflow-x-auto rounded bg-zinc-100 px-3 py-2 font-mono text-xs leading-relaxed dark:bg-zinc-800">$rawBody  = file_get_contents('php://input');
+$expected = 'sha256=' . hash_hmac('sha256', $rawBody, $secret);
+
+if (! hash_equals($expected, $_SERVER['HTTP_X_WEBHOOK_SIGNATURE'])) {
+    http_response_code(401);
+    exit;
+}</pre>
+                            <p class="mb-1.5 mt-3 text-xs font-medium text-zinc-500">Node.js / Express</p>
+                            <pre class="overflow-x-auto rounded bg-zinc-100 px-3 py-2 font-mono text-xs leading-relaxed dark:bg-zinc-800">// Use express.raw() — NOT express.json() — to preserve the raw body
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+    const expected = 'sha256=' + crypto
+        .createHmac('sha256', secret)
+        .update(req.body)          // req.body is a Buffer here
+        .digest('hex');
+    if (expected !== req.headers['x-webhook-signature']) {
+        return res.sendStatus(401);
+    }
+});</pre>
+                        </div>
+                    </details>
+                @endif
+
+                <flux:callout variant="info" icon="information-circle" class="text-xs">
+                    <flux:callout.text>
+                        {{ __('Webhooks fire on every received email. Rotate the secret manually if it is compromised.') }}
+                    </flux:callout.text>
+                </flux:callout>
+
+                <div class="flex justify-end gap-3">
+                    <flux:button type="button" wire:click="$set('showWebhookModal', false)">{{ __('Cancel') }}</flux:button>
+                    <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>
                 </div>
             </form>
         </div>

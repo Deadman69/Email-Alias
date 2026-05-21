@@ -8,6 +8,7 @@ use App\Models\Alias;
 use App\Models\AuditLog;
 use App\Models\Attachment;
 use App\Models\InboundEmail;
+use App\Jobs\DeliverWebhook;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -87,7 +88,45 @@ class ProcessInboundEmail implements ShouldQueue
             ]);
 
             EmailReceived::dispatch($email);
+
+            // Dispatch webhook if configured on this alias
+            if ($alias->webhook_url && $alias->webhook_secret) {
+                DeliverWebhook::dispatch(
+                    webhookUrl:    $alias->webhook_url,
+                    webhookSecret: $alias->webhook_secret,
+                    aliasOwnerId:  $alias->user_id,
+                    payload:       $this->buildWebhookPayload($alias, $email),
+                );
+            }
         }
+    }
+
+    /**
+     * Build the webhook payload for a received email.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildWebhookPayload(Alias $alias, InboundEmail $email): array
+    {
+        return [
+            'event' => 'email.received',
+            'alias' => $alias->address,
+            'email' => [
+                'id'           => $email->id,
+                'from'         => ['address' => $email->from_address, 'name' => $email->from_name],
+                'subject'      => $email->subject,
+                'body_text'    => $email->body_text,
+                'body_html'    => $email->body_html,
+                'size_bytes'   => $email->size_bytes,
+                'is_truncated' => $email->is_truncated,
+                'received_at'  => $email->created_at->toIso8601String(),
+                'attachments'  => array_map(fn ($a) => [
+                    'filename'  => $a['filename'] ?? null,
+                    'mime_type' => $a['content_type'] ?? null,
+                    'size_bytes' => $a['size_bytes'] ?? null,
+                ], $this->attachments),
+            ],
+        ];
     }
 
     private function storeAttachments(InboundEmail $email): void

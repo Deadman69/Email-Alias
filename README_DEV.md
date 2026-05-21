@@ -92,6 +92,42 @@ docker compose exec app npm run dev
 
 ---
 
+## Testing the API
+
+The REST API is available at `/api/v1`. Authentication uses Sanctum Bearer tokens.
+
+### Create a token
+
+1. Go to **Settings → API Tokens** in the UI, or use Tinker:
+```bash
+docker compose exec app php artisan tinker
+>>> $user = \App\Models\User::first();
+>>> $token = $user->createToken('dev-token', ['aliases:read', 'emails:read'])->plainTextToken;
+>>> echo $token;
+```
+
+### Call an endpoint
+
+```bash
+export TOKEN="<plain-text-token>"
+
+# List your aliases
+curl http://localhost:8000/api/v1/aliases \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+
+# List emails in an alias
+curl http://localhost:8000/api/v1/aliases/<alias-id>/emails \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json"
+```
+
+### API documentation
+
+With the app running, navigate to **http://localhost:8000/api/docs** for interactive Swagger UI documentation.
+
+---
+
 ## Testing email ingestion
 
 No real domain needed. Two approaches:
@@ -171,19 +207,27 @@ email-alias/
 └── laravel/                    # Main application (Laravel 13)
     ├── app/
     │   ├── Console/Commands/   # admin:create
-    │   ├── Enums/              # AliasType, AuditEvent, Role
+    │   ├── Enums/              # AliasType, AuditEvent, Role, TokenAbility
     │   ├── Events/             # EmailReceived (Reverb broadcast)
     │   ├── Http/
-    │   │   ├── Controllers/    # Internal webhook, AttachmentController, SsoController
+    │   │   ├── Controllers/
+    │   │   │   ├── Api/        # DocsController (Swagger UI + OpenAPI spec)
+    │   │   │   │   └── V1/     # AliasController, EmailController, AttachmentController
+    │   │   │   │       └── Admin/ # AliasController, UserController, AuditLogController
+    │   │   │   ├── Auth/       # SsoController
+    │   │   │   ├── Internal/   # InboundEmailController
+    │   │   │   └── AttachmentController
     │   │   └── Middleware/     # EnsureUserIsAdmin, EnsureUserIsSuperAdmin,
     │   │                       # EnsureInternalRequest, BootstrapSettings, SetLocale
-    │   ├── Jobs/               # ProcessInboundEmail, CleanupExpiredAliases
+    │   ├── Jobs/               # ProcessInboundEmail, CleanupExpiredAliases,
+    │   │                       # DeliverWebhook
     │   ├── Livewire/
     │   │   ├── Mailbox/        # Dashboard, Inbox, ViewEmail
     │   │   ├── Admin/          # Dashboard, AuditLogViewer, Settings
-    │   │   └── Settings/       # Profile, Security, Appearance
+    │   │   └── Settings/       # Profile, Security, Appearance, ApiTokens
     │   ├── Models/             # User, Alias, AliasShare, InboundEmail,
-    │   │                       # Attachment, AuditLog, Setting
+    │   │                       # Attachment, AuditLog, Setting,
+    │   │                       # PersonalAccessToken (extended Sanctum token)
     │   ├── Policies/           # AliasPolicy, InboundEmailPolicy
     │   └── Services/           # AliasService, AuditLogger, SettingService,
     │                           # HtmlSanitizer
@@ -194,11 +238,16 @@ email-alias/
     ├── lang/
     │   ├── en.json             # English translations
     │   └── fr.json             # French translations
-    ├── resources/views/livewire/
-    │   ├── mailbox/            # Mailbox views
-    │   └── admin/              # Admin views
+    ├── resources/views/
+    │   ├── api/docs.blade.php  # Swagger UI (served at /api/docs)
+    │   └── livewire/
+    │       ├── mailbox/        # Mailbox views (dashboard with webhook modal)
+    │       ├── admin/          # Admin views
+    │       └── settings/       # Profile, Security, Appearance, api-tokens
     └── routes/
-        ├── web.php             # Mailbox + admin routes
+        ├── web.php             # Mailbox + admin + API docs routes
+        ├── api.php             # REST API v1 (Sanctum-authenticated)
+        ├── settings.php        # Settings routes (profile, security, api-tokens)
         └── internal.php        # SMTP webhook (not publicly routable)
 ```
 

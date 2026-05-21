@@ -92,14 +92,67 @@ When disabled, the admin dashboard shows only metadata (sender, subject, alias, 
 
 ---
 
+## API tokens
+
+Users can issue personal access tokens (Sanctum) to interact with their mailboxes programmatically.
+
+**Scope restrictions:**
+- Each token carries a set of ability strings (`aliases:read`, `emails:read`, `emails:delete`, etc.)
+- Tokens can optionally be restricted to a specific list of alias IDs (`restricted_alias_ids` column). A request for an alias not in that list is rejected with a `403` even if the policy would otherwise allow it.
+- Admin abilities (`admin:aliases`, `admin:users`, `admin:logs`) are only assignable to users with `role >= admin`. The server strips any admin ability silently if the token creator is a regular user.
+
+**Token lifecycle:**
+- Tokens can have an optional expiry date (`expires_at`). Expired tokens are rejected.
+- Tokens can be revoked from the Settings → API Tokens page. Revocation is logged in the audit log.
+- The plain-text token value is shown **once** at creation and never stored (only the SHA-256 hash is persisted).
+
+**Settings are never accessible via API.** Platform configuration is UI-only.
+
+**Super Admins cannot be modified via the API.** The `admin:users` ability only allows changing `role` between `user` and `admin`, and only for non-super-admin accounts.
+
+---
+
+## Webhooks
+
+Each alias can have a webhook URL configured. When an email is received, EmailAlias dispatches a signed HTTP POST to that URL.
+
+**Payload signing (HMAC-SHA256):**
+
+Every delivery includes an `X-Webhook-Signature` header:
+```
+X-Webhook-Signature: sha256=<hex_digest>
+```
+
+The digest is computed as:
+```
+HMAC-SHA256(webhook_secret, raw_json_body)
+```
+
+Recipients must verify this signature before processing the payload. An example in PHP:
+```php
+$expected = 'sha256=' . hash_hmac('sha256', $rawBody, $secret);
+if (!hash_equals($expected, $request->header('X-Webhook-Signature'))) {
+    abort(401);
+}
+```
+
+**Secret rotation:** The webhook secret is automatically regenerated whenever the URL is changed, invalidating all previous signatures. This prevents a compromised secret from being reused if the endpoint URL is also rotated.
+
+**Delivery reliability:** Webhooks are dispatched as queued jobs with 3 attempts and exponential backoff (30 s, 120 s, 300 s). Failures are logged as `WebhookFailed` in the audit log.
+
+---
+
 ## Audit log
 
 Every security-relevant action is recorded in the `audit_logs` table:
 
 - Alias created, deleted, extended, shared, unshared
 - Email read, deleted
-- Admin actions (alias deleted by admin)
+- Admin actions (alias deleted by admin, user role changed)
 - Authentication events (login, logout, SSO)
+- API token created, revoked
+- API actions: alias created/deleted, email read/deleted (via API)
+- Webhook delivered, webhook failed
 
 Logs are **append-only** — there is no delete or edit action in the application. They store the acting user ID, event type, target resource, IP address, and a metadata payload.
 

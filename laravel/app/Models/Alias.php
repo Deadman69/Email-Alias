@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\CarbonInterface;
 
 #[UseFactory(AliasFactory::class)]
-#[Fillable(['address', 'local_part', 'type', 'duration', 'user_id', 'label', 'expires_at'])]
+#[Fillable(['address', 'local_part', 'type', 'duration', 'user_id', 'label', 'expires_at', 'webhook_url', 'webhook_secret'])]
 class Alias extends Model
 {
     use HasFactory, HasUlids, SoftDeletes;

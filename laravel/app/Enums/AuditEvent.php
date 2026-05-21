@@ -25,26 +25,48 @@ enum AuditEvent: string
     case AdminViewedEmail  = 'admin.email.viewed';
     case AdminUserUpdated  = 'admin.user.updated';
 
+    case ApiTokenCreated = 'api.token.created';
+    case ApiTokenRevoked = 'api.token.revoked';
+
+    // Via API — distinguished from web actions for audit clarity
+    case ApiAliasCreated = 'api.alias.created';
+    case ApiAliasDeleted = 'api.alias.deleted';
+    case ApiEmailRead    = 'api.email.read';
+    case ApiEmailDeleted = 'api.email.deleted';
+    case ApiAdminUserUpdated = 'api.admin.user.updated';
+
+    case WebhookDelivered = 'webhook.delivered';
+    case WebhookFailed    = 'webhook.failed';
+
     public function label(): string
     {
         return match ($this) {
-            self::AliasCreated      => 'Alias created',
-            self::AliasDeleted      => 'Alias deleted',
-            self::AliasExpired      => 'Alias expired',
-            self::AliasExtended     => 'Alias extended',
-            self::AliasShared       => 'Alias shared',
-            self::AliasUnshared     => 'Alias unshared',
-            self::EmailReceived     => 'Email received',
-            self::EmailRead         => 'Email read',
-            self::EmailDeleted      => 'Email deleted',
-            self::UserLogin         => 'User login',
-            self::UserLogout        => 'User logout',
-            self::TwoFactorEnabled  => '2FA enabled',
-            self::TwoFactorDisabled => '2FA disabled',
-            self::AdminAliasCreated => 'Admin: alias created',
-            self::AdminAliasDeleted => 'Admin: alias deleted',
-            self::AdminViewedEmail  => 'Admin: email viewed',
-            self::AdminUserUpdated  => 'Admin: user updated',
+            self::AliasCreated       => 'Alias created',
+            self::AliasDeleted       => 'Alias deleted',
+            self::AliasExpired       => 'Alias expired',
+            self::AliasExtended      => 'Alias extended',
+            self::AliasShared        => 'Alias shared',
+            self::AliasUnshared      => 'Alias unshared',
+            self::EmailReceived      => 'Email received',
+            self::EmailRead          => 'Email read',
+            self::EmailDeleted       => 'Email deleted',
+            self::UserLogin          => 'User login',
+            self::UserLogout         => 'User logout',
+            self::TwoFactorEnabled   => '2FA enabled',
+            self::TwoFactorDisabled  => '2FA disabled',
+            self::AdminAliasCreated  => 'Admin: alias created',
+            self::AdminAliasDeleted  => 'Admin: alias deleted',
+            self::AdminViewedEmail   => 'Admin: email viewed',
+            self::AdminUserUpdated   => 'Admin: user updated',
+            self::ApiTokenCreated    => 'API token created',
+            self::ApiTokenRevoked    => 'API token revoked',
+            self::ApiAliasCreated    => 'API: alias created',
+            self::ApiAliasDeleted    => 'API: alias deleted',
+            self::ApiEmailRead       => 'API: email read',
+            self::ApiEmailDeleted    => 'API: email deleted',
+            self::ApiAdminUserUpdated => 'API admin: user updated',
+            self::WebhookDelivered   => 'Webhook delivered',
+            self::WebhookFailed      => 'Webhook failed',
         };
     }
 }

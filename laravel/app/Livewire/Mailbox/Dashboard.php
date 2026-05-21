@@ -11,6 +11,7 @@ use App\Services\AliasService;
 use App\Services\AuditLogger;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -50,6 +51,16 @@ class Dashboard extends Component
 
     #[Validate('required|email|max:255')]
     public string $shareEmail = '';
+
+    // ── Webhook ───────────────────────────────────────────────────────────────────
+
+    public bool $showWebhookModal = false;
+
+    #[Locked]
+    public string $webhookAliasId = '';
+
+    #[Validate('nullable|url|max:500')]
+    public string $webhookUrl = '';
 
     // ── Computed ──────────────────────────────────────────────────────────────────
 
@@ -289,6 +300,80 @@ class Dashboard extends Component
 
         unset($this->sharingAlias, $this->aliases);
         Flux::toast(text: __('Share removed.'));
+    }
+
+    // ── Webhook ───────────────────────────────────────────────────────────────────
+
+    /**
+     * Open the webhook configuration modal for an alias.
+     */
+    public function openWebhookModal(string $aliasId): void
+    {
+        $alias = Alias::findOrFail($aliasId);
+        $this->authorize('update', $alias);
+
+        $this->webhookAliasId = $aliasId;
+        $this->webhookUrl     = $alias->webhook_url ?? '';
+        $this->resetValidation('webhookUrl');
+        $this->showWebhookModal = true;
+    }
+
+    /**
+     * Save or clear the webhook URL for the alias.
+     *
+     * The signing secret is only generated once (first-time setup).
+     * Subsequent URL edits preserve the existing secret so the receiver
+     * keeps working without any change on its end.
+     * Use rotateWebhookSecret() for explicit, confirmed rotation.
+     */
+    public function saveWebhook(): void
+    {
+        $this->validateOnly('webhookUrl');
+
+        $alias = Alias::findOrFail($this->webhookAliasId);
+        $this->authorize('update', $alias);
+
+        $url = $this->webhookUrl ?: null;
+
+        $secret = match (true) {
+            $url === null          => null,                      // removing the webhook
+            (bool) $alias->webhook_secret => $alias->webhook_secret, // keep existing secret
+            default                => Str::random(40),           // first-time setup
+        };
+
+        $alias->update(['webhook_url' => $url, 'webhook_secret' => $secret]);
+
+        unset($this->aliases, $this->webhookAlias);
+        Flux::toast(variant: 'success', text: $url ? __('Webhook saved.') : __('Webhook removed.'));
+    }
+
+    /**
+     * Explicitly rotate the webhook signing secret.
+     * Called only when the user confirms the action in the UI.
+     * The receiver must be updated before deliveries can be verified again.
+     */
+    public function rotateWebhookSecret(): void
+    {
+        $alias = Alias::findOrFail($this->webhookAliasId);
+        $this->authorize('update', $alias);
+
+        $alias->update(['webhook_secret' => Str::random(40)]);
+
+        unset($this->webhookAlias);
+        Flux::toast(variant: 'warning', text: __('Webhook secret rotated. Update your receiver before the next delivery.'));
+    }
+
+    /**
+     * Return the alias currently open in the webhook modal (owner only).
+     */
+    #[Computed]
+    public function webhookAlias(): ?Alias
+    {
+        if (! $this->webhookAliasId) {
+            return null;
+        }
+
+        return Alias::find($this->webhookAliasId);
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────────

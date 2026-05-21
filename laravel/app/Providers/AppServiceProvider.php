@@ -5,11 +5,17 @@ namespace App\Providers;
 use App\Listeners\DeleteSessionAliasesOnLogout;
 use App\Models\Alias;
 use App\Models\InboundEmail;
+use App\Models\User;
 use App\Policies\AliasPolicy;
 use App\Policies\InboundEmailPolicy;
+use App\Models\PersonalAccessToken;
 use App\Services\AuditLogger;
 use App\Services\HtmlSanitizer;
 use App\Services\SettingService;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Laravel\Sanctum\Sanctum;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
@@ -29,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AuditLogger::class);
         $this->app->singleton(HtmlSanitizer::class);
         $this->app->singleton(SettingService::class);
+
+        // Use our extended token model so restricted_alias_ids and expires_at work
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
     }
 
     /**
@@ -39,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configurePolicies();
         $this->configureDefaults();
         $this->registerListeners();
+        $this->configureScramble();
     }
 
     /**
@@ -54,6 +64,22 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Alias::class, AliasPolicy::class);
         Gate::policy(InboundEmail::class, InboundEmailPolicy::class);
+    }
+
+    /**
+     * Configure Scramble (auto-generated OpenAPI spec).
+     * The Bearer token security scheme is declared globally so every endpoint
+     * shows the auth requirement without per-route annotation.
+     */
+    private function configureScramble(): void
+    {
+        Scramble::configure()
+            ->withDocumentTransformer(function (OpenApi $openApi): void {
+                $openApi->secure(
+                    SecurityScheme::http('bearer')
+                        ->setDescription('Personal access token — create one in Settings → API Tokens.')
+                );
+            });
     }
 
     /**
