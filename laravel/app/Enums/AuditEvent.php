@@ -8,6 +8,8 @@ enum AuditEvent: string
     case AliasDeleted  = 'alias.deleted';
     case AliasExpired  = 'alias.expired';
     case AliasExtended = 'alias.extended';
+    case AliasShared   = 'alias.shared';
+    case AliasUnshared = 'alias.unshared';
 
     case EmailReceived = 'email.received';
     case EmailRead     = 'email.read';
@@ -30,6 +32,8 @@ enum AuditEvent: string
             self::AliasDeleted      => 'Alias deleted',
             self::AliasExpired      => 'Alias expired',
             self::AliasExtended     => 'Alias extended',
+            self::AliasShared       => 'Alias shared',
+            self::AliasUnshared     => 'Alias unshared',
             self::EmailReceived     => 'Email received',
             self::EmailRead         => 'Email read',
             self::EmailDeleted      => 'Email deleted',

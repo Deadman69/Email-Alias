@@ -2,18 +2,20 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Role;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Restrict access to Admin users (and Super Admins).
+ * Use `super_admin` middleware for pages requiring full platform control.
+ */
 class EnsureUserIsAdmin
 {
-    /**
-     * Deny access if the authenticated user is not an admin.
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user()?->is_admin) {
+        if (! $request->user()?->role->isAtLeast(Role::Admin)) {
             abort(403, 'Administrator access required.');
         }
 

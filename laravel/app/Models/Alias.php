@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\CarbonInterface;
@@ -111,6 +112,41 @@ class Alias extends Model
     {
         return $this->hasMany(AuditLog::class, 'auditable_id')
             ->where('auditable_type', self::class);
+    }
+
+    /**
+     * AliasShare records — who has access to this alias.
+     */
+    public function shares(): HasMany
+    {
+        return $this->hasMany(AliasShare::class);
+    }
+
+    /**
+     * Users this alias is shared with (read-only access).
+     */
+    public function sharedWith(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'alias_shares', 'alias_id', 'user_id')
+            ->withPivot('shared_by_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Whether the alias is shared with at least one other user.
+     */
+    public function isShared(): bool
+    {
+        return $this->shares()->exists();
+    }
+
+    /**
+     * Whether the given user has read access (owner or shared).
+     */
+    public function isAccessibleBy(User $user): bool
+    {
+        return $this->user_id === $user->id
+            || $this->shares()->where('user_id', $user->id)->exists();
     }
 
     /**

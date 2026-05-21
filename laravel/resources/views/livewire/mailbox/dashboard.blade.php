@@ -32,16 +32,29 @@
         @else
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($this->aliases as $alias)
+                    @php $isOwner = $alias->user_id === auth()->id(); @endphp
+
                     <div class="group relative flex flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900">
 
-                        {{-- Type badge --}}
-                        <div class="mb-3 flex items-center justify-between">
+                        {{-- Type badge + shared badge + unread --}}
+                        <div class="mb-3 flex flex-wrap items-center gap-2">
                             <flux:badge
                                 color="{{ $alias->type === \App\Enums\AliasType::Permanent ? 'green' : ($alias->type === \App\Enums\AliasType::Duration ? 'yellow' : 'blue') }}"
                                 size="sm"
                             >
                                 {{ $alias->type->label() }}
                             </flux:badge>
+
+                            {{-- Shared indicator --}}
+                            @if (! $isOwner)
+                                <flux:badge color="violet" size="sm" icon="user-group">
+                                    {{ __('Shared by :name', ['name' => $alias->user->name ?? '?']) }}
+                                </flux:badge>
+                            @elseif ($alias->shares->isNotEmpty())
+                                <flux:badge color="violet" size="sm" icon="user-group">
+                                    {{ __('Shared (:n)', ['n' => $alias->shares->count()]) }}
+                                </flux:badge>
+                            @endif
 
                             {{-- Unread count --}}
                             @php $unread = $alias->inboundEmails()->whereNull('read_at')->whereNull('deleted_at')->count() @endphp
@@ -90,8 +103,8 @@
                                     {{ __('Expires in') }} <span data-countdown>{{ $alias->expiresInHuman() }}</span>
                                 </span>
 
-                                {{-- Extend dropdown --}}
-                                @if ($alias->type === \App\Enums\AliasType::Duration)
+                                {{-- Extend dropdown — owner only --}}
+                                @if ($isOwner && $alias->type === \App\Enums\AliasType::Duration)
                                     <flux:dropdown>
                                         <flux:button size="xs" variant="ghost" icon="plus-circle">{{ __('Extend') }}</flux:button>
                                         <flux:menu>
@@ -119,14 +132,26 @@
                                 {{ __('Open') }}
                             </flux:button>
 
-                            <flux:button
-                                size="sm"
-                                variant="ghost"
-                                icon="trash"
-                                wire:click="deleteAlias('{{ $alias->id }}')"
-                                wire:confirm="{{ __('Delete this alias and all its emails?') }}"
-                                class="text-red-500 hover:text-red-600"
-                            />
+                            @if ($isOwner)
+                                {{-- Share --}}
+                                <flux:button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon="user-plus"
+                                    wire:click="openShareModal('{{ $alias->id }}')"
+                                    title="{{ __('Share this alias') }}"
+                                />
+
+                                {{-- Delete --}}
+                                <flux:button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon="trash"
+                                    wire:click="deleteAlias('{{ $alias->id }}')"
+                                    wire:confirm="{{ __('Delete this alias and all its emails?') }}"
+                                    class="text-red-500 hover:text-red-600"
+                                />
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -135,7 +160,7 @@
 
     </div>
 
-    {{-- Create Alias Modal --}}
+    {{-- ── Create Alias Modal ──────────────────────────────────────────────────── --}}
     <flux:modal wire:model="showCreateModal" name="create-alias" class="max-w-lg">
         <div class="space-y-6 p-6">
             <flux:heading size="lg">{{ __('Create new alias') }}</flux:heading>
@@ -195,7 +220,7 @@
                             placeholder="my-alias"
                             suffix="@{{ $this->domain }}"
                         />
-                        
+
                         @if (!$errors->first('customLocalPart') && ! $localPartAvailable && $suggestedAlternative)
                             <div class="mt-1 flex items-center gap-1 text-sm text-amber-600">
                                 <flux:icon name="exclamation-circle" class="size-4" />
@@ -231,4 +256,70 @@
             </form>
         </div>
     </flux:modal>
+
+    {{-- ── Share Modal ─────────────────────────────────────────────────────────── --}}
+    <flux:modal wire:model="showShareModal" name="share-alias" class="max-w-md">
+        <div class="space-y-5 p-6">
+            <div>
+                <flux:heading size="lg">{{ __('Share alias') }}</flux:heading>
+                @if ($this->sharingAlias)
+                    <flux:text class="mt-1 font-mono text-sm">{{ $this->sharingAlias->address }}</flux:text>
+                @endif
+            </div>
+
+            {{-- Invite form --}}
+            <form wire:submit="addShare" class="flex gap-2">
+                <div class="flex-1">
+                    <flux:input
+                        wire:model="shareEmail"
+                        type="email"
+                        placeholder="{{ __('colleague@company.com') }}"
+                        autocomplete="off"
+                    />
+                    <flux:error name="shareEmail" />
+                </div>
+                <flux:button type="submit" variant="primary" icon="user-plus">
+                    {{ __('Invite') }}
+                </flux:button>
+            </form>
+
+            {{-- Current shares --}}
+            @if ($this->sharingAlias && $this->sharingAlias->shares->isNotEmpty())
+                <div>
+                    <flux:subheading class="mb-2">{{ __('Shared with') }}</flux:subheading>
+                    <ul class="space-y-2">
+                        @foreach ($this->sharingAlias->shares as $share)
+                            <li class="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-700">
+                                <div>
+                                    <p class="text-sm font-medium">{{ $share->user->name ?? '?' }}</p>
+                                    <p class="text-xs text-zinc-500">{{ $share->user->email ?? '' }}</p>
+                                </div>
+                                <flux:button
+                                    size="xs"
+                                    variant="ghost"
+                                    icon="x-mark"
+                                    wire:click="removeShare('{{ $share->id }}')"
+                                    wire:confirm="{{ __('Remove access for this user?') }}"
+                                    class="text-zinc-400 hover:text-red-500"
+                                />
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @else
+                <flux:text class="text-sm text-zinc-400">
+                    {{ __('This alias is not shared with anyone yet.') }}
+                </flux:text>
+            @endif
+
+            <flux:callout variant="info" icon="information-circle" class="text-xs">
+                <flux:callout.text>{{ __('Shared users can view and read emails but cannot delete them or modify the alias.') }}</flux:callout.text>
+            </flux:callout>
+
+            <div class="flex justify-end">
+                <flux:button wire:click="$set('showShareModal', false)">{{ __('Done') }}</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
 </div>

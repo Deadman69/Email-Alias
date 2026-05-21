@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Enums\AliasType;
 use App\Enums\AuditEvent;
+use App\Enums\Role;
 use App\Models\Alias;
+use App\Models\AliasShare;
 use App\Models\AuditLog;
 use App\Models\InboundEmail;
 use App\Models\User;
@@ -23,7 +25,7 @@ class DemoSeeder extends Seeder
             [
                 'name'              => 'Admin',
                 'password'          => Hash::make('password'),
-                'is_admin'          => true,
+                'role'              => Role::SuperAdmin,
                 'email_verified_at' => now(),
             ]
         );
@@ -33,7 +35,7 @@ class DemoSeeder extends Seeder
             [
                 'name'              => 'Paul Développeur',
                 'password'          => Hash::make('password'),
-                'is_admin'          => false,
+                'role'              => Role::User,
                 'email_verified_at' => now(),
             ]
         );
@@ -151,12 +153,19 @@ class DemoSeeder extends Seeder
             'metadata'       => ['address' => $durationAlias->address, 'type' => 'duration'],
         ]);
 
+        // ── Demo share ────────────────────────────────────────────────────────────
+        // Paul shares his permanent alias with the admin (demo of shared mailbox)
+        AliasShare::firstOrCreate(
+            ['alias_id' => $permanentAlias->id, 'user_id' => $admin->id],
+            ['shared_by_id' => $dev->id],
+        );
+
         $this->command->info('Demo data seeded:');
         $this->command->table(
             ['Role', 'Email', 'Password'],
             [
-                ['Admin',     'admin@example.com', 'password'],
-                ['Developer', 'dev@example.com',   'password'],
+                ['Super Admin', 'admin@example.com', 'password'],
+                ['User',        'dev@example.com',   'password'],
             ]
         );
     }

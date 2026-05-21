@@ -12,7 +12,7 @@ Plateforme interne d'adresses email temporaires pour développeurs. 100% self-ho
 - [Structure du projet](#structure-du-projet)
 - [Fonctionnalités](#fonctionnalités)
 - [Installation](#installation)
-- [Configuration (.env)](#configuration-env)
+- [Variables d'environnement](#variables-denvironnement)
 - [Checklist d'implémentation](#checklist-dimplémentation)
 - [Notes de développement](#notes-de-développement)
 
@@ -92,9 +92,10 @@ Internet
 Email-Alias/
 ├── docker-compose.yml              # Orchestration principale (prod)
 ├── docker-compose.dev.yml          # Overrides dev (ports exposés, volumes)
-├── .env.example                    # Toutes les variables à configurer
+├── .env.example                    # Variables infra uniquement (voir ci-dessous)
 ├── README.md                       # Ce fichier
 ├── README_DEV.md                   # Guide développeur (démarrage, tests, commandes)
+├── README_DEPLOY.md                # Guide de déploiement production (bref, pour techs)
 ├── scripts/
 │   └── init.sh                     # Bootstrap en une commande
 │
@@ -115,39 +116,50 @@ Email-Alias/
     │   ├── Events/
     │   │   └── EmailReceived.php   # Broadcast WebSocket sur canal alias.{id}
     │   ├── Http/Controllers/
+    │   │   ├── AttachmentController.php        # Téléchargement authentifié (Gate)
+    │   │   ├── Auth/
+    │   │   │   └── SsoController.php           # SSO Azure AD (redirect + callback)
     │   │   └── Internal/
     │   │       └── InboundEmailController.php  # Webhook SMTP → dispatch job
     │   ├── Jobs/
-    │   │   ├── ProcessInboundEmail.php         # Parse + sauvegarde + broadcast
+    │   │   ├── ProcessInboundEmail.php         # Parse + truncation + pièces jointes + broadcast
     │   │   └── CleanupExpiredAliases.php       # Purge scheduler quotidien
+    │   ├── Listeners/
+    │   │   └── DeleteSessionAliasesOnLogout.php  # Supprime aliases Session à la déco
     │   ├── Livewire/
     │   │   ├── Mailbox/
     │   │   │   ├── Dashboard.php   # Gestion des aliases
-    │   │   │   ├── Inbox.php       # Liste des emails
-    │   │   │   └── ViewEmail.php   # Détail d'un email
+    │   │   │   ├── Inbox.php       # Liste des emails (IDs ULID)
+    │   │   │   └── ViewEmail.php   # Détail email + pièces jointes + bannière tronqué
     │   │   └── Admin/
     │   │       ├── Dashboard.php   # Vue globale admin
-    │   │       └── AuditLogViewer.php
+    │   │       ├── AuditLogViewer.php
+    │   │       └── Settings.php    # Panel config plateforme (Super Admin uniquement)
     │   ├── Models/
-    │   │   ├── User.php            # is_admin, 2FA, Passkeys
-    │   │   ├── Alias.php           # ULID PK, HasUlids, SoftDeletes
-    │   │   ├── InboundEmail.php    # SoftDeletes, markAsRead/Unread
+    │   │   ├── User.php            # role (user/admin/super_admin), 2FA, Passkeys, azure_id
+    │   │   ├── Alias.php           # ULID PK, HasUlids, SoftDeletes, shares()
+    │   │   ├── AliasShare.php      # ULID PK, accès lecture seule partagé
+    │   │   ├── InboundEmail.php    # ULID PK, HasUlids, SoftDeletes, is_truncated
+    │   │   ├── Attachment.php      # ULID PK, HasUlids, isImage(), humanSize()
+    │   │   ├── Setting.php         # Clé/valeur DB, PK string
     │   │   └── AuditLog.php        # Immutable (no updated_at), MorphTo
-    │   ├── Policies/               # AliasPolicy, InboundEmailPolicy
+    │   ├── Policies/               # AliasPolicy (owner+shared), InboundEmailPolicy
     │   └── Services/
-    │       ├── AliasService.php    # create, delete, extend, suggestAlternative
-    │       └── AuditLogger.php     # log() centralisé
+    │       ├── AliasService.php    # create, delete, extend, suggestAlternative, enforceRateLimit
+    │       ├── AuditLogger.php     # log() centralisé
+    │       ├── HtmlSanitizer.php   # HTMLPurifier : strip on*, injections, images externes
+    │       └── SettingService.php  # get/set/fill, cache, chiffrement secrets, Config::set()
     ├── config/
-    │   └── emailalias.php          # domain, smtp_secret, limites, flags
+    │   └── emailalias.php          # Valeurs par défaut — surchargées par SettingService au runtime
     ├── database/
-    │   ├── migrations/             # aliases, inbound_emails, audit_logs
+    │   ├── migrations/             # aliases, inbound_emails, email_attachments, settings, alias_shares…
     │   ├── factories/              # AliasFactory, InboundEmailFactory
-    │   └── seeders/                # DemoSeeder (admin + dev + données)
+    │   └── seeders/                # DemoSeeder (super_admin + user + 3 aliases + 5 emails + 1 share)
     ├── resources/views/livewire/
-    │   ├── mailbox/                # dashboard, inbox, view-email
-    │   └── admin/                  # dashboard, audit-log-viewer
+    │   ├── mailbox/                # dashboard (avec share modal), inbox, view-email
+    │   └── admin/                  # dashboard, audit-log-viewer, settings
     ├── routes/
-    │   ├── web.php                 # Routes UI (mailbox + admin)
+    │   ├── web.php                 # Routes UI (mailbox + admin + super_admin + SSO + attachments)
     │   └── internal.php            # POST /internal/inbound (réseau interne)
     └── tests/Feature/
         ├── Mailbox/                # CreateAliasTest, InboundEmailTest
@@ -162,11 +174,11 @@ Email-Alias/
 
 | Fonctionnalité | Détail |
 |---|---|
-| Login / Mot de passe | Pour les environnements de dev sans SSO |
-| SSO via OIDC (Azure AD) | Login via compte d'entreprise |
+| Login / Mot de passe | Activable/désactivable via le panel Super Admin |
+| SSO via Azure AD | Login via compte d'entreprise (configurable dans l'UI) |
 | Passkeys | Authentification sans mot de passe (WebAuthn) |
-| 2FA TOTP | Optionnel, activable par utilisateur (Authy, Google Authenticator…) |
-| Rôles | `user`, `admin` (champ `is_admin` sur `users`) |
+| 2FA TOTP | Optionnel ou forcé pour tous (configurable) |
+| Rôles | `user` · `admin` · `super_admin` (enum, hiérarchique) |
 
 ---
 
@@ -231,17 +243,37 @@ Les aliases utilisent un **ULID** comme clé primaire (`HasUlids`). Non-devinabl
 
 ---
 
+### Gestion des boîtes partagées
+
+Le propriétaire d'un alias peut l'**inviter à partager** avec d'autres utilisateurs :
+- Invitation par adresse email (doit être un compte existant)
+- L'invité accède à la boîte en **lecture seule** : il peut lire et marquer les emails, mais ne peut pas supprimer les emails ni modifier l'alias
+- Badge "Shared" visible dans le dashboard
+- Révocation possible à tout moment par le propriétaire
+- Les alias partagés avec moi apparaissent dans mon dashboard avec le badge "Shared by X"
+
+---
+
 ### Panel Administrateur
 
-Accessible uniquement aux utilisateurs avec `is_admin = true`.
+Deux niveaux de rôle admin :
 
-| Fonctionnalité | Détail |
+| Rôle | Accès |
 |---|---|
-| **Vue globale des adresses** | Liste toutes les adresses de tous les utilisateurs, avec recherche et filtre par user |
-| **Vue des emails reçus** | Contrôlée par `ADMIN_CAN_READ_EMAILS=true/false` dans le `.env` |
-| **Supprimer une adresse** | L'admin peut supprimer n'importe quelle adresse |
-| **Vue de l'audit log** | Consultation complète des logs avec filtres |
-| **Statistiques** | Nombre d'adresses actives, emails reçus, adresses expirées |
+| **Admin** | Vue globale des aliases, utilisateurs, audit log, statistiques |
+| **Super Admin** | Tout ce qu'un Admin peut faire + **configuration de la plateforme** |
+
+**Super Admin — `/admin/settings`** :
+
+| Groupe | Paramètres configurables |
+|---|---|
+| Général | Nom de l'application |
+| Auth | SSO (Azure AD client ID/secret/tenant), login local, inscription libre |
+| Sécurité | 2FA obligatoire pour tous |
+| Aliases | Nombre max par user, types autorisés, type par défaut |
+| Email | Taille max email, taille max pièce jointe, rétention, accès admin aux corps |
+
+> Les secrets Azure sont **chiffrés en base de données** (Laravel `encrypt/decrypt`).
 
 ---
 
@@ -305,60 +337,30 @@ Vérification : `nslookup -type=MX votre-domaine.com`
 
 ---
 
-## Configuration (.env)
+## Variables d'environnement
+
+Le `.env` ne contient que les variables **d'infrastructure**. Tout le reste (SSO, 2FA, limites, rétention…) est configuré directement dans l'application par un Super Admin via `/admin/settings`.
 
 ```env
-# ─── Application ──────────────────────────────────────────────
-APP_NAME="EmailAlias"
-APP_URL=https://emailalias.votre-domaine.com
-APP_DOMAIN=votre-domaine.com          # Domaine des adresses générées
+# ── Application ───────────────────────────────────────────────
+APP_KEY=                               # php artisan key:generate
+APP_URL=https://emailalias.company.com
+APP_DOMAIN=emailalias.company.com      # Domaine MX des adresses générées
 
-# ─── Base de données ──────────────────────────────────────────
-DB_CONNECTION=pgsql
-DB_HOST=db
-DB_PORT=5432
-DB_DATABASE=emailalias
-DB_USERNAME=emailalias
-DB_PASSWORD=changeme
+# ── Base de données ───────────────────────────────────────────
+DB_PASSWORD=<secret>
 
-# ─── SSO Azure AD (optionnel) ─────────────────────────────────
-SSO_ENABLED=false
-AZURE_CLIENT_ID=
-AZURE_CLIENT_SECRET=
-AZURE_TENANT_ID=
-AZURE_REDIRECT_URI="${APP_URL}/auth/sso/callback"
+# ── SMTP Receiver ─────────────────────────────────────────────
+SMTP_INTERNAL_SECRET=<secret>          # Secret partagé smtp-server ↔ Laravel
 
-# ─── Authentification locale ──────────────────────────────────
-LOCAL_AUTH_ENABLED=true              # false = SSO obligatoire
-REGISTRATION_ENABLED=false           # true = inscription libre
-
-# ─── 2FA ──────────────────────────────────────────────────────
-TWO_FACTOR_ENABLED=true
-TWO_FACTOR_REQUIRED=false            # true = 2FA forcé pour tous
-
-# ─── Adresses email ───────────────────────────────────────────
-ALIAS_MAX_PER_USER=20
-ALIAS_DEFAULT_TYPE=session           # session | duration | permanent
-ALIAS_ALLOW_PERMANENT=true
-
-# ─── Admin ────────────────────────────────────────────────────
-ADMIN_CAN_READ_EMAILS=false
-
-# ─── SMTP Receiver ────────────────────────────────────────────
-SMTP_RECEIVER_PORT=25
-SMTP_INTERNAL_SECRET=changeme        # Clé partagée smtp-server ↔ Laravel
-
-# ─── WebSocket (Reverb) ───────────────────────────────────────
-REVERB_APP_ID=emailalias
-REVERB_APP_KEY=changeme
-REVERB_APP_SECRET=changeme
-REVERB_HOST=0.0.0.0
-REVERB_PORT=8080
-
-# ─── Nettoyage automatique ────────────────────────────────────
-CLEANUP_EXPIRED_ALIASES=true
-CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
+# ── WebSocket (Reverb) ────────────────────────────────────────
+REVERB_APP_KEY=<secret>
+REVERB_APP_SECRET=<secret>
 ```
+
+> **Paramètres métier** : SSO Azure (client ID/secret/tenant), auth locale, 2FA, limites, taille des mails… → tout se configure via `/admin/settings`. Les secrets sensibles sont **chiffrés en base de données**.
+
+> **Déploiement** : voir [README_DEPLOY.md](README_DEPLOY.md) pour le guide complet.
 
 ---
 
@@ -372,7 +374,7 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 - [x] `Dockerfile.dev` Laravel
 - [x] `Dockerfile` smtp-server (Node.js 22 Alpine)
 - [x] Reverse proxy Caddy (HTTPS automatique via caddy-docker-proxy)
-- [ ] Commande `artisan admin:create`
+- [x] Commande `artisan admin:create`
 
 ### SMTP Receiver (Node.js)
 
@@ -382,69 +384,86 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 - [x] POST vers `/internal/inbound` avec secret partagé
 - [x] Retry avec backoff exponentiel (3 tentatives)
 - [x] Logs structurés JSON
-- [ ] Graceful shutdown (SIGTERM géré, à valider en prod)
+- [x] Graceful shutdown (SIGTERM → fermeture propre, connexions en cours terminées)
 
 ### Laravel — Base de données
 
 - [x] Migration `aliases` — ULID PK, type, duration, expires_at, soft deletes
-- [x] Migration `inbound_emails` — FK ULID vers aliases, soft deletes
+- [x] Migration `inbound_emails` — ULID PK, FK ULID vers aliases, `is_truncated`, soft deletes
+- [x] Migration `email_attachments` — ULID PK, FK ULID vers inbound_emails, path, checksum
+- [x] Migration `add_azure_id_to_users` — colonne `azure_id` nullable unique
 - [x] Migration `audit_logs` — morph varchar (compatible ULID + int), immutable
 - [x] Factories `AliasFactory`, `InboundEmailFactory`
-- [ ] Seeder de démo (`DemoSeeder`) — admin + user + aliases + emails
+- [x] Seeder de démo (`DemoSeeder`) — admin + dev + 3 aliases + 5 emails HTML réalistes
 
 ### Laravel — Modèles & Métier
 
 - [x] `Alias` — `HasUlids`, `SoftDeletes`, scopes `active()`/`expired()`, `extendByDuration()`
-- [x] `InboundEmail` — `SoftDeletes`, `markAsRead()`, `markAsUnread()`, scopes
+- [x] `InboundEmail` — `HasUlids`, `SoftDeletes`, `markAsRead()`, `markAsUnread()`, `is_truncated`, `humanSize()`, relation `attachments()`
+- [x] `Attachment` — `HasUlids`, `isImage()`, `humanSize()`, suppression fichier sur delete via hook `booted()`
 - [x] `AuditLog` — immutable, polymorphe, cast `auditable_id` en string
-- [x] `User` — `is_admin`, 2FA, Passkeys (Fortify)
+- [x] `User` — `role` enum (user/admin/super_admin), accessor `is_admin` rétro-compat, 2FA, Passkeys, `azure_id`
+- [x] `AliasShare` — ULID PK, accès lecture seule partagé, `user()`, `sharedBy()`
+- [x] `Setting` — clé/valeur DB, PK string, géré par `SettingService`
 - [x] `AliasType` enum — `Session | Duration | Permanent`
-- [x] `AuditEvent` enum — 13 événements
-- [x] `AliasService` — `create()`, `delete()`, `extend()`, `suggestAlternative()`, `isAddressAvailable()`
+- [x] `Role` enum — `User | Admin | SuperAdmin`, hiérarchie `isAtLeast()`
+- [x] `AuditEvent` enum — 15 événements (+ `alias.shared`, `alias.unshared`)
+- [x] `AliasService` — `create()`, `delete()`, `extend()`, `suggestAlternative()`, `isAddressAvailable()`, `enforceRateLimit()`
 - [x] `AuditLogger` — service centralisé `log()`
-- [x] `ProcessInboundEmail` job — parse + sauvegarde + broadcast
+- [x] `HtmlSanitizer` — purification HTML via HTMLPurifier (`ezyang/htmlpurifier`), strip `on*`, iframe, script, CSS injection ; `blockExternalImages`, fallback regex si package absent
+- [x] `ProcessInboundEmail` job — parse + truncation si > taille max + pièces jointes + broadcast
 - [x] `CleanupExpiredAliases` job — purge scheduler
 - [x] `EmailReceived` event — broadcast sur canal privé `alias.{id}`
-- [x] `config/emailalias.php` — toutes les options métier
-- [ ] Bloquer les mails trop lourds (images intégrées par exemple) avec un avertissement à l'utilisateur que le mail a été bloqué (on ne garde que les informations essentielles : sender, objet...)
-- [ ] Gérer les pièces jointe (dans une limite de taille configurable)
-    - [ ] Taille max disponible soit par mail (5mo de pièce jointe par mail par exemple) ou par utilisateur (un utilisateur ne peut avoir que 500mb de pièces jointe pour tous les mails confondus)
-- [ ] Fix le fait que les mailbox "session" ne sont pas détruite à la déconnexion
-    - [ ] Supprimer le timer sur les mailbox session puisqu'elles sont delete après la déconnexion et pas après un délai
-- [ ] Dans le viewEmail, trouver un moyen d'éviter l'évasion de détection & l'injection de JS (via onerror="" par exemple) en utilisant une vraie librairie PHP pour filtrer
-- [ ] Utiliser des Ulid pour les Emails également au lieu des id numérique
+- [x] `DeleteSessionAliasesOnLogout` listener — supprime les aliases `Session` à la déconnexion
+- [x] `SettingService` — get/set/fill, cache `Cache::rememberForever`, chiffrement secrets, `CONFIG_MAP`
+- [x] `BootstrapSettings` middleware — lit les settings DB → `Config::set()` à chaque requête (try/catch si table absente)
+- [x] `config/emailalias.php` — valeurs par défaut, surchargées au runtime par `SettingService`
+- [x] Emails trop lourds tronqués : body non stocké, `is_truncated=true`, bannière d'avertissement UI ; seuil configurable via `ALIAS_MAX_EMAIL_SIZE_BYTES`
+- [x] Pièces jointes — taille par fichier configurable (`ALIAS_MAX_ATTACHMENT_SIZE_BYTES`), stockage disque privé, téléchargement authentifié
+    - [ ] Quota total par utilisateur (ex. 500 Mo pour tous les mails confondus)
+- [x] Fix aliases "session" non détruits à la déconnexion — `DeleteSessionAliasesOnLogout` listener
+    - [ ] Supprimer le timer affiché sur les aliases session (ils sont supprimés à la déconnexion, plus à expiration)
+- [x] HTML sanitization stricte via HTMLPurifier — strip `on*`, `<script>`, injections CSS, `onerror=""`, etc.
+- [x] ULID pour `InboundEmail` et `Attachment` (en plus de `Alias`)
 
 ### Laravel — Auth & Sécurité
 
 - [x] Auth locale login/password (Fortify)
 - [x] 2FA TOTP (Fortify)
 - [x] Passkeys / WebAuthn (Fortify)
-- [x] Middleware `admin` (vérifie `is_admin`)
+- [x] Middleware `admin` (Admin + SuperAdmin)
+- [x] Middleware `super_admin` (SuperAdmin uniquement — settings plateforme)
 - [x] Middleware `internal` — webhook accessible réseau interne uniquement
-- [x] `AliasPolicy`, `InboundEmailPolicy` — contrôle d'accès par ownership
+- [x] `AliasPolicy` — owner ET utilisateurs avec accès partagé (lecture) ; ability `share` owner-only
+- [x] `InboundEmailPolicy` — owner ET utilisateurs partagés pour `view` ; owner-only pour `delete` ; fix null alias → 403 au lieu de 500
+- [x] IDOR fix : `Inbox::markAllRead()` — `authorize('view', $alias)` explicite ajouté
 - [x] Rate limiting sur login (natif Fortify)
-- [ ] SSO Azure AD via Socialite — *à configurer*
-- [ ] Rate limiting sur création d'aliases
-- [ ] 2FA obligatoire configurable (`TWO_FACTOR_REQUIRED`)
+- [x] SSO Azure AD via Socialite (`laravel/socialite` + `socialiteproviders/microsoft-azure`) — configurable via UI
+- [x] Rate limiting sur création d'aliases (10 créations/min/utilisateur via `RateLimiter`)
+- [x] 2FA obligatoire configurable (via panel Super Admin)
 
 ### Laravel — Contrôleurs & Routes
 
 - [x] `InboundEmailController` — `POST /internal/inbound` → dispatch job → 202
+- [x] `AttachmentController` — `GET /attachments/{attachment}` → téléchargement authentifié + Gate
+- [x] `SsoController` — `GET /auth/sso/redirect` + `GET /auth/sso/callback` (Azure AD via Socialite)
 - [x] Route mailbox dashboard `/mailbox`
 - [x] Route inbox `/mailbox/{alias}` (résolution par ULID)
 - [x] Route email detail `/mailbox/emails/{email}`
 - [x] Routes admin `/admin`, `/admin/audit`
+- [x] Route super_admin `/admin/settings`
 
 ### Laravel — Livewire / UI
 
 - [ ] Vrai dashboard pour le user qui reprends ses stats et pas juste redirection vers Dashboard mailbox
-- [x] `Mailbox\Dashboard` — liste aliases, création (random/custom/type/durée), delete, extend
-- [x] `Mailbox\Inbox` — liste emails, filtre lu/non-lu, temps réel Reverb, marquer lu/suppression
-- [x] `Mailbox\ViewEmail` — détail email
+- [x] `Mailbox\Dashboard` — liste aliases (propres + partagés), création, delete/extend (owner), share modal
+- [x] `Mailbox\Inbox` — liste emails, filtre lu/non-lu, temps réel Reverb, marquer lu/suppression (IDs ULID)
+- [x] `Mailbox\ViewEmail` — détail email, pièces jointes, bannière email tronqué, images externes à la demande
 - [x] `Admin\Dashboard` — vue globale aliases, stats, recherche, filtre user, delete
 - [x] `Admin\AuditLogViewer` — consultation logs
+- [x] `Admin\Settings` — panel Super Admin : 5 onglets (Général, Auth, Sécurité, Aliases, Email), sauvegarde en DB avec cache-bust
 - [x] Pages settings (profil, sécurité, 2FA, apparence) — fournies par Fortify
-- [ ] Vues email — `iframe sandbox`, blocage images externes, réécriture liens
+- [x] Vues email — `<iframe sandbox>`, blocage images externes (anti-tracking), liens `noopener`, HTML purifié
 - [ ] Countdown d'expiration temps réel dans la sidebar
 - [ ] Copie adresse en un clic
 - [ ] Temps réel Reverb branché dans l'inbox (listeners JS)
@@ -472,17 +491,80 @@ CLEANUP_EMAIL_RETENTION_DAYS=30      # 0 = conservation indéfinie
 
 ## Notes de développement
 
-### Clé primaire ULID sur Alias
+### Rôles utilisateur
 
-`Alias` utilise `HasUlids` (Laravel natif). Le ULID est généré automatiquement à la création. Les FK dans `inbound_emails` sont de type `char(26)`. Les colonnes morph dans `audit_logs` sont des `varchar` pour accepter à la fois les ULIDs (Alias) et les entiers (User, InboundEmail).
+Trois rôles hiérarchiques via l'enum `App\Enums\Role` :
+
+| Rôle | DB value | Accès |
+|---|---|---|
+| `User` | `user` | Mailbox personnel + boîtes partagées |
+| `Admin` | `admin` | + panel admin (aliases, logs, stats) |
+| `SuperAdmin` | `super_admin` | + configuration plateforme (`/admin/settings`) |
+
+L'accessor `$user->is_admin` (rétro-compat) retourne `true` pour Admin et SuperAdmin.  
+Promotion via `php artisan admin:create [--super-admin]`.
+
+### Settings plateforme (SettingService)
+
+`App\Services\SettingService` stocke les paramètres en DB (`settings` table, PK string).  
+Le middleware `BootstrapSettings` (prepend web) lit les settings → `Config::set()` à chaque requête, avec try/catch pour survivre aux fresh installs.
+
+**Secrets chiffrés** : `azure_client_secret` est systématiquement chiffré/déchiffré via `encrypt()`/`decrypt()`.
+
+Ajouter une clé chiffrée : étendre la constante `SettingService::ENCRYPTED_KEYS`.
+
+### Boîtes partagées (AliasShare)
+
+- Table `alias_shares` : ULID PK, `alias_id` + `user_id` + `shared_by_id`
+- `AliasPolicy::view()` : owner **OU** entrée en `alias_shares` — pas de N+1 (contrainte unique par paire)
+- Les utilisateurs partagés ne peuvent pas supprimer emails ni modifier l'alias (`delete` et `update` = owner uniquement)
+- `AliasPolicy::share()` : owner uniquement
+
+### ULID sur tous les modèles principaux
+
+`Alias`, `InboundEmail`, `Attachment` et `AliasShare` utilisent `HasUlids` (Laravel natif). Les ULIDs sont non-devinables, non-séquentiels, triables chronologiquement.
+
+Les FK sont de type `foreignUlid()`. Les colonnes morph dans `audit_logs` sont `varchar(26)` pour accepter à la fois les ULIDs et les entiers (User).
+
+### HTML sanitization (HtmlSanitizer)
+
+`App\Services\HtmlSanitizer` utilise `ezyang/htmlpurifier` pour filtrer strictement le HTML entrant :
+- Allowlist de tags et attributs (pas de `<script>`, `<iframe>`, `<form>`, `<object>`)
+- Strip de **tous** les attributs `on*` (`onerror`, `onclick`, etc.)
+- CSS inline : propriétés autorisées explicitement
+- `data:` URI autorisés pour les images base64
+- Liens forcés `target="_blank" rel="noopener noreferrer"`
+- En l'absence du package, fallback regex minimal
+
+L'installer si ce n'est pas déjà fait :
+```bash
+podman compose exec app composer require ezyang/htmlpurifier
+```
 
 ### Isolation des emails HTML
 
-Tout contenu HTML est rendu dans une `<iframe>` avec :
-```html
-<iframe sandbox="allow-same-origin" referrerpolicy="no-referrer" ...>
+Tout contenu HTML est rendu dans une `<iframe>` avec attribut `sandbox` et `referrerpolicy="no-referrer"`. Les images externes sont remplacées par un placeholder (anti-tracking). Un bouton *"Afficher les images"* recharge avec les URLs réelles.
+
+### Pièces jointes
+
+Les fichiers sont stockés sur le disque `local` (privé, hors `public/`) dans `storage/app/attachments/{email_id}/{filename}`. Le nom de fichier est sanitisé via `Str::slug()`. Le téléchargement passe par `AttachmentController` qui vérifie l'ownership via Gate. À la suppression d'un `Attachment`, le fichier est supprimé du disque via le hook `booted()` du modèle.
+
+### Packages ajoutés
+
+```bash
+# Déjà dans composer.json, à installer si besoin :
+podman compose exec app composer install
 ```
-Les attributs `src` d'images externes sont remplacés par un placeholder avant injection. Un bouton *"Afficher les images"* recharge avec les URLs réelles.
+
+| Package | Usage |
+|---|---|
+| `ezyang/htmlpurifier ^4.17` | Sanitization HTML emails |
+| `laravel/socialite ^5.17` | SSO OAuth2 |
+| `socialiteproviders/microsoft-azure ^5.3` | Driver Azure AD |
+
+### Migration migrate:fresh requise
+
+Si vous avez déjà une DB avec `inbound_emails` en clé entière (avant l'introduction des ULIDs), un `migrate:fresh` est nécessaire. Incompatibilité de type de PK (`bigint` → `char(26)`).
 
 ### Podman vs Docker
 

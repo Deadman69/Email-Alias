@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Internal\InboundEmailController;
 use App\Livewire\Admin\AuditLogViewer;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Admin\Settings as AdminSettings;
 use App\Livewire\Mailbox\Dashboard;
 use App\Livewire\Mailbox\Inbox;
 use App\Livewire\Mailbox\ViewEmail;
@@ -27,10 +28,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachment.show');
 });
 
-// ── Admin panel ───────────────────────────────────────────────────────────────
+// ── Admin panel (admin + super_admin) ─────────────────────────────────────────
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', AdminDashboard::class)->name('dashboard');
     Route::get('/audit', AuditLogViewer::class)->name('audit');
+});
+
+// ── Super Admin panel (platform configuration) ────────────────────────────────
+Route::middleware(['auth', 'verified', 'super_admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/settings', AdminSettings::class)->name('settings');
 });
 
 require __DIR__ . '/settings.php';

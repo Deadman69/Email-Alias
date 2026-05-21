@@ -2,17 +2,18 @@
 
 namespace App\Policies;
 
+use App\Enums\Role;
 use App\Models\Alias;
 use App\Models\User;
 
 class AliasPolicy
 {
     /**
-     * Admins bypass all policy checks.
+     * Admins and Super Admins bypass all policy checks.
      */
     public function before(User $user): ?bool
     {
-        if ($user->is_admin) {
+        if ($user->role->isAtLeast(Role::Admin)) {
             return true;
         }
 
@@ -20,7 +21,7 @@ class AliasPolicy
     }
 
     /**
-     * Any authenticated user can view the alias list.
+     * Any authenticated user can see the alias list (scoped to own aliases in queries).
      */
     public function viewAny(User $user): bool
     {
@@ -28,11 +29,12 @@ class AliasPolicy
     }
 
     /**
-     * A user can only view their own aliases.
+     * Owner OR a user the alias has been shared with can view it.
      */
     public function view(User $user, Alias $alias): bool
     {
-        return $alias->user_id === $user->id;
+        return $alias->user_id === $user->id
+            || $alias->shares()->where('user_id', $user->id)->exists();
     }
 
     /**
@@ -44,7 +46,8 @@ class AliasPolicy
     }
 
     /**
-     * Only the alias owner can update it.
+     * Only the alias owner can update it (rename, extend…).
+     * Shared users are read-only.
      */
     public function update(User $user, Alias $alias): bool
     {
@@ -55,6 +58,14 @@ class AliasPolicy
      * Only the alias owner can delete it.
      */
     public function delete(User $user, Alias $alias): bool
+    {
+        return $alias->user_id === $user->id;
+    }
+
+    /**
+     * Only the alias owner can manage shares.
+     */
+    public function share(User $user, Alias $alias): bool
     {
         return $alias->user_id === $user->id;
     }

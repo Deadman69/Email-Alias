@@ -9,6 +9,7 @@ use App\Policies\AliasPolicy;
 use App\Policies\InboundEmailPolicy;
 use App\Services\AuditLogger;
 use App\Services\HtmlSanitizer;
+use App\Services\SettingService;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(AuditLogger::class);
         $this->app->singleton(HtmlSanitizer::class);
+        $this->app->singleton(SettingService::class);
     }
 
     /**

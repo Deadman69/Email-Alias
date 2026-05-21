@@ -62,4 +62,27 @@ return [
      * Disable in production if SSO is the only authentication method.
      */
     'local_auth_enabled' => (bool) env('LOCAL_AUTH_ENABLED', true),
+
+    /*
+     * Whether self-registration is allowed.
+     */
+    'registration_enabled' => (bool) env('REGISTRATION_ENABLED', false),
+
+    /*
+     * Whether 2FA is required for all users.
+     */
+    'two_factor_required' => (bool) env('TWO_FACTOR_REQUIRED', false),
+
+    /*
+     * Default alias type for new aliases.
+     */
+    'alias_default_type' => env('ALIAS_DEFAULT_TYPE', 'session'),
+
+    /*
+     * NOTE: All values above can be overridden at runtime by a Super Admin
+     * via the Settings panel (/admin/settings). Overrides are stored in the
+     * `settings` database table and applied on every request by the
+     * BootstrapSettings middleware. The .env values serve as the fallback
+     * when no DB override exists.
+     */
 ];

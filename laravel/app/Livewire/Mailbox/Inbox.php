@@ -93,6 +93,11 @@ class Inbox extends Component
 
     public function markAllRead(AuditLogger $auditLogger): void
     {
+        // Explicit authorization belt-and-suspenders — $aliasId is already #[Locked]
+        // but we enforce ownership here in case the attribute is ever removed.
+        $alias = Alias::findOrFail($this->aliasId);
+        $this->authorize('view', $alias);
+
         InboundEmail::where('alias_id', $this->aliasId)->unread()->update(['read_at' => now()]);
         unset($this->emails, $this->unreadCount);
         Flux::toast(text: __('All emails marked as read.'));

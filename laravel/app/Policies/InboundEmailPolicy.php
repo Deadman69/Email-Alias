@@ -2,17 +2,18 @@
 
 namespace App\Policies;
 
+use App\Enums\Role;
 use App\Models\InboundEmail;
 use App\Models\User;
 
 class InboundEmailPolicy
 {
     /**
-     * Admins bypass all policy checks.
+     * Admins and Super Admins bypass all policy checks.
      */
     public function before(User $user): ?bool
     {
-        if ($user->is_admin) {
+        if ($user->role->isAtLeast(Role::Admin)) {
             return true;
         }
 
@@ -20,18 +21,35 @@ class InboundEmailPolicy
     }
 
     /**
-     * A user can only view emails in their own aliases.
+     * A user can view an email if they own the alias OR the alias is shared with them.
+     *
+     * Uses withTrashed() to avoid a null alias causing a 500 instead of a 403
+     * when the parent alias has been soft-deleted.
      */
     public function view(User $user, InboundEmail $email): bool
     {
-        return $email->alias->user_id === $user->id;
+        $alias = $email->alias()->withTrashed()->first();
+
+        if (! $alias) {
+            return false;
+        }
+
+        return $alias->user_id === $user->id
+            || $alias->shares()->where('user_id', $user->id)->exists();
     }
 
     /**
-     * A user can only delete emails in their own aliases.
+     * Only the alias owner can delete emails.
+     * Shared users have read-only access.
      */
     public function delete(User $user, InboundEmail $email): bool
     {
-        return $email->alias->user_id === $user->id;
+        $alias = $email->alias()->withTrashed()->first();
+
+        if (! $alias) {
+            return false;
+        }
+
+        return $alias->user_id === $user->id;
     }
 }
