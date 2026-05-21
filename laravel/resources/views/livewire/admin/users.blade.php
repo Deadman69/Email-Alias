@@ -1,0 +1,192 @@
+<div class="flex flex-col gap-6 p-6">
+
+    {{-- Header --}}
+    <div class="flex items-center gap-3">
+        <flux:button variant="ghost" icon="arrow-left" wire:navigate :href="route('admin.dashboard')" size="sm" />
+        <flux:heading size="xl">{{ __('Users') }}</flux:heading>
+    </div>
+
+    {{-- Search --}}
+    <div>
+        <flux:input
+            wire:model.live.debounce.300ms="search"
+            placeholder="{{ __('Search by name or email...') }}"
+            icon="magnifying-glass"
+            class="max-w-sm"
+        />
+    </div>
+
+    {{-- Table --}}
+    <div class="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
+        <table class="w-full text-sm">
+            <thead class="bg-zinc-50 dark:bg-zinc-800">
+                <tr>
+                    <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('User') }}</th>
+                    <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Role') }}</th>
+                    <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Aliases') }}</th>
+                    <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Joined') }}</th>
+                    <th class="px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
+                @forelse ($this->users as $user)
+                    @php $isSuperAdmin = $user->role === \App\Enums\Role::SuperAdmin; @endphp
+                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800">
+
+                        {{-- Name + email --}}
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <flux:avatar :name="$user->name" :initials="$user->initials()" size="sm" />
+                                <div>
+                                    <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ $user->name }}</p>
+                                    <p class="text-xs text-zinc-500">{{ $user->email }}</p>
+                                </div>
+                            </div>
+                        </td>
+
+                        {{-- Role --}}
+                        <td class="px-4 py-3">
+                            @if ($isSuperAdmin)
+                                <flux:badge color="purple" size="sm">{{ __('Super Admin') }}</flux:badge>
+                            @else
+                                <flux:select
+                                    wire:change="updateRole('{{ $user->id }}', $event.target.value)"
+                                    class="w-32 text-xs"
+                                    size="sm"
+                                >
+                                    <flux:select.option
+                                        value="{{ \App\Enums\Role::User->value }}"
+                                        @selected($user->role === \App\Enums\Role::User)
+                                    >{{ __('User') }}</flux:select.option>
+                                    <flux:select.option
+                                        value="{{ \App\Enums\Role::Admin->value }}"
+                                        @selected($user->role === \App\Enums\Role::Admin)
+                                    >{{ __('Admin') }}</flux:select.option>
+                                </flux:select>
+                            @endif
+                        </td>
+
+                        {{-- Aliases count --}}
+                        <td class="px-4 py-3 text-zinc-600 dark:text-zinc-400">
+                            {{ $user->aliases_count }}
+                        </td>
+
+                        {{-- Joined date with tooltip --}}
+                        <td class="px-4 py-3 text-xs text-zinc-500">
+                            <span title="{{ $user->created_at->isoFormat('LLL') }}">
+                                {{ $user->created_at->diffForHumans() }}
+                            </span>
+                        </td>
+
+                        {{-- Actions --}}
+                        <td class="px-4 py-3">
+                            <flux:button
+                                size="xs"
+                                variant="ghost"
+                                icon="at-symbol"
+                                wire:click="openCreateModal('{{ $user->id }}')"
+                                title="{{ __('Create alias for this user') }}"
+                            />
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-zinc-400">
+                            {{ __('No users found.') }}
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div>{{ $this->users->links() }}</div>
+
+    {{-- ── Create alias for user modal ──────────────────────────────────────────── --}}
+    <flux:modal wire:model="showCreateModal" name="admin-create-alias" class="max-w-lg">
+        <div class="space-y-5 p-6">
+            @if ($createForUserId)
+                @php $targetUser = \App\Models\User::find($createForUserId) @endphp
+            @endif
+
+            <div>
+                <flux:heading size="lg">{{ __('Create alias for user') }}</flux:heading>
+                @if (isset($targetUser))
+                    <flux:text class="mt-1 text-sm text-zinc-500">
+                        {{ $targetUser->name }} &lt;{{ $targetUser->email }}&gt;
+                    </flux:text>
+                @endif
+            </div>
+
+            <form wire:submit="createAliasForUser" class="space-y-5">
+
+                {{-- Type --}}
+                <flux:field>
+                    <flux:label>{{ __('Type') }}</flux:label>
+                    <div class="mt-1 flex gap-2">
+                        @foreach ($this->aliasTypes as $type)
+                            <button
+                                type="button"
+                                wire:click="$set('createAliasType', '{{ $type->value }}')"
+                                class="flex-1 rounded-lg border px-3 py-2 text-sm transition
+                                    {{ $createAliasType === $type->value
+                                        ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                                        : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}"
+                            >
+                                {{ $type->label() }}
+                            </button>
+                        @endforeach
+                    </div>
+                </flux:field>
+
+                {{-- Duration --}}
+                @if ($createAliasType === 'duration')
+                    <flux:select wire:model="createDuration" label="{{ __('Duration') }}">
+                        @foreach ($this->durationOptions as $val => $label)
+                            <flux:select.option value="{{ $val }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                @endif
+
+                {{-- Address format --}}
+                <flux:field>
+                    <flux:label>{{ __('Address format') }}</flux:label>
+                    <div class="mt-1 flex gap-2">
+                        <button type="button" wire:click="$set('createAliasMode', 'random')"
+                            class="flex-1 rounded-lg border px-3 py-2 text-sm transition
+                                {{ $createAliasMode === 'random' ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}">
+                            {{ __('Random') }}
+                        </button>
+                        <button type="button" wire:click="$set('createAliasMode', 'custom')"
+                            class="flex-1 rounded-lg border px-3 py-2 text-sm transition
+                                {{ $createAliasMode === 'custom' ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800' }}">
+                            {{ __('Custom') }}
+                        </button>
+                    </div>
+                </flux:field>
+
+                @if ($createAliasMode === 'custom')
+                    <flux:input
+                        wire:model="createCustomLocalPart"
+                        label="{{ __('Local part') }}"
+                        placeholder="my-alias"
+                        suffix="@{{ $this->domain }}"
+                    />
+                    <flux:error name="createCustomLocalPart" />
+                @else
+                    <flux:text class="text-sm text-zinc-500">
+                        {{ __('A random address will be generated for you.') }}
+                    </flux:text>
+                @endif
+
+                <flux:input wire:model="createLabel" label="{{ __('Label (optional)') }}" placeholder="{{ __('e.g. Project X testing') }}" />
+
+                <div class="flex justify-end gap-3">
+                    <flux:button type="button" wire:click="$set('showCreateModal', false)">{{ __('Cancel') }}</flux:button>
+                    <flux:button variant="primary" type="submit">{{ __('Create') }}</flux:button>
+                </div>
+            </form>
+        </div>
+    </flux:modal>
+
+</div>

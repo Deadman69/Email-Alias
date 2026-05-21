@@ -12,6 +12,9 @@
 
             <flux:sidebar.nav>
                 <flux:sidebar.group :heading="__('Platform')" class="grid">
+                    <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
+                        {{ __('Dashboard') }}
+                    </flux:sidebar.item>
                     <flux:sidebar.item icon="inbox" :href="route('mailbox.dashboard')" :current="request()->routeIs('mailbox.*')" wire:navigate>
                         {{ __('Mailboxes') }}
                     </flux:sidebar.item>
@@ -22,9 +25,22 @@
 
             @if (auth()->user()?->is_admin)
                 <flux:sidebar.nav>
-                    <flux:sidebar.item icon="shield-check" :href="route('admin.dashboard')" :current="request()->routeIs('admin.*')" wire:navigate>
-                        {{ __('Admin') }}
-                    </flux:sidebar.item>
+                    <flux:sidebar.group :heading="__('Admin')" class="grid">
+                        <flux:sidebar.item icon="shield-check" :href="route('admin.dashboard')" :current="request()->routeIs('admin.dashboard')" wire:navigate>
+                            {{ __('Admin Dashboard') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="users" :href="route('admin.users')" :current="request()->routeIs('admin.users')" wire:navigate>
+                            {{ __('Users') }}
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="clipboard-document-list" :href="route('admin.audit')" :current="request()->routeIs('admin.audit')" wire:navigate>
+                            {{ __('Audit log') }}
+                        </flux:sidebar.item>
+                        @if (auth()->user()?->isSuperAdmin())
+                            <flux:sidebar.item icon="cog-6-tooth" :href="route('admin.settings')" :current="request()->routeIs('admin.settings')" wire:navigate>
+                                {{ __('Settings') }}
+                            </flux:sidebar.item>
+                        @endif
+                    </flux:sidebar.group>
                 </flux:sidebar.nav>
             @endif
 

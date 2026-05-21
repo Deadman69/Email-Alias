@@ -7,17 +7,17 @@
 
     {{-- Filters --}}
     <div class="flex flex-wrap gap-3">
+        <flux:input
+            wire:model.live.debounce.300ms="search"
+            placeholder="{{ __('Search by name or email...') }}"
+            icon="magnifying-glass"
+            class="max-w-xs"
+        />
+
         <flux:select wire:model.live="eventFilter" class="max-w-xs">
             <flux:select.option value="">{{ __('All events') }}</flux:select.option>
             @foreach ($this->events as $event)
                 <flux:select.option value="{{ $event->value }}">{{ $event->label() }}</flux:select.option>
-            @endforeach
-        </flux:select>
-
-        <flux:select wire:model.live="userFilter" class="max-w-xs">
-            <flux:select.option value="">{{ __('All users') }}</flux:select.option>
-            @foreach ($this->users as $user)
-                <flux:select.option value="{{ $user->id }}">{{ $user->name }}</flux:select.option>
             @endforeach
         </flux:select>
 

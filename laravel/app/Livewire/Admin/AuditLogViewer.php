@@ -17,18 +17,25 @@ class AuditLogViewer extends Component
 {
     use WithPagination;
 
+    public string $search      = '';
+
     public string $eventFilter = '';
 
-    public string $userFilter = '';
+    public string $userFilter  = '';
 
-    public string $dateFrom = '';
+    public string $dateFrom    = '';
 
-    public string $dateTo = '';
+    public string $dateTo      = '';
 
     #[Computed]
     public function logs(): \Illuminate\Pagination\LengthAwarePaginator
     {
         return AuditLog::with('user')
+            ->when($this->search, function ($q) {
+                $term = $this->search;
+                $q->whereHas('user', fn ($q2) => $q2->where('name', 'like', "%{$term}%")
+                    ->orWhere('email', 'like', "%{$term}%"));
+            })
             ->when($this->eventFilter, fn ($q) => $q->where('event', $this->eventFilter))
             ->when($this->userFilter, fn ($q) => $q->where('user_id', $this->userFilter))
             ->when($this->dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
@@ -48,6 +55,8 @@ class AuditLogViewer extends Component
     {
         return User::select('id', 'name', 'email')->orderBy('name')->get();
     }
+
+    public function updatedSearch(): void { $this->resetPage(); }
 
     public function updatedEventFilter(): void { $this->resetPage(); }
 

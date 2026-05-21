@@ -118,8 +118,8 @@
 - [x] `Api/V1/Admin/AuditLogController` — index with filters, paginated up to 200
 - [x] Admin API routes use `'admin'` middleware alias (not class reference)
 - [x] Mailbox routes: `/mailbox`, `/mailbox/{alias}`, `/mailbox/emails/{email}`
-- [x] Admin routes: `/admin`, `/admin/audit`, `/admin/settings`
-- [ ] Dedicated user stats dashboard (currently redirects to mailbox)
+- [x] Admin routes: `/admin`, `/admin/users`, `/admin/audit`, `/admin/settings`
+- [x] Dedicated user stats dashboard at `/dashboard` — aliases, emails, unread, storage used, recent emails
 
 ---
 
@@ -137,18 +137,20 @@
 - [x] Settings navigation includes API Tokens link
 - [x] HTML email rendered in `<iframe sandbox>`, external images blocked (anti-tracking), purified HTML
 - [x] Copy alias address to clipboard (one-click button)
-- [ ] Real user dashboard with personal stats (not just a redirect)
-- [ ] Session alias: remove expiry countdown (they are deleted on logout, not by timer expiry)
-- [ ] Real-time expiry countdown in sidebar/card
-- [ ] Create mailbox for a specific user (admin panel)
-- [ ] User management in admin panel:
-    - [ ] Display user email in user list
-    - [ ] Add exact datetime tooltips on all relative dates ("in 1h", "3 days ago"…)
-    - [ ] Per-user timezone preference (e.g. Europe/Paris, America/New_York)
-    - [ ] Timezone-aware display for all absolute dates
-    - [ ] Search user by email for large user bases (10,000+)
-    - [ ] Same search in audit log
-    - [ ] Dedicated users page with role/status table
+- [x] `UserDashboard` — personal stats (active aliases, shared with me, emails, unread, storage), recent emails list
+- [x] Session alias: shows "Ends on logout" instead of countdown in dashboard cards and inbox header
+- [x] Real-time expiry countdown in dashboard cards and inbox header (Alpine.js `setInterval`)
+- [x] Create mailbox for a specific user (admin users page — per-row action button + modal)
+- [x] User management in admin panel (`/admin/users`):
+    - [x] Dedicated users page with name, email, role badge/selector, alias count, joined date
+    - [x] Display user email in user list
+    - [x] Role update inline (dropdown, SuperAdmin protected)
+    - [x] Search by name or email (live, paginated, scales to large user bases)
+    - [x] Exact datetime tooltips on all relative dates (`title` with `isoFormat('LLL')`)
+    - [x] Per-user timezone preference — `timezone` column on `users`, selector in profile settings
+    - [x] Timezone-aware display — `SetLocale` middleware applies `date_default_timezone_set()`
+- [x] Admin sidebar navigation — Dashboard, Users, Audit Log, Settings links
+- [x] Search by user name/email in audit log
 
 ---
 
@@ -175,7 +177,9 @@
 - [x] Per-user locale preference (profile settings)
 - [x] Platform default language setting (Super Admin panel)
 - [x] `TokenAbility` labels and descriptions translated via `__()`
-- [ ] Carbon locale set for date formatting (diffForHumans in user language)
+- [x] Carbon locale set for `diffForHumans()` — `SetLocale` middleware calls `Carbon::setLocale($locale)`
+- [x] Per-user timezone — `SetLocale` calls `date_default_timezone_set($timezone)` for all Carbon output
+- [x] `isoFormat('LLL')` used in tooltips for locale-aware absolute dates
 
 ---
 

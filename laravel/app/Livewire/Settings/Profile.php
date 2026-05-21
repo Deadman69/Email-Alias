@@ -27,15 +27,20 @@ class Profile extends Component
     #[Validate('nullable|string|in:en,fr')]
     public ?string $locale = null;
 
+    /** @var string|null IANA timezone identifier, null = server default */
+    #[Validate('nullable|string|timezone:all')]
+    public ?string $timezone = null;
+
     /**
      * Mount the component.
      */
     public function mount(): void
     {
         $user = Auth::user();
-        $this->name  = $user->name;
-        $this->email = $user->email;
-        $this->locale = $user->locale;
+        $this->name     = $user->name;
+        $this->email    = $user->email;
+        $this->locale   = $user->locale;
+        $this->timezone = $user->timezone;
     }
 
     /**
@@ -63,21 +68,26 @@ class Profile extends Component
     }
 
     /**
-     * Update the authenticated user's locale preference.
+     * Update the authenticated user's locale and timezone preferences.
      * Applies immediately without a full page reload.
      */
     public function updateLocale(): void
     {
-        $this->validateOnly('locale');
+        $this->validateOnly(['locale', 'timezone']);
 
         $user = Auth::user();
-        $user->locale = $this->locale ?: null;
+        $user->locale   = $this->locale ?: null;
+        $user->timezone = $this->timezone ?: null;
         $user->save();
 
         // Apply immediately for the current request
         $locale = $this->locale ?: config('app.locale', 'en');
         if (in_array($locale, ['en', 'fr'], true)) {
             App::setLocale($locale);
+        }
+
+        if ($this->timezone && @timezone_open($this->timezone) !== false) {
+            date_default_timezone_set($this->timezone);
         }
 
         Flux::toast(variant: 'success', text: __('Profile updated.'));

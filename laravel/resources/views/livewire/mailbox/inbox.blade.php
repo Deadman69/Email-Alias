@@ -24,10 +24,25 @@
                         {{ $this->alias->type->label() }}
                     </flux:badge>
 
-                    @if ($this->alias->expires_at)
-                        <flux:text class="text-xs text-amber-600">
-                            {{ __('Expires') }} {{ $this->alias->expiresInHuman() }}
+                    @if ($this->alias->type === \App\Enums\AliasType::Session)
+                        <flux:text class="flex items-center gap-1 text-xs text-zinc-400">
+                            <flux:icon name="arrow-right-start-on-rectangle" class="size-3 inline" />
+                            {{ __('Ends on logout') }}
                         </flux:text>
+                    @elseif ($this->alias->expires_at)
+                        <span
+                            x-data="{ expires: '{{ $this->alias->expires_at->toIso8601String() }}' }"
+                            x-init="setInterval(() => {
+                                const diff = new Date(expires) - Date.now();
+                                if (diff <= 0) { $el.textContent = '{{ __('Expired') }}'; return; }
+                                const h = Math.floor(diff / 3600000);
+                                const m = Math.floor((diff % 3600000) / 60000);
+                                const s = Math.floor((diff % 60000) / 1000);
+                                $el.textContent = '{{ __('Expires in') }} ' + (h > 0 ? h+'h ' : '') + (m > 0 ? m+'m ' : '') + s+'s';
+                            }, 1000)"
+                            class="text-xs text-amber-600 dark:text-amber-400"
+                            title="{{ $this->alias->expires_at->isoFormat('LLL') }}"
+                        >{{ __('Expires') }} {{ $this->alias->expiresInHuman() }}</span>
                     @endif
 
                     @if ($this->unreadCount > 0)
@@ -93,7 +108,10 @@
                                     <flux:text class="truncate font-semibold text-zinc-900 dark:text-zinc-100">
                                         {{ $email->from_name ?: $email->from_address }}
                                     </flux:text>
-                                    <flux:text class="shrink-0 text-xs text-zinc-400">
+                                    <flux:text
+                                        class="shrink-0 text-xs text-zinc-400"
+                                        title="{{ $email->created_at->isoFormat('LLL') }}"
+                                    >
                                         {{ $email->created_at->diffForHumans() }}
                                     </flux:text>
                                 </div>

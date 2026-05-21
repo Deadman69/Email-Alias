@@ -2,9 +2,14 @@
 
     <div class="flex items-center justify-between">
         <flux:heading size="xl">{{ __('Admin Dashboard') }}</flux:heading>
-        <flux:button variant="ghost" icon="clipboard-document-list" wire:navigate :href="route('admin.audit')">
-            {{ __('Audit log') }}
-        </flux:button>
+        <div class="flex gap-2">
+            <flux:button variant="ghost" icon="users" wire:navigate :href="route('admin.users')">
+                {{ __('Users') }}
+            </flux:button>
+            <flux:button variant="ghost" icon="clipboard-document-list" wire:navigate :href="route('admin.audit')">
+                {{ __('Audit log') }}
+            </flux:button>
+        </div>
     </div>
 
     {{-- Stats --}}
@@ -60,7 +65,15 @@
                                 {{ $alias->type->label() }}
                             </flux:badge>
                         </td>
-                        <td class="px-4 py-3 text-xs text-zinc-500">{{ $alias->expires_at?->diffForHumans() ?? '—' }}</td>
+                        <td class="px-4 py-3 text-xs text-zinc-500">
+                            @if ($alias->expires_at)
+                                <span title="{{ $alias->expires_at->isoFormat('LLL') }}">
+                                    {{ $alias->expires_at->diffForHumans() }}
+                                </span>
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-zinc-600">{{ $alias->inboundEmails()->count() }}</td>
                         <td class="px-4 py-3">
                             <flux:button

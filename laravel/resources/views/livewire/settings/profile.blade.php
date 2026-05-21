@@ -28,21 +28,36 @@
             </div>
         </form>
 
-        {{-- Language preference --}}
+        {{-- Language & Timezone preferences --}}
         <flux:separator class="my-6" />
 
         <div class="space-y-4">
             <div>
-                <flux:heading size="sm">{{ __('Language') }}</flux:heading>
-                <flux:text class="text-sm text-zinc-500">{{ __('Your preferred display language.') }}</flux:text>
+                <flux:heading size="sm">{{ __('Language & Region') }}</flux:heading>
+                <flux:text class="text-sm text-zinc-500">{{ __('Your preferred display language and timezone.') }}</flux:text>
             </div>
 
-            <form wire:submit="updateLocale" class="flex items-end gap-4">
-                <flux:select wire:model="locale" class="max-w-xs">
-                    <flux:select.option value="">{{ __('Platform default') }}</flux:select.option>
-                    <flux:select.option value="en">{{ __('English') }}</flux:select.option>
-                    <flux:select.option value="fr">{{ __('French') }}</flux:select.option>
-                </flux:select>
+            <form wire:submit="updateLocale" class="space-y-4">
+                <flux:field>
+                    <flux:label>{{ __('Language') }}</flux:label>
+                    <flux:select wire:model="locale" class="max-w-xs">
+                        <flux:select.option value="">{{ __('Platform default') }}</flux:select.option>
+                        <flux:select.option value="en">{{ __('English') }}</flux:select.option>
+                        <flux:select.option value="fr">{{ __('French') }}</flux:select.option>
+                    </flux:select>
+                </flux:field>
+
+                <flux:field>
+                    <flux:label>{{ __('Timezone') }}</flux:label>
+                    <flux:select wire:model="timezone" class="max-w-xs" searchable>
+                        <flux:select.option value="">{{ __('Server default') }}</flux:select.option>
+                        @foreach (\DateTimeZone::listIdentifiers(\DateTimeZone::ALL) as $tz)
+                            <flux:select.option value="{{ $tz }}">{{ $tz }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:description>{{ __('Dates and times will be displayed in this timezone.') }}</flux:description>
+                </flux:field>
+
                 <flux:button variant="primary" type="submit">{{ __('Save') }}</flux:button>
             </form>
         </div>

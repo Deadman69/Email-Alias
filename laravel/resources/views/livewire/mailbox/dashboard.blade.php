@@ -83,13 +83,19 @@
                         @endif
 
                         {{-- Expiry --}}
-                        @if ($alias->expires_at)
+                        @if ($alias->type === \App\Enums\AliasType::Session)
+                            {{-- Session aliases are deleted on logout, not by timer --}}
+                            <div class="mb-3 flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-500">
+                                <flux:icon name="arrow-right-start-on-rectangle" class="size-3" />
+                                {{ __('Ends on logout') }}
+                            </div>
+                        @elseif ($alias->expires_at)
                             <div class="mb-3 flex items-center gap-1 text-xs"
                                 x-data="{ expires: '{{ $alias->expires_at->toIso8601String() }}' }"
                                 x-init="
                                     setInterval(() => {
                                         const diff = new Date(expires) - Date.now();
-                                        if (diff <= 0) { $el.textContent = 'Expired'; return; }
+                                        if (diff <= 0) { $el.querySelector('[data-countdown]').textContent = '{{ __('Expired') }}'; return; }
                                         const h = Math.floor(diff / 3600000);
                                         const m = Math.floor((diff % 3600000) / 60000);
                                         const s = Math.floor((diff % 60000) / 1000);
@@ -99,7 +105,10 @@
                                 "
                             >
                                 <flux:icon name="clock" class="size-3 text-amber-500" />
-                                <span class="text-amber-600 dark:text-amber-400">
+                                <span
+                                    class="text-amber-600 dark:text-amber-400"
+                                    title="{{ $alias->expires_at->isoFormat('LLL') }}"
+                                >
                                     {{ __('Expires in') }} <span data-countdown>{{ $alias->expiresInHuman() }}</span>
                                 </span>
 

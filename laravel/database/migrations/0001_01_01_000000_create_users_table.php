@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('password');
             $table->rememberToken();
             $table->string('locale', 5)->nullable();
+            $table->string('timezone', 64)->nullable();
             $table->string('role', 20)->default('user');
             $table->text('two_factor_secret')->nullable();
             $table->text('two_factor_recovery_codes')->nullable();

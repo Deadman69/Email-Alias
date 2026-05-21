@@ -33,6 +33,12 @@ class SetLocale
             Carbon::setLocale($locale);
         }
 
+        // Apply per-user timezone so all Carbon/date output is in the user's local time.
+        $timezone = $request->user()?->timezone;
+        if ($timezone && @timezone_open($timezone) !== false) {
+            date_default_timezone_set($timezone);
+        }
+
         return $next($request);
     }
 }
