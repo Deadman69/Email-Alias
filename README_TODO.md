@@ -82,6 +82,7 @@
 - [ ] NTH: Super Admin manual quota override per mailbox (column on `aliases` table: `custom_max_bytes`)
 - [ ] NTH: Super Admin manual quota override per user (column on `users` table: `custom_max_storage_bytes`)
 - [ ] NTH: Being able to download emails
+- [ ] NTH: Being able to have multiple domaines ("example.com", "test.com", "testing.org")
 
 ---
 
