@@ -81,6 +81,7 @@
 - [x] App version — hardcoded in `VERSION` file, read-only in admin panel, `version_check_enabled` toggle for future GitHub auto-check
 - [ ] NTH: Super Admin manual quota override per mailbox (column on `aliases` table: `custom_max_bytes`)
 - [ ] NTH: Super Admin manual quota override per user (column on `users` table: `custom_max_storage_bytes`)
+- [ ] NTH: Being able to download emails
 
 ---
 
@@ -262,3 +263,24 @@
     - [ ] Pour l'application : http://localhost:443/ `NS_ERROR_NET_EMPTY_RESPONSE`
     - [ ] Pour l'application : http://localhost:80/ --> Rien du tout
     - [ ] container reverb & worker, erreur : `SQLSTATE[42P01]: Undefined table: 7 ERROR:  relation "cache" does not exist LINE 1: select * from "cache" where "key" in ($1) (Connection: pgsql, Host: db, Port: 5432, Database: emailalias, SQL: select * from "cache" where "key" in (emailalias-cache-laravel:reverb:restart))`
+
+- [ ] Logs, super-admin platform change : erreurs avec les types, presque tous les champs non-string ressortent :
+```
+"version_check_enabled": {
+    "from": "1",
+    "to": true
+},
+"sso_enabled": {
+    "from": "0",
+    "to": false
+},
+"azure_tenant_id": {
+    "from": null,
+    "to": ""
+},
+"alias_max_email_size_bytes": {
+    "from": "10485760",
+    "to": 10485760
+},
+```
+- [ ] Création email custom (user & admin), ajouter en dur le "@XXXX.com" après le local part pour avoir un rendu visuel

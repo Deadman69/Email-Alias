@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "aacotroneo/laravel-saml2": "^2.1",
         "dedoc/scramble": "^0.13.23",
         "ezyang/htmlpurifier": "^4.17",
         "laravel/chisel": "^0.1.0",

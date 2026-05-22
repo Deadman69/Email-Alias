@@ -28,7 +28,7 @@ Minimum `.env` values for local development:
 ```env
 APP_URL=http://localhost:8000
 APP_DOMAIN=dev.local              # Fictional domain — no DNS needed
-SMTP_INTERNAL_SECRET=dev-secret   # Must match between smtp-server and Laravel
+SMTP_INTERNAL_SECRET=changeme_smtp_secret   # Must match between smtp-server and Laravel
 DB_PASSWORD=localpassword
 ```
 
@@ -139,7 +139,7 @@ Create an alias in the UI (`http://localhost:8000/mailbox`), then POST directly 
 ```bash
 curl -X POST http://localhost:8000/internal/inbound \
   -H "Content-Type: application/json" \
-  -H "X-SMTP-Secret: dev-secret" \
+  -H "X-SMTP-Secret: changeme_smtp_secret" \
   -d '{
     "to": ["xk3f9a2b@dev.local"],
     "from_address": "sender@example.com",
