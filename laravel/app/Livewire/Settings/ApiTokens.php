@@ -46,6 +46,12 @@ class ApiTokens extends Component
 
     public bool $showTokenValue = false;
 
+    // ── Revoke confirmation ───────────────────────────────────────────────────
+
+    public bool $showConfirmRevokeToken = false;
+
+    public ?int $pendingRevokeTokenId = null;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     public function mount(): void
@@ -155,17 +161,32 @@ class ApiTokens extends Component
     }
 
     /**
-     * Revoke (delete) a token by ID.
+     * Open the FluxUI confirmation modal before revoking a token.
+     */
+    public function requestRevokeToken(int $tokenId): void
+    {
+        $this->pendingRevokeTokenId = $tokenId;
+        $this->showConfirmRevokeToken = true;
+    }
+
+    /**
+     * Revoke (delete) a token after the user confirmed in the modal.
      * Only the token owner can revoke their own tokens.
      */
-    public function revokeToken(int $tokenId, AuditLogger $auditLogger): void
+    public function revokeToken(AuditLogger $auditLogger): void
     {
-        $token = Auth::user()->tokens()->findOrFail($tokenId);
+        if (! $this->pendingRevokeTokenId) {
+            return;
+        }
+
+        $token = Auth::user()->tokens()->findOrFail($this->pendingRevokeTokenId);
 
         $auditLogger->log(AuditEvent::ApiTokenRevoked, null, ['token_name' => $token->name]);
 
         $token->delete();
 
+        $this->pendingRevokeTokenId = null;
+        $this->showConfirmRevokeToken = false;
         unset($this->tokens);
         Flux::toast(text: __('Token revoked.'));
     }

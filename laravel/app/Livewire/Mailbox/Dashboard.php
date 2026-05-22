@@ -52,6 +52,24 @@ class Dashboard extends Component
     #[Validate('required|email|max:255')]
     public string $shareEmail = '';
 
+    // ── Delete alias confirmation ─────────────────────────────────────────────────
+
+    public bool $showConfirmDeleteAlias = false;
+
+    #[Locked]
+    public string $pendingDeleteAliasId = '';
+
+    // ── Remove share confirmation ─────────────────────────────────────────────────
+
+    public bool $showConfirmRemoveShare = false;
+
+    #[Locked]
+    public string $pendingRemoveShareId = '';
+
+    // ── Rotate webhook secret confirmation ────────────────────────────────────────
+
+    public bool $showConfirmRotateSecret = false;
+
     // ── Webhook ───────────────────────────────────────────────────────────────────
 
     public bool $showWebhookModal = false;
@@ -90,10 +108,45 @@ class Dashboard extends Component
         return config('emailalias.domain', 'example.com');
     }
 
+    /**
+     * Alias types available to the user, filtered by platform settings.
+     * When permanent aliases are disabled by the super-admin the option is hidden.
+     */
     #[Computed]
     public function aliasTypes(): array
     {
-        return AliasType::cases();
+        return array_values(array_filter(AliasType::cases(), function (AliasType $type) {
+            return match ($type) {
+                AliasType::Permanent => config('emailalias.allow_permanent', true),
+                default              => true,
+            };
+        }));
+    }
+
+    /**
+     * Whether custom local-part addresses are allowed by the platform settings.
+     */
+    #[Computed]
+    public function allowCustomAddresses(): bool
+    {
+        return config('emailalias.allow_custom', true);
+    }
+
+    /**
+     * Reset the address mode to 'random' if custom addresses are no longer allowed
+     * (e.g. super-admin changed the setting between page loads).
+     */
+    public function mount(): void
+    {
+        // Guard: if platform settings changed after a user opened the modal,
+        // reset to safe defaults so the form can't submit a disabled type/mode.
+        if (! $this->allowCustomAddresses && $this->aliasMode === 'custom') {
+            $this->aliasMode = 'random';
+        }
+
+        if (! config('emailalias.allow_permanent', true) && $this->aliasType === 'permanent') {
+            $this->aliasType = 'session';
+        }
     }
 
     #[Computed]
@@ -105,7 +158,14 @@ class Dashboard extends Component
     #[Computed]
     public function maxReached(): bool
     {
-        return Alias::where('user_id', Auth::id())->count() >= config('emailalias.max_aliases_per_user', 20);
+        // Only count active (non-expired) aliases to match AliasService::ensureUserCanCreateAlias()
+        $count = Alias::where('user_id', Auth::id())
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->count();
+
+        return $count >= config('emailalias.max_aliases_per_user', 20);
     }
 
     /**
@@ -164,7 +224,10 @@ class Dashboard extends Component
         }
 
         $type = AliasType::from($this->aliasType);
-        $localPart = $this->aliasMode === 'custom' && $this->customLocalPart ? $this->customLocalPart : null;
+        // Ignore custom local part if custom addresses are disabled platform-wide.
+        $localPart = ($this->aliasMode === 'custom' && $this->allowCustomAddresses && $this->customLocalPart)
+            ? $this->customLocalPart
+            : null;
 
         try {
             $aliasService->create(
@@ -187,15 +250,30 @@ class Dashboard extends Component
     }
 
     /**
-     * Delete an alias after authorization check.
+     * Open the FluxUI confirmation modal before deleting an alias.
      */
-    public function deleteAlias(string $aliasId, AliasService $aliasService): void
+    public function requestDeleteAlias(string $aliasId): void
     {
-        $alias = Alias::findOrFail($aliasId);
+        $this->pendingDeleteAliasId = $aliasId;
+        $this->showConfirmDeleteAlias = true;
+    }
+
+    /**
+     * Delete an alias after the user confirmed in the modal.
+     */
+    public function deleteAlias(AliasService $aliasService): void
+    {
+        if (! $this->pendingDeleteAliasId) {
+            return;
+        }
+
+        $alias = Alias::findOrFail($this->pendingDeleteAliasId);
         $this->authorize('delete', $alias);
 
         $aliasService->delete($alias, actingUser: Auth::user());
 
+        $this->pendingDeleteAliasId = '';
+        $this->showConfirmDeleteAlias = false;
         unset($this->aliases);
         Flux::toast(variant: 'success', text: __('Alias deleted.'));
     }
@@ -283,11 +361,24 @@ class Dashboard extends Component
     }
 
     /**
-     * Remove a share.
+     * Open the FluxUI confirmation modal before removing a share.
      */
-    public function removeShare(string $shareId, AuditLogger $auditLogger): void
+    public function requestRemoveShare(string $shareId): void
     {
-        $share = AliasShare::findOrFail($shareId);
+        $this->pendingRemoveShareId = $shareId;
+        $this->showConfirmRemoveShare = true;
+    }
+
+    /**
+     * Remove a share after the user confirmed in the modal.
+     */
+    public function removeShare(AuditLogger $auditLogger): void
+    {
+        if (! $this->pendingRemoveShareId) {
+            return;
+        }
+
+        $share = AliasShare::findOrFail($this->pendingRemoveShareId);
         $alias = Alias::findOrFail($share->alias_id);
         $this->authorize('share', $alias);
 
@@ -298,6 +389,8 @@ class Dashboard extends Component
             'removed' => $removedEmail,
         ]);
 
+        $this->pendingRemoveShareId = '';
+        $this->showConfirmRemoveShare = false;
         unset($this->sharingAlias, $this->aliases);
         Flux::toast(text: __('Share removed.'));
     }
@@ -351,6 +444,14 @@ class Dashboard extends Component
     }
 
     /**
+     * Open the FluxUI confirmation modal before rotating the webhook secret.
+     */
+    public function requestRotateSecret(): void
+    {
+        $this->showConfirmRotateSecret = true;
+    }
+
+    /**
      * Explicitly rotate the webhook signing secret.
      * Called only when the user confirms the action in the UI.
      * The receiver must be updated before deliveries can be verified again.
@@ -363,6 +464,7 @@ class Dashboard extends Component
         $alias->webhook_secret = Str::random(40);
         $alias->save();
 
+        $this->showConfirmRotateSecret = false;
         unset($this->webhookAlias);
         Flux::toast(variant: 'warning', text: __('Webhook secret rotated. Update your receiver before the next delivery.'));
     }

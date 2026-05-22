@@ -88,50 +88,53 @@
 
                         {{-- Joined date with tooltip --}}
                         <td class="px-4 py-3 text-xs text-zinc-500">
-                            <span title="{{ $user->created_at->isoFormat('LLL') }}">
-                                {{ $user->created_at->diffForHumans() }}
-                            </span>
+                            <flux:tooltip content="{{ $user->created_at->isoFormat('LLL') }}">
+                                <span>{{ $user->created_at->diffForHumans() }}</span>
+                            </flux:tooltip>
                         </td>
 
                         {{-- Actions --}}
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-1">
-                                <flux:button
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="at-symbol"
-                                    wire:click="openCreateModal('{{ $user->id }}')"
-                                    title="{{ __('Create alias for this user') }}"
-                                />
-                                @if (! $isSuperAdmin)
-                                    @if ($user->is_active)
-                                        <flux:button
-                                            size="xs"
-                                            variant="ghost"
-                                            icon="no-symbol"
-                                            wire:click="toggleUserStatus('{{ $user->id }}')"
-                                            title="{{ __('Suspend user') }}"
-                                        />
-                                    @else
-                                        <flux:button
-                                            size="xs"
-                                            variant="ghost"
-                                            icon="check-circle"
-                                            wire:click="toggleUserStatus('{{ $user->id }}')"
-                                            title="{{ __('Reactivate user') }}"
-                                        />
-                                    @endif
-                                @endif
-                                @if (auth()->user()?->isSuperAdmin() && ! $isSuperAdmin)
+                                <flux:tooltip content="{{ __('Create alias for this user') }}">
                                     <flux:button
                                         size="xs"
                                         variant="ghost"
-                                        icon="trash"
-                                        wire:click="forceDeleteUser('{{ $user->id }}')"
-                                        wire:confirm="{{ __('Permanently delete this user and all their data? This cannot be undone.') }}"
-                                        class="text-red-400 hover:text-red-600"
-                                        title="{{ __('Delete user and all data') }}"
+                                        icon="at-symbol"
+                                        wire:click="openCreateModal('{{ $user->id }}')"
                                     />
+                                </flux:tooltip>
+                                @if (! $isSuperAdmin)
+                                    @if ($user->is_active)
+                                        <flux:tooltip content="{{ __('Suspend user') }}">
+                                            <flux:button
+                                                size="xs"
+                                                variant="ghost"
+                                                icon="no-symbol"
+                                                wire:click="toggleUserStatus('{{ $user->id }}')"
+                                            />
+                                        </flux:tooltip>
+                                    @else
+                                        <flux:tooltip content="{{ __('Reactivate user') }}">
+                                            <flux:button
+                                                size="xs"
+                                                variant="ghost"
+                                                icon="check-circle"
+                                                wire:click="toggleUserStatus('{{ $user->id }}')"
+                                            />
+                                        </flux:tooltip>
+                                    @endif
+                                @endif
+                                @if (auth()->user()?->isSuperAdmin() && ! $isSuperAdmin)
+                                    <flux:tooltip content="{{ __('Delete user and all data') }}">
+                                        <flux:button
+                                            size="xs"
+                                            variant="ghost"
+                                            icon="trash"
+                                            wire:click="requestForceDeleteUser('{{ $user->id }}')"
+                                            class="text-red-400 hover:text-red-600"
+                                        />
+                                    </flux:tooltip>
                                 @endif
                             </div>
                         </td>
@@ -150,7 +153,7 @@
     <div>{{ $this->users->links() }}</div>
 
     {{-- ── Create alias for user modal ──────────────────────────────────────────── --}}
-    <flux:modal wire:model="showCreateModal" name="admin-create-alias" class="max-w-lg">
+    <flux:modal wire:model="showCreateModal" name="admin-create-alias" class="max-w-xl">
         <div class="space-y-5 p-6">
             @if ($createForUserId)
                 @php $targetUser = \App\Models\User::find($createForUserId) @endphp
@@ -237,6 +240,20 @@
                     <flux:button variant="primary" type="submit">{{ __('Create') }}</flux:button>
                 </div>
             </form>
+        </div>
+    </flux:modal>
+
+    {{-- ── Confirm: Delete user (Super Admin only) ────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmDeleteUser" name="confirm-delete-user" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Delete user permanently?') }}</flux:heading>
+            <flux:callout variant="warning" icon="exclamation-triangle" class="text-xs">
+                <flux:callout.text>{{ __('This will permanently erase the user account, all their aliases, emails, and attachments. This action cannot be undone.') }}</flux:callout.text>
+            </flux:callout>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmDeleteUser', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="danger" wire:click="forceDeleteUser">{{ __('Delete permanently') }}</flux:button>
+            </div>
         </div>
     </flux:modal>
 

@@ -5,9 +5,9 @@
             icon="bell"
             variant="ghost"
             size="sm"
-            :label="__('Notifications')"
             class="relative w-full justify-start gap-2"
         >
+            {{ __('Notifications') }}
             @if ($this->unreadCount > 0)
                 <span class="absolute left-6 top-0.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white leading-none">
                     {{ $this->unreadCount > 9 ? '9+' : $this->unreadCount }}

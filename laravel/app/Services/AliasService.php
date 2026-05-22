@@ -25,8 +25,11 @@ class AliasService
         ?string $localPart = null,
         ?string $duration = null,
         ?string $label = null,
+        bool $byAdmin = false,
     ): Alias {
-        $this->enforceRateLimit($user);
+        if (! $byAdmin) {
+            $this->enforceRateLimit($user);
+        }
         $this->ensureUserCanCreateAlias($user);
 
         $localPart = $localPart ? $this->normalizeLocalPart($localPart) : $this->generateUniqueLocalPart();
@@ -57,9 +60,11 @@ class AliasService
             'expires_at' => $expiresAt,
         ]);
 
-        $this->auditLogger->log(AuditEvent::AliasCreated, $alias, [
-            'address' => $address,
-            'type'    => $type->value,
+        $event = $byAdmin ? AuditEvent::AdminAliasCreated : AuditEvent::AliasCreated;
+        $this->auditLogger->log($event, $alias, [
+            'address'  => $address,
+            'type'     => $type->value,
+            'for_user' => $byAdmin ? $user->email : null,
         ]);
 
         return $alias;
@@ -155,8 +160,16 @@ class AliasService
 
     private function ensureUserCanCreateAlias(User $user): void
     {
-        $count = Alias::where('user_id', $user->id)->count();
-        $max   = config('emailalias.max_aliases_per_user', 20);
+        // Count only active (non-expired) aliases.
+        // Expired aliases pending the cleanup job must not block new creations.
+        $count = Alias::where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>', now());
+            })
+            ->count();
+
+        $max = config('emailalias.max_aliases_per_user', 20);
 
         if ($count >= $max) {
             throw ValidationException::withMessages([

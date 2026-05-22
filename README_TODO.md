@@ -230,38 +230,30 @@
 
 # Fix bugs
 
-- [ ] Quand un admin créer une boite mail pour un user, dans les logs c'est l'utilisateur lui même qui créer le mail et pas l'admin
-- [ ] Quand un super-admin modifie les settings on ne voit pas ce qu'il a changé. Bien entendu il faut masquer les valeurs secrètes.
-- [ ] Les limites de création de boite mail considèrent également les soft-deleted, donc ça bloque même si on supprime
-- [ ] Le refresh temp réel de la boite mail ne fonctionne pas.
-    - [ ] Il faudrait également ajouter un bouton "refresh" manuel et avoir un timer pour le refresh automatique éventuellement.
-- [ ] Filtrage des resources mails dans le service HtmlSanitizer.php, si on ne met pas la ligne `$config->set('URI.DisableResources', true);` on a l'erreur suivante, mais si on la met les images ne chargent plus jamais (même en les activant)
-```
-vendor\ezyang\htmlpurifier\library\HTMLPurifier\URIScheme\data.php:90
-
-tempnam(): file created in the system's temporary directory 
-```
-- [ ] Quand les alias Permanent sont désactivés dans la config par un super-admin, il faut masquer l'option (ou la désactiver clairement avec une tooltip) pour les utilisateurs qui créent leur boite mail
-- [ ] Il faut pouvoir désactiver les mail custom comme les mails permanent
-- [ ] Les webhooks des emails ne sont pas envoyés (peut-être un problème SQLite ? `(PDOException(code: HY000): SQLSTATE[HY000]: General error: 1 no such function: to_tsvector at F:/Projets Perso/Email-Alias/laravel/vendor/laravel/framework/src/Illuminate/Database/Connection.php:581)` mais pas sûr)
-- [ ] Il n'y a aucune option pour delete des mails reçu
-- [ ] La doc API n'est pas accessible via `/docs/api` (erreur 404)
-- [ ] Dans la partie settings de l'admin, dans "authentication", quand on clique sur "Enable SSO" il faut sauvegarder la page avant de pouvoir modifier. Il faut débloquer/bloquer les champs instantanément si on active/désactive la checkbox
-    - [ ] "SCIM bearer token " ne devrait pas être désactivé  si on utilise pas le SSO ?
-- [ ] Socialite Azure, en local j'ai cette erreur `InvalidArgumentException : vendor\laravel\framework\src\Illuminate\Support\Manager.php:108  -   Driver [azure] not supported.`
-- [ ] Socialite Keycloak / OIDC :  `Type of App\Services\Sso\OidcProvider::$scopeSeparator must not be defined (as in class Laravel\Socialite\Two\AbstractProvider) `
-- [ ] Socialite SAML : `Driver [saml] not supported. ` --> Il faut installer un package ? 
-- [ ] Super-admin config catégorie "Email" : il faut mieux indiquer pour les mailbox size & user storage la dépendance entre les deux. Actuellement on dirait que c'est complètement décorrellé
-- [ ] "Allow admins to read email bodies" n'a l'air de ne rien faire
-- [ ] Certaines popup sont trop petites, par exemple "Create API token" dans le profile
-    - [ ] Inviter un utilisateur à la mailbox, trop petit aussi
-    - [ ] Gestion des webhooks d'une mailbox, trop petit aussi
-- [ ] Les confirmations de delete utilisent des éléments HTML/JS natifs, il faudrait utiliser des éléments custom FluxUI pour valider le delete
-- [ ] Dans la sidebar, les notifications ont un gros bouton vide sans texte, il faudrait améliorer un peu ça
-- [ ] Dans le "audit-log-viewer", l'icone "magnifying-glass" est décalée, probablement à cause du flex sur l'élément parent.
-- [ ] Les super-admin n'ont aucun moyens de créer des tokens d'API pour l'appli elle même et pas pour un user (pour des exports vers d'autres services par exemple)
-- [ ] Toutes les tooltips doivent utiliser les tooltips FluxUI
-- [ ] Dans la config super-admin, pouvoir changer le logo de l'application (comme pour le nom), principalement pour la sidebar & page de login (app-logo.blade.php)
+- [x] Quand un admin créer une boite mail pour un user, dans les logs c'est l'utilisateur lui même qui créer le mail et pas l'admin
+- [x] Quand un super-admin modifie les settings on ne voit pas ce qu'il a changé. Bien entendu il faut masquer les valeurs secrètes.
+- [x] Les limites de création de boite mail considèrent également les soft-deleted, donc ça bloque même si on supprime
+- [x] Le refresh temp réel de la boite mail ne fonctionne pas. Bouton refresh manuel + timer ajouté. Reverb listener dispatche `email-refreshed` event.
+- [x] Filtrage des resources mails dans le service HtmlSanitizer.php — URI.DisableResources supprimé, data: retiré des schemes autorisés, blockExternalImages déplacé après purify()
+- [x] Quand les alias Permanent sont désactivés dans la config par un super-admin, il faut masquer l'option pour les utilisateurs qui créent leur boite mail
+- [x] Il faut pouvoir désactiver les mail custom comme les mails permanent — nouveau setting `alias_allow_custom`
+- [x] Les webhooks des emails ne sont pas envoyés — `to_tsvector` SQLite fix (LIKE fallback), webhook condition corrigée (URL seule suffit)
+- [x] Il n'y a aucune option pour delete des mails reçu — bouton trash existait mais caché (missing `group` class sur la row)
+- [ ] La doc API n'est pas accessible via `/docs/api` (erreur 404) — Scramble installé et configuré mais vérifier que les routes sont bien enregistrées
+- [x] Dans la partie settings de l'admin, dans "authentication", quand on clique sur "Enable SSO" il faut débloquer/bloquer les champs instantanément — `wire:model.live` ajouté
+- [x] "SCIM bearer token" ne devrait pas être désactivé si on n'utilise pas le SSO — déjà indépendant dans le template
+- [x] Socialite Azure, `Driver [azure] not supported` — AzureProvider créé, driver enregistré
+- [x] Socialite Keycloak / OIDC : `$scopeSeparator must not be defined` — type hint retiré
+- [ ] Socialite SAML : `Driver [saml] not supported` — nécessite `composer require aacotroneo/laravel-saml2` (NTH)
+- [x] Super-admin config "Email" : dépendance mailbox size & user storage — callout informatif ajouté, descriptions améliorées
+- [ ] "Allow admins to read email bodies" n'a l'air de ne rien faire — la policy fonctionne via InboundEmailPolicy mais il faut une UI admin pour naviguer les mailboxes des autres users
+- [x] Certaines popup sont trop petites — Create API token (max-w-2xl), webhook (max-w-2xl), share (max-w-xl), admin create alias (max-w-xl)
+- [x] Les confirmations de delete utilisent des éléments HTML/JS natifs — remplacés par des flux:modal de confirmation partout
+- [x] Dans la sidebar, les notifications ont un gros bouton vide sans texte — texte mis dans le slot du bouton
+- [x] Dans le "audit-log-viewer", l'icone "magnifying-glass" est décalée — `items-end` ajouté sur le flex container
+- [ ] Les super-admin n'ont aucun moyens de créer des tokens d'API pour l'appli elle même (NTH)
+- [x] Toutes les tooltips doivent utiliser les tooltips FluxUI — tous les `title=""` remplacés par `flux:tooltip`
+- [ ] Dans la config super-admin, pouvoir changer le logo de l'application (NTH — nécessite upload de fichier)
 
 - [ ] Il faudrait créer un script interactif qui remplisse les `.env` des applications en fonction de ce qui est activé/désactivé ?
 

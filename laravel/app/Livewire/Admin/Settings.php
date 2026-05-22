@@ -50,6 +50,7 @@ class Settings extends Component
     // ── Aliases ───────────────────────────────────────────────────────────────────
     public int    $alias_max_per_user     = 20;
     public bool   $alias_allow_permanent  = true;
+    public bool   $alias_allow_custom     = true;
     public string $alias_default_type     = 'session';
 
     // ── Email (displayed in MB in the UI, stored in bytes) ────────────────────────
@@ -97,6 +98,7 @@ class Settings extends Component
 
         $this->alias_max_per_user    = (int) $settings->get('alias_max_per_user', 20);
         $this->alias_allow_permanent = (bool) $settings->get('alias_allow_permanent', true);
+        $this->alias_allow_custom    = (bool) $settings->get('alias_allow_custom', true);
         $this->alias_default_type    = (string) $settings->get('alias_default_type', 'session');
 
         $this->alias_max_email_size_mb      = (int) round($settings->get('alias_max_email_size_bytes', 10485760) / 1024 / 1024);
@@ -131,6 +133,7 @@ class Settings extends Component
             $this->alias_default_type = 'session';
         }
     }
+
 
     // ── Actions ───────────────────────────────────────────────────────────────────
 
@@ -195,6 +198,7 @@ class Settings extends Component
             'two_factor_required'              => $this->two_factor_required,
             'alias_max_per_user'               => $this->alias_max_per_user,
             'alias_allow_permanent'            => $this->alias_allow_permanent,
+            'alias_allow_custom'               => $this->alias_allow_custom,
             'alias_default_type'               => $this->alias_default_type,
             'alias_max_email_size_bytes'       => $this->alias_max_email_size_mb * 1024 * 1024,
             'alias_max_attachment_size_bytes'  => $this->alias_max_attachment_size_mb * 1024 * 1024,
@@ -222,10 +226,27 @@ class Settings extends Component
             $this->scim_bearer_token = '';
         }
 
+        // Build a diff of what changed (hide secret values).
+        $secretKeys = ['azure_client_secret', 'oidc_client_secret', 'scim_bearer_token'];
+        $previous   = $settings->all();
+        $changed    = [];
+
+        foreach ($data as $key => $newValue) {
+            $oldValue = $previous[$key] ?? null;
+            $normalized = fn ($v) => is_bool($v) ? (int) $v : $v;
+
+            if ($normalized($oldValue) !== $normalized($newValue)) {
+                $changed[$key] = in_array($key, $secretKeys, true)
+                    ? '[secret changed]'
+                    : ['from' => $oldValue, 'to' => $newValue];
+            }
+        }
+
         $settings->fill($data);
 
         $auditLogger->log(AuditEvent::SettingsSaved, null, [
-            'actor' => Auth::user()->email,
+            'actor'   => Auth::user()->email,
+            'changed' => $changed ?: 'no changes',
         ]);
 
         Flux::toast(variant: 'success', text: __('Settings saved.'));

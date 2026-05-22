@@ -24,7 +24,9 @@ class OidcProvider extends AbstractProvider
     /** @var string[] */
     protected $scopes = ['openid', 'profile', 'email'];
 
-    protected string $scopeSeparator = ' ';
+    // No type hint — AbstractProvider declares it without one; PHP 8 rejects
+    // narrowing a property type in a subclass.
+    protected $scopeSeparator = ' ';
 
     // ── Socialite AbstractProvider contract ───────────────────────────────────────
 
@@ -73,13 +75,21 @@ class OidcProvider extends AbstractProvider
      *
      * @throws \RuntimeException if the issuer URL is not configured or the key is absent.
      */
+    /**
+     * Override in subclasses to change the issuer URL (e.g. AzureProvider).
+     */
+    protected function getIssuerUrl(): string
+    {
+        return rtrim((string) config('emailalias.oidc_issuer_url', ''), '/');
+    }
+
     private function discover(string $key): string
     {
-        $issuer = rtrim((string) config('emailalias.oidc_issuer_url', ''), '/');
+        $issuer = $this->getIssuerUrl();
 
         if (empty($issuer)) {
             throw new \RuntimeException(
-                'OIDC provider is enabled but oidc_issuer_url is not configured. '
+                'OIDC provider is enabled but the issuer URL is not configured. '
                 . 'Set it in Admin → Settings → Authentication.'
             );
         }

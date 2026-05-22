@@ -66,15 +66,16 @@
                         {{-- Address --}}
                         <div class="mb-1 flex items-center gap-2">
                             <flux:text class="truncate font-mono text-sm font-semibold">{{ $alias->address }}</flux:text>
-                            <button
-                                type="button"
-                                x-data
-                                x-on:click="navigator.clipboard.writeText('{{ $alias->address }}'); $dispatch('copied')"
-                                class="shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                                title="{{ __('Copy address') }}"
-                            >
-                                <flux:icon name="clipboard" class="size-4" />
-                            </button>
+                            <flux:tooltip content="{{ __('Copy address') }}">
+                                <button
+                                    type="button"
+                                    x-data
+                                    x-on:click="navigator.clipboard.writeText('{{ $alias->address }}'); $dispatch('copied')"
+                                    class="shrink-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                >
+                                    <flux:icon name="clipboard" class="size-4" />
+                                </button>
+                            </flux:tooltip>
                         </div>
 
                         {{-- Label --}}
@@ -105,12 +106,11 @@
                                 "
                             >
                                 <flux:icon name="clock" class="size-3 text-amber-500" />
-                                <span
-                                    class="text-amber-600 dark:text-amber-400"
-                                    title="{{ $alias->expires_at->isoFormat('LLL') }}"
-                                >
-                                    {{ __('Expires in') }} <span data-countdown>{{ $alias->expiresInHuman() }}</span>
-                                </span>
+                                <flux:tooltip content="{{ $alias->expires_at->isoFormat('LLL') }}">
+                                    <span class="text-amber-600 dark:text-amber-400">
+                                        {{ __('Expires in') }} <span data-countdown>{{ $alias->expiresInHuman() }}</span>
+                                    </span>
+                                </flux:tooltip>
 
                                 {{-- Extend dropdown — owner only --}}
                                 @if ($isOwner && $alias->type === \App\Enums\AliasType::Duration)
@@ -143,33 +143,36 @@
 
                             @if ($isOwner)
                                 {{-- Share --}}
-                                <flux:button
-                                    size="sm"
-                                    variant="ghost"
-                                    icon="user-plus"
-                                    wire:click="openShareModal('{{ $alias->id }}')"
-                                    title="{{ __('Share this alias') }}"
-                                />
+                                <flux:tooltip content="{{ __('Share this alias') }}">
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="user-plus"
+                                        wire:click="openShareModal('{{ $alias->id }}')"
+                                    />
+                                </flux:tooltip>
 
                                 {{-- Webhook --}}
-                                <flux:button
-                                    size="sm"
-                                    variant="ghost"
-                                    icon="bolt"
-                                    wire:click="openWebhookModal('{{ $alias->id }}')"
-                                    title="{{ __('Configure webhook') }}"
-                                    class="{{ $alias->webhook_url ? 'text-green-600' : '' }}"
-                                />
+                                <flux:tooltip content="{{ __('Configure webhook') }}">
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="bolt"
+                                        wire:click="openWebhookModal('{{ $alias->id }}')"
+                                        class="{{ $alias->webhook_url ? 'text-green-600' : '' }}"
+                                    />
+                                </flux:tooltip>
 
                                 {{-- Delete --}}
-                                <flux:button
-                                    size="sm"
-                                    variant="ghost"
-                                    icon="trash"
-                                    wire:click="deleteAlias('{{ $alias->id }}')"
-                                    wire:confirm="{{ __('Delete this alias and all its emails?') }}"
-                                    class="text-red-500 hover:text-red-600"
-                                />
+                                <flux:tooltip content="{{ __('Delete alias') }}">
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="trash"
+                                        wire:click="requestDeleteAlias('{{ $alias->id }}')"
+                                        class="text-red-500 hover:text-red-600"
+                                    />
+                                </flux:tooltip>
                             @endif
                         </div>
                     </div>
@@ -180,7 +183,7 @@
     </div>
 
     {{-- ── Create Alias Modal ──────────────────────────────────────────────────── --}}
-    <flux:modal wire:model="showCreateModal" name="create-alias" class="max-w-lg">
+    <flux:modal wire:model="showCreateModal" name="create-alias" class="max-w-xl">
         <div class="space-y-6 p-6">
             <flux:heading size="lg">{{ __('Create new alias') }}</flux:heading>
 
@@ -212,28 +215,30 @@
                     </flux:select>
                 @endif
 
-                {{-- Address mode --}}
-                <flux:field>
-                    <flux:label>{{ __('Address format') }}</flux:label>
-                    <div class="mt-1 flex gap-2">
-                        <flux:button
-                            type="button"
-                            wire:click="$set('aliasMode', 'random')"
-                            :variant="$aliasMode === 'random' ? 'primary' : 'filled'"
-                            class="flex-1"
-                        >
-                            {{ __('Random') }}
-                        </flux:button>
-                        <flux:button
-                            type="button"
-                            wire:click="$set('aliasMode', 'custom')"
-                            :variant="$aliasMode === 'custom' ? 'primary' : 'filled'"
-                            class="flex-1"
-                        >
-                            {{ __('Custom') }}
-                        </flux:button>
-                    </div>
-                </flux:field>
+                {{-- Address mode — Custom option hidden when disabled by admin --}}
+                @if ($this->allowCustomAddresses)
+                    <flux:field>
+                        <flux:label>{{ __('Address format') }}</flux:label>
+                        <div class="mt-1 flex gap-2">
+                            <flux:button
+                                type="button"
+                                wire:click="$set('aliasMode', 'random')"
+                                :variant="$aliasMode === 'random' ? 'primary' : 'filled'"
+                                class="flex-1"
+                            >
+                                {{ __('Random') }}
+                            </flux:button>
+                            <flux:button
+                                type="button"
+                                wire:click="$set('aliasMode', 'custom')"
+                                :variant="$aliasMode === 'custom' ? 'primary' : 'filled'"
+                                class="flex-1"
+                            >
+                                {{ __('Custom') }}
+                            </flux:button>
+                        </div>
+                    </flux:field>
+                @endif
 
                 @if ($aliasMode === 'custom')
                     <div>
@@ -281,7 +286,7 @@
     </flux:modal>
 
     {{-- ── Webhook Modal ──────────────────────────────────────────────────────── --}}
-    <flux:modal wire:model="showWebhookModal" name="webhook-alias" class="max-w-md">
+    <flux:modal wire:model="showWebhookModal" name="webhook-alias" class="max-w-2xl">
         <div class="space-y-5 p-6">
             <div>
                 <flux:heading size="lg">{{ __('Webhook') }}</flux:heading>
@@ -312,25 +317,26 @@
                                 {{ $this->webhookAlias->webhook_secret }}
                             </code>
                             {{-- Copy --}}
-                            <button
-                                type="button"
-                                x-data
-                                x-on:click="navigator.clipboard.writeText('{{ $this->webhookAlias->webhook_secret }}')"
-                                class="shrink-0 text-zinc-400 hover:text-zinc-600"
-                                title="{{ __('Copy') }}"
-                            >
-                                <flux:icon name="clipboard" class="size-4" />
-                            </button>
-                            {{-- Rotate (explicit, confirmed) --}}
-                            <flux:button
-                                size="xs"
-                                variant="ghost"
-                                icon="arrow-path"
-                                wire:click="rotateWebhookSecret"
-                                wire:confirm="{{ __('Rotate the webhook secret? Your receiver will reject all deliveries until you update it with the new secret.') }}"
-                                class="shrink-0 text-amber-500 hover:text-amber-600"
-                                title="{{ __('Rotate secret') }}"
-                            />
+                            <flux:tooltip content="{{ __('Copy') }}">
+                                <button
+                                    type="button"
+                                    x-data
+                                    x-on:click="navigator.clipboard.writeText('{{ $this->webhookAlias->webhook_secret }}')"
+                                    class="shrink-0 text-zinc-400 hover:text-zinc-600"
+                                >
+                                    <flux:icon name="clipboard" class="size-4" />
+                                </button>
+                            </flux:tooltip>
+                            {{-- Rotate (explicit, confirmed via FluxUI modal) --}}
+                            <flux:tooltip content="{{ __('Rotate secret') }}">
+                                <flux:button
+                                    size="xs"
+                                    variant="ghost"
+                                    icon="arrow-path"
+                                    wire:click="requestRotateSecret"
+                                    class="shrink-0 text-amber-500 hover:text-amber-600"
+                                />
+                            </flux:tooltip>
                         </div>
                         <flux:description>{{ __('Verify the X-Webhook-Signature header (HMAC-SHA256) to authenticate deliveries.') }}</flux:description>
                     </flux:field>
@@ -382,7 +388,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
     </flux:modal>
 
     {{-- ── Share Modal ─────────────────────────────────────────────────────────── --}}
-    <flux:modal wire:model="showShareModal" name="share-alias" class="max-w-md">
+    <flux:modal wire:model="showShareModal" name="share-alias" class="max-w-xl">
         <div class="space-y-5 p-6">
             <div>
                 <flux:heading size="lg">{{ __('Share alias') }}</flux:heading>
@@ -418,14 +424,15 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
                                     <p class="text-sm font-medium">{{ $share->user->name ?? '?' }}</p>
                                     <p class="text-xs text-zinc-500">{{ $share->user->email ?? '' }}</p>
                                 </div>
-                                <flux:button
-                                    size="xs"
-                                    variant="ghost"
-                                    icon="x-mark"
-                                    wire:click="removeShare('{{ $share->id }}')"
-                                    wire:confirm="{{ __('Remove access for this user?') }}"
-                                    class="text-zinc-400 hover:text-red-500"
-                                />
+                                <flux:tooltip content="{{ __('Remove access') }}">
+                                    <flux:button
+                                        size="xs"
+                                        variant="ghost"
+                                        icon="x-mark"
+                                        wire:click="requestRemoveShare('{{ $share->id }}')"
+                                        class="text-zinc-400 hover:text-red-500"
+                                    />
+                                </flux:tooltip>
                             </li>
                         @endforeach
                     </ul>
@@ -442,6 +449,48 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
 
             <div class="flex justify-end">
                 <flux:button wire:click="$set('showShareModal', false)">{{ __('Done') }}</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- ── Confirm: Delete alias ───────────────────────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmDeleteAlias" name="confirm-delete-alias" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Delete alias?') }}</flux:heading>
+            <flux:text class="text-zinc-600 dark:text-zinc-400">
+                {{ __('This will permanently delete the alias and all its emails. This action cannot be undone.') }}
+            </flux:text>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmDeleteAlias', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="danger" wire:click="deleteAlias">{{ __('Delete') }}</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- ── Confirm: Remove share ───────────────────────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmRemoveShare" name="confirm-remove-share" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Remove access?') }}</flux:heading>
+            <flux:text class="text-zinc-600 dark:text-zinc-400">
+                {{ __('This user will no longer be able to read emails in this mailbox.') }}
+            </flux:text>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmRemoveShare', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="danger" wire:click="removeShare">{{ __('Remove') }}</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- ── Confirm: Rotate webhook secret ─────────────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmRotateSecret" name="confirm-rotate-secret" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Rotate webhook secret?') }}</flux:heading>
+            <flux:text class="text-zinc-600 dark:text-zinc-400">
+                {{ __('Your receiver will reject all deliveries until you update it with the new secret.') }}
+            </flux:text>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmRotateSecret', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="danger" wire:click="rotateWebhookSecret">{{ __('Rotate') }}</flux:button>
             </div>
         </div>
     </flux:modal>

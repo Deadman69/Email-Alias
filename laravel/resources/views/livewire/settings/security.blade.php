@@ -205,20 +205,22 @@
                                     <flux:input disabled value="" class="flex-1 font-mono text-sm" />
                                 @else
                                     <flux:input type="text" :value="$manualSetupKey" :readonly="true" class="flex-1 font-mono text-sm" />
-                                    <flux:button
-                                        variant="ghost"
-                                        icon="document-duplicate"
-                                        x-show="!copied"
-                                        @click="copy()"
-                                        title="{{ __('Copy') }}"
-                                    />
-                                    <flux:button
-                                        variant="ghost"
-                                        icon="check"
-                                        x-show="copied"
-                                        class="text-green-500"
-                                        title="{{ __('Copied') }}"
-                                    />
+                                    <flux:tooltip content="{{ __('Copy') }}">
+                                        <flux:button
+                                            variant="ghost"
+                                            icon="document-duplicate"
+                                            x-show="!copied"
+                                            @click="copy()"
+                                        />
+                                    </flux:tooltip>
+                                    <flux:tooltip content="{{ __('Copied!') }}">
+                                        <flux:button
+                                            variant="ghost"
+                                            icon="check"
+                                            x-show="copied"
+                                            class="text-green-500"
+                                        />
+                                    </flux:tooltip>
                                 @endempty
                             </div>
                         </div>

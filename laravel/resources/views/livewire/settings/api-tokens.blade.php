@@ -13,15 +13,16 @@
                     <flux:callout.text>
                         <div class="mt-2 flex items-center gap-2">
                             <code class="flex-1 break-all rounded bg-amber-100 px-2 py-1 font-mono text-xs dark:bg-amber-950">{{ $newPlainToken }}</code>
-                            <button
-                                type="button"
-                                x-data
-                                x-on:click="navigator.clipboard.writeText('{{ $newPlainToken }}')"
-                                class="shrink-0 text-amber-700 hover:text-amber-900"
-                                title="{{ __('Copy') }}"
-                            >
-                                <flux:icon name="clipboard" class="size-4" />
-                            </button>
+                            <flux:tooltip content="{{ __('Copy') }}">
+                                <button
+                                    type="button"
+                                    x-data
+                                    x-on:click="navigator.clipboard.writeText('{{ $newPlainToken }}')"
+                                    class="shrink-0 text-amber-700 hover:text-amber-900"
+                                >
+                                    <flux:icon name="clipboard" class="size-4" />
+                                </button>
+                            </flux:tooltip>
                         </div>
                     </flux:callout.text>
                 </flux:callout>
@@ -60,14 +61,15 @@
                                 @endif
                             </div>
                         </div>
-                        <flux:button
-                            size="sm"
-                            variant="ghost"
-                            icon="trash"
-                            wire:click="revokeToken({{ $token->id }})"
-                            wire:confirm="{{ __('Revoke this token? Any app using it will lose access immediately.') }}"
-                            class="ml-4 shrink-0 text-red-500 hover:text-red-600"
-                        />
+                        <flux:tooltip content="{{ __('Revoke token') }}">
+                            <flux:button
+                                size="sm"
+                                variant="ghost"
+                                icon="trash"
+                                wire:click="requestRevokeToken({{ $token->id }})"
+                                class="ml-4 shrink-0 text-red-500 hover:text-red-600"
+                            />
+                        </flux:tooltip>
                     </div>
                 @empty
                     <div class="rounded-xl border border-dashed border-zinc-300 py-10 text-center dark:border-zinc-600">
@@ -92,7 +94,7 @@
     </section>
 
     {{-- ── Create Token Modal ──────────────────────────────────────────────────── --}}
-    <flux:modal wire:model="showCreateModal" name="create-token" class="max-w-lg">
+    <flux:modal wire:model="showCreateModal" name="create-token" class="max-w-2xl">
         <div class="space-y-5 p-6">
             <flux:heading size="lg">{{ __('Create API token') }}</flux:heading>
 
@@ -167,6 +169,20 @@
                     <flux:button variant="primary" type="submit">{{ __('Create') }}</flux:button>
                 </div>
             </form>
+        </div>
+    </flux:modal>
+
+    {{-- ── Confirm: Revoke token ──────────────────────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmRevokeToken" name="confirm-revoke-token" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Revoke token?') }}</flux:heading>
+            <flux:text class="text-zinc-600 dark:text-zinc-400">
+                {{ __('Any application using this token will lose access immediately. This cannot be undone.') }}
+            </flux:text>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmRevokeToken', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="danger" wire:click="revokeToken">{{ __('Revoke') }}</flux:button>
+            </div>
         </div>
     </flux:modal>
 </div>

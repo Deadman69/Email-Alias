@@ -13,6 +13,16 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class Sessions extends Component
 {
+    // ── Revoke single session confirmation ────────────────────────────────────
+
+    public bool $showConfirmRevokeSession = false;
+
+    public string $pendingRevokeSessionId = '';
+
+    // ── Revoke all sessions confirmation ─────────────────────────────────────
+
+    public bool $showConfirmRevokeAll = false;
+
     #[Computed]
     public function sessions(): \Illuminate\Support\Collection
     {
@@ -33,11 +43,21 @@ class Sessions extends Component
             });
     }
 
-    public function revokeSession(string $sessionId): void
+    public function requestRevokeSession(string $sessionId): void
     {
-        // Never allow revoking the current session from this action
-        // (use logout for that).
-        if ($sessionId === session()->getId()) {
+        $this->pendingRevokeSessionId = $sessionId;
+        $this->showConfirmRevokeSession = true;
+    }
+
+    public function revokeSession(): void
+    {
+        $sessionId = $this->pendingRevokeSessionId;
+
+        // Never allow revoking the current session from this action (use logout for that).
+        if (! $sessionId || $sessionId === session()->getId()) {
+            $this->pendingRevokeSessionId = '';
+            $this->showConfirmRevokeSession = false;
+
             return;
         }
 
@@ -46,8 +66,15 @@ class Sessions extends Component
             ->where('user_id', Auth::id()) // Security: only own sessions
             ->delete();
 
+        $this->pendingRevokeSessionId = '';
+        $this->showConfirmRevokeSession = false;
         unset($this->sessions);
         \Flux\Flux::toast(text: __('Session revoked.'));
+    }
+
+    public function requestRevokeOtherSessions(): void
+    {
+        $this->showConfirmRevokeAll = true;
     }
 
     public function revokeOtherSessions(): void
@@ -57,6 +84,7 @@ class Sessions extends Component
             ->where('id', '!=', session()->getId())
             ->delete();
 
+        $this->showConfirmRevokeAll = false;
         unset($this->sessions);
         \Flux\Flux::toast(variant: 'success', text: __('All other sessions have been revoked.'));
     }

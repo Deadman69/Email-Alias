@@ -24,6 +24,12 @@ class Dashboard extends Component
 
     public string $userFilter = '';
 
+    // ── Delete alias confirmation ─────────────────────────────────────────────────
+
+    public bool $showConfirmDeleteAlias = false;
+
+    public string $pendingDeleteAliasId = '';
+
     #[Computed]
     public function stats(): array
     {
@@ -53,12 +59,28 @@ class Dashboard extends Component
     }
 
     /**
-     * Delete an alias as admin.
+     * Open the FluxUI confirmation modal before deleting an alias as admin.
      */
-    public function deleteAlias(string $aliasId, AliasService $aliasService): void
+    public function requestDeleteAlias(string $aliasId): void
     {
-        $alias = Alias::findOrFail($aliasId);
+        $this->pendingDeleteAliasId = $aliasId;
+        $this->showConfirmDeleteAlias = true;
+    }
+
+    /**
+     * Delete an alias as admin after confirmation.
+     */
+    public function deleteAlias(AliasService $aliasService): void
+    {
+        if (! $this->pendingDeleteAliasId) {
+            return;
+        }
+
+        $alias = Alias::findOrFail($this->pendingDeleteAliasId);
         $aliasService->delete($alias, byAdmin: true, actingUser: Auth::user());
+
+        $this->pendingDeleteAliasId = '';
+        $this->showConfirmDeleteAlias = false;
         unset($this->aliases, $this->stats);
         Flux::toast(variant: 'success', text: __('Alias deleted.'));
     }

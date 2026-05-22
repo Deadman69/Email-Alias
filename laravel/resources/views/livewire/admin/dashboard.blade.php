@@ -67,23 +67,24 @@
                         </td>
                         <td class="px-4 py-3 text-xs text-zinc-500">
                             @if ($alias->expires_at)
-                                <span title="{{ $alias->expires_at->isoFormat('LLL') }}">
-                                    {{ $alias->expires_at->diffForHumans() }}
-                                </span>
+                                <flux:tooltip content="{{ $alias->expires_at->isoFormat('LLL') }}">
+                                    <span>{{ $alias->expires_at->diffForHumans() }}</span>
+                                </flux:tooltip>
                             @else
                                 —
                             @endif
                         </td>
                         <td class="px-4 py-3 text-zinc-600">{{ $alias->inboundEmails()->count() }}</td>
                         <td class="px-4 py-3">
-                            <flux:button
-                                size="xs"
-                                variant="ghost"
-                                icon="trash"
-                                wire:click="deleteAlias('{{ $alias->id }}')"
-                                wire:confirm="{{ __('Delete this alias and all its emails?') }}"
-                                class="text-red-400 hover:text-red-600"
-                            />
+                            <flux:tooltip content="{{ __('Delete alias') }}">
+                                <flux:button
+                                    size="xs"
+                                    variant="ghost"
+                                    icon="trash"
+                                    wire:click="requestDeleteAlias('{{ $alias->id }}')"
+                                    class="text-red-400 hover:text-red-600"
+                                />
+                            </flux:tooltip>
                         </td>
                     </tr>
                 @empty
@@ -96,4 +97,18 @@
     </div>
 
     <div>{{ $this->aliases->links() }}</div>
+
+    {{-- ── Confirm: Delete alias (admin) ─────────────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmDeleteAlias" name="admin-confirm-delete-alias" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Delete alias?') }}</flux:heading>
+            <flux:text class="text-zinc-600 dark:text-zinc-400">
+                {{ __('This will permanently delete the alias and all its emails. This action cannot be undone.') }}
+            </flux:text>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmDeleteAlias', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="danger" wire:click="deleteAlias">{{ __('Delete') }}</flux:button>
+            </div>
+        </div>
+    </flux:modal>
 </div>

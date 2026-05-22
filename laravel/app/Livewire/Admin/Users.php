@@ -30,6 +30,13 @@ class Users extends Component
 
     public string $search = '';
 
+    // ── Delete user confirmation ──────────────────────────────────────────────────
+
+    public bool $showConfirmDeleteUser = false;
+
+    #[Locked]
+    public string $pendingDeleteUserId = '';
+
     // ── Create alias for user ─────────────────────────────────────────────────────
 
     public bool $showCreateModal = false;
@@ -150,21 +157,40 @@ class Users extends Component
     // ── GDPR force-delete user ────────────────────────────────────────────────────
 
     /**
+     * Open the FluxUI confirmation modal before permanently deleting a user.
+     */
+    public function requestForceDeleteUser(string $userId): void
+    {
+        $this->pendingDeleteUserId = $userId;
+        $this->showConfirmDeleteUser = true;
+    }
+
+    /**
      * Permanently erase all data belonging to a user (GDPR right to erasure).
      *
      * Only Super Admins can call this. The user record itself is anonymised rather
      * than hard-deleted so that FK references in audit_logs remain intact.
      */
-    public function forceDeleteUser(string $userId, AuditLogger $auditLogger): void
+    public function forceDeleteUser(AuditLogger $auditLogger): void
     {
+        if (! $this->pendingDeleteUserId) {
+            return;
+        }
+
+        $userId = $this->pendingDeleteUserId;
+
         // ── Authorization ─────────────────────────────────────────────────────
         if (! Auth::user()->isSuperAdmin()) {
+            $this->pendingDeleteUserId = '';
+            $this->showConfirmDeleteUser = false;
             Flux::toast(variant: 'danger', text: __('Unauthorized.'));
 
             return;
         }
 
         if (Auth::id() === $userId) {
+            $this->pendingDeleteUserId = '';
+            $this->showConfirmDeleteUser = false;
             Flux::toast(variant: 'danger', text: __('You cannot delete your own account.'));
 
             return;
@@ -173,6 +199,8 @@ class Users extends Component
         $target = User::findOrFail($userId);
 
         if ($target->role === Role::SuperAdmin) {
+            $this->pendingDeleteUserId = '';
+            $this->showConfirmDeleteUser = false;
             Flux::toast(variant: 'danger', text: __('Cannot delete a Super Admin.'));
 
             return;
@@ -226,6 +254,8 @@ class Users extends Component
             'is_active'   => false,
         ])->saveQuietly();
 
+        $this->pendingDeleteUserId = '';
+        $this->showConfirmDeleteUser = false;
         unset($this->users);
 
         Flux::toast(variant: 'success', text: __('User data permanently deleted.'));
@@ -259,6 +289,7 @@ class Users extends Component
                 localPart: $localPart,
                 duration:  $type === AliasType::Duration ? $this->createDuration : null,
                 label:     $this->createLabel ?: null,
+                byAdmin:   true,
             );
 
             $this->showCreateModal = false;

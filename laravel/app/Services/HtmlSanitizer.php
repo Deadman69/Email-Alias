@@ -66,21 +66,28 @@ class HtmlSanitizer
             'list-style', 'list-style-type',
         ]);
 
-        // Allow data: URIs for inline base64 images
+        // External http/https URIs are allowed — we block external images ourselves
+        // via blockExternalImages() AFTER purification (running it before would feed
+        // data: placeholder URIs to HTMLPurifier, triggering a tempnam() warning in
+        // PHP 8.1+ from HTMLPurifier's data: URI validator).
+        // data: URIs are intentionally excluded to avoid that validator entirely.
         $config->set('URI.AllowedSchemes', [
             'http'   => true,
             'https'  => true,
             'mailto' => true,
             'tel'    => true,
-            'data'   => true,
         ]);
 
         // Force target="_blank" on all links
         $config->set('HTML.TargetBlank', true);
-        $config->set('Cache.SerializerPath', storage_path('app/htmlpurifier'));
 
-        // TEMPORARY : Bug to fix
-        $config->set('URI.DisableResources', true);
+        // Ensure the cache directory exists to avoid HTMLPurifier falling back to
+        // the system temp dir (which triggers warnings in PHP 8.1+).
+        $cacheDir = storage_path('app/htmlpurifier');
+        if (! is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        $config->set('Cache.SerializerPath', $cacheDir);
 
         $this->purifier = new HTMLPurifier($config);
     }
@@ -100,12 +107,14 @@ class HtmlSanitizer
             return $this->fallbackSanitize($html, $blockExternalImages);
         }
 
-        // Block external images BEFORE purification to prevent bypass via CSS url()
-        if ($blockExternalImages) {
-            $html = $this->blockExternalImages($html);
-        }
-
+        // Purify first — HTMLPurifier processes only http/https URIs (data: excluded).
         $sanitized = $this->purifier->purify($html);
+
+        // Block external images AFTER purification. Running this before would send
+        // data: placeholder URIs to HTMLPurifier's data: validator (tempnam() warning).
+        if ($blockExternalImages) {
+            $sanitized = $this->blockExternalImages($sanitized);
+        }
 
         // HTMLPurifier forces target="_blank" via config above,
         // but we also want rel="noopener noreferrer" on every link

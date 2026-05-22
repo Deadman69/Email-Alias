@@ -31,8 +31,7 @@
                             <flux:button
                                 size="sm"
                                 variant="ghost"
-                                wire:click="revokeSession('{{ $session->id }}')"
-                                wire:confirm="{{ __('Revoke this session?') }}"
+                                wire:click="requestRevokeSession('{{ $session->id }}')"
                             >
                                 {{ __('Revoke') }}
                             </flux:button>
@@ -45,8 +44,7 @@
                 @if ($this->sessions->where('is_current', false)->isNotEmpty())
                     <flux:button
                         variant="danger"
-                        wire:click="revokeOtherSessions"
-                        wire:confirm="{{ __('Revoke all other sessions? You will remain logged in on this device.') }}"
+                        wire:click="requestRevokeOtherSessions"
                     >
                         {{ __('Revoke all other sessions') }}
                     </flux:button>
@@ -55,4 +53,33 @@
         @endif
 
     </x-settings.layout>
+
+    {{-- ── Confirm: Revoke single session ─────────────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmRevokeSession" name="confirm-revoke-session" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Revoke session?') }}</flux:heading>
+            <flux:text class="text-zinc-600 dark:text-zinc-400">
+                {{ __('The device using this session will be logged out immediately.') }}
+            </flux:text>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmRevokeSession', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="danger" wire:click="revokeSession">{{ __('Revoke') }}</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    {{-- ── Confirm: Revoke all other sessions ─────────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmRevokeAll" name="confirm-revoke-all-sessions" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Revoke all other sessions?') }}</flux:heading>
+            <flux:text class="text-zinc-600 dark:text-zinc-400">
+                {{ __('All other devices will be logged out. You will remain logged in on this device.') }}
+            </flux:text>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmRevokeAll', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="danger" wire:click="revokeOtherSessions">{{ __('Revoke all') }}</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
 </section>

@@ -5,8 +5,8 @@
         <flux:heading size="xl">{{ __('Audit Log') }}</flux:heading>
     </div>
 
-    {{-- Filters --}}
-    <div class="flex flex-wrap gap-3">
+    {{-- Filters — items-end aligns all inputs at their bottom edge regardless of whether they have a label --}}
+    <div class="flex flex-wrap items-end gap-3">
         <flux:input
             wire:model.live.debounce.300ms="search"
             placeholder="{{ __('Search by name or email...') }}"
@@ -49,8 +49,10 @@
             <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
                 @forelse ($this->logs as $log)
                     <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                        <td class="px-4 py-2 text-xs text-zinc-500" title="{{ $log->created_at->toDateTimeString() }}">
-                            {{ $log->created_at->diffForHumans() }}
+                        <td class="px-4 py-2 text-xs text-zinc-500">
+                            <flux:tooltip content="{{ $log->created_at->toDateTimeString() }}">
+                                <span>{{ $log->created_at->diffForHumans() }}</span>
+                            </flux:tooltip>
                         </td>
                         <td class="px-4 py-2 text-zinc-700 dark:text-zinc-300">
                             {{ $log->user?->name ?? __('System') }}

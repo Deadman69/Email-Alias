@@ -12,6 +12,7 @@ use App\Models\PersonalAccessToken;
 use App\Services\AuditLogger;
 use App\Services\HtmlSanitizer;
 use App\Services\SettingService;
+use App\Services\Sso\AzureProvider;
 use App\Services\Sso\OidcProvider;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
@@ -94,12 +95,24 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerSsoDrivers(): void
     {
+        // Generic OIDC driver — Keycloak, Okta, Auth0, Dex, etc.
         Socialite::extend('oidc', function () {
             return new OidcProvider(
-                request: $this->app['request'],
-                clientId: (string) config('emailalias.oidc_client_id', ''),
+                request:      $this->app['request'],
+                clientId:     (string) config('emailalias.oidc_client_id', ''),
                 clientSecret: (string) config('emailalias.oidc_client_secret', ''),
-                redirectUrl: route('sso.callback'),
+                redirectUrl:  route('sso.callback'),
+            );
+        });
+
+        // Azure AD / Entra ID — uses OidcProvider via Microsoft's OIDC discovery,
+        // no additional package required.
+        Socialite::extend('azure', function () {
+            return new AzureProvider(
+                request:      $this->app['request'],
+                clientId:     (string) config('services.azure.client_id', ''),
+                clientSecret: (string) config('services.azure.client_secret', ''),
+                redirectUrl:  route('sso.callback'),
             );
         });
     }

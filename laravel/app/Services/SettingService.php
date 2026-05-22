@@ -42,6 +42,7 @@ class SettingService
         'two_factor_required'              => 'emailalias.two_factor_required',
         'alias_max_per_user'               => 'emailalias.max_aliases_per_user',
         'alias_allow_permanent'            => 'emailalias.allow_permanent',
+        'alias_allow_custom'               => 'emailalias.allow_custom',
         'alias_default_type'               => 'emailalias.alias_default_type',
         'alias_max_email_size_bytes'       => 'emailalias.max_email_size_bytes',
         'alias_max_attachment_size_bytes'  => 'emailalias.max_attachment_size_bytes',
@@ -110,6 +111,7 @@ class SettingService
         // ── aliases ──────────────────────────────────────────────────────────────
         'alias_max_per_user'              => ['group' => 'aliases',  'cast' => 'int',     'default' => 20],
         'alias_allow_permanent'           => ['group' => 'aliases',  'cast' => 'bool',    'default' => true],
+        'alias_allow_custom'              => ['group' => 'aliases',  'cast' => 'bool',    'default' => true],
         'alias_default_type'              => ['group' => 'aliases',  'cast' => 'string',  'default' => 'session'],
 
         // ── email ────────────────────────────────────────────────────────────────

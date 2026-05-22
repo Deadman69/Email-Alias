@@ -29,6 +29,13 @@ class Inbox extends Component
 
     public string $search = '';
 
+    // ── Delete email confirmation ─────────────────────────────────────────────────
+
+    public bool $showConfirmDeleteEmail = false;
+
+    #[Locked]
+    public string $pendingDeleteEmailId = '';
+
     /**
      * @param  Alias  $alias  Route-model bound alias — authorization checked here.
      */
@@ -97,11 +104,25 @@ class Inbox extends Component
     }
 
     /**
-     * Permanently delete an email. Only the alias owner can delete.
+     * Open the FluxUI confirmation modal before deleting an email.
      */
-    public function deleteEmail(string $emailId, AuditLogger $auditLogger): void
+    public function requestDeleteEmail(string $emailId): void
     {
-        $email = InboundEmail::findOrFail($emailId);
+        $this->pendingDeleteEmailId = $emailId;
+        $this->showConfirmDeleteEmail = true;
+    }
+
+    /**
+     * Permanently delete an email after the user confirmed in the modal.
+     * Only the alias owner can delete.
+     */
+    public function deleteEmail(AuditLogger $auditLogger): void
+    {
+        if (! $this->pendingDeleteEmailId) {
+            return;
+        }
+
+        $email = InboundEmail::findOrFail($this->pendingDeleteEmailId);
         $this->authorize('delete', $email);
 
         $auditLogger->log(AuditEvent::EmailDeleted, $email, [
@@ -111,6 +132,8 @@ class Inbox extends Component
 
         $email->delete();
 
+        $this->pendingDeleteEmailId = '';
+        $this->showConfirmDeleteEmail = false;
         unset($this->emails, $this->unreadCount);
         Flux::toast(variant: 'success', text: __('Email deleted.'));
     }

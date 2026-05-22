@@ -129,7 +129,7 @@
 
                 <flux:field variant="inline">
                     <flux:label>{{ __('Enable SSO') }}</flux:label>
-                    <flux:switch wire:model="sso_enabled" />
+                    <flux:switch wire:model.live="sso_enabled" />
                 </flux:field>
 
                 <div @class(['space-y-4', 'opacity-40 pointer-events-none' => ! $sso_enabled])>
@@ -310,6 +310,12 @@
                     <flux:switch wire:model.live="alias_allow_permanent" />
                     <flux:description>{{ __('If disabled, users can only create session or duration aliases.') }}</flux:description>
                 </flux:field>
+
+                <flux:field variant="inline">
+                    <flux:label>{{ __('Allow custom addresses') }}</flux:label>
+                    <flux:switch wire:model="alias_allow_custom" />
+                    <flux:description>{{ __('If disabled, only randomly-generated addresses are allowed — users cannot choose their own local part.') }}</flux:description>
+                </flux:field>
             </div>
         @endif
 
@@ -333,16 +339,21 @@
                 <flux:field>
                     <flux:label>{{ __('Max mailbox size (MB)') }}</flux:label>
                     <flux:input wire:model="alias_max_mailbox_size_mb" type="number" min="0" max="102400" />
-                    <flux:description>{{ __('Maximum total storage per mailbox. 0 means unlimited.') }}</flux:description>
+                    <flux:description>{{ __('Maximum total storage per individual mailbox (alias). 0 = unlimited. Exceeding this drops the incoming email and notifies the owner.') }}</flux:description>
                     <flux:error name="alias_max_mailbox_size_mb" />
                 </flux:field>
 
                 <flux:field>
                     <flux:label>{{ __('Max user storage (MB)') }}</flux:label>
                     <flux:input wire:model="alias_max_user_storage_mb" type="number" min="0" max="1048576" />
-                    <flux:description>{{ __('Maximum total storage across all mailboxes for a single user. 0 means unlimited.') }}</flux:description>
+                    <flux:description>{{ __('Maximum total storage across ALL mailboxes owned by a single user. 0 = unlimited. Checked in addition to the per-mailbox limit — the stricter limit wins.') }}</flux:description>
                     <flux:error name="alias_max_user_storage_mb" />
                 </flux:field>
+
+                <flux:callout variant="info" icon="information-circle" class="text-xs">
+                    <flux:callout.heading>{{ __('Storage limits are additive') }}</flux:callout.heading>
+                    <flux:callout.text>{{ __('Both limits are enforced independently. An email is dropped if either the per-mailbox quota OR the per-user quota is exceeded. Set both to 0 for unlimited storage.') }}</flux:callout.text>
+                </flux:callout>
 
                 <flux:field>
                     <flux:label>{{ __('Retention period (days)') }}</flux:label>

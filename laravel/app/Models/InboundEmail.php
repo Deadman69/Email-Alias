@@ -66,7 +66,12 @@ class InboundEmail extends Model
         });
 
         // Keep search_vector in sync whenever subject, sender, or body changes.
+        // Only runs on PostgreSQL — SQLite (used in local dev/tests) does not support tsvector.
         static::saved(function (self $email): void {
+            if (DB::connection()->getDriverName() !== 'pgsql') {
+                return;
+            }
+
             if ($email->wasRecentlyCreated || $email->wasChanged(['subject', 'from_address', 'from_name', 'body_text'])) {
                 DB::statement("
                     UPDATE inbound_emails
@@ -128,6 +133,7 @@ class InboundEmail extends Model
     /**
      * Full-text search on subject, sender, and body.
      * Uses PostgreSQL tsvector + plainto_tsquery for multi-word queries.
+     * Falls back to LIKE-based search on SQLite (local dev / tests).
      */
     public function scopeSearch(Builder $query, string $term): Builder
     {
@@ -136,12 +142,25 @@ class InboundEmail extends Model
             return $query;
         }
 
-        return $query->whereRaw(
-            "search_vector @@ plainto_tsquery('simple', ?)",
-            [$term]
-        )->orderByRaw(
-            "ts_rank(search_vector, plainto_tsquery('simple', ?)) DESC",
-            [$term]
-        );
+        // PostgreSQL: use the indexed tsvector column for fast ranked search.
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            return $query->whereRaw(
+                "search_vector @@ plainto_tsquery('simple', ?)",
+                [$term]
+            )->orderByRaw(
+                "ts_rank(search_vector, plainto_tsquery('simple', ?)) DESC",
+                [$term]
+            );
+        }
+
+        // SQLite / any other driver: plain LIKE fallback (no ranking).
+        $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $term) . '%';
+
+        return $query->where(function (Builder $q) use ($like) {
+            $q->where('subject', 'like', $like)
+              ->orWhere('from_address', 'like', $like)
+              ->orWhere('from_name', 'like', $like)
+              ->orWhere('body_text', 'like', $like);
+        });
     }
 }

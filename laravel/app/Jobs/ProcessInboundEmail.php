@@ -155,7 +155,9 @@ class ProcessInboundEmail implements ShouldQueue
             // Dispatch webhook if configured on this alias.
             // The secret is encrypted before being stored in the queue payload to avoid
             // plaintext secrets at rest in the queue backend (Redis, DB, etc.).
-            if ($alias->webhook_url && $alias->webhook_secret) {
+            // Send webhook whenever a URL is configured; the secret is optional
+            // (some receivers use IP allowlisting rather than HMAC verification).
+            if ($alias->webhook_url) {
                 DeliverWebhook::dispatch(
                     webhookUrl:      $alias->webhook_url,
                     encryptedSecret: Crypt::encryptString($alias->webhook_secret),

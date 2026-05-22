@@ -63,12 +63,11 @@
                                 <flux:text class="truncate font-semibold text-zinc-900 dark:text-zinc-100">
                                     {{ $email->from_name ?: $email->from_address }}
                                 </flux:text>
-                                <flux:text
-                                    class="shrink-0 text-xs text-zinc-400"
-                                    title="{{ $email->created_at->isoFormat('LLL') }}"
-                                >
-                                    {{ $email->created_at->diffForHumans() }}
-                                </flux:text>
+                                <flux:tooltip content="{{ $email->created_at->isoFormat('LLL') }}">
+                                    <flux:text class="shrink-0 text-xs text-zinc-400">
+                                        {{ $email->created_at->diffForHumans() }}
+                                    </flux:text>
+                                </flux:tooltip>
                             </div>
                             <flux:text class="mt-0.5 truncate text-sm {{ $email->read_at ? 'text-zinc-400' : 'font-medium text-zinc-700 dark:text-zinc-300' }}">
                                 {{ $email->subject }}

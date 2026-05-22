@@ -29,6 +29,12 @@ return [
     'allow_permanent' => (bool) env('ALIAS_ALLOW_PERMANENT', true),
 
     /*
+     * Whether to allow custom local-part addresses (e.g. "my-alias@domain.com").
+     * When disabled, only randomly-generated addresses are created.
+     */
+    'allow_custom' => (bool) env('ALIAS_ALLOW_CUSTOM', true),
+
+    /*
      * Whether admins can read the body of received emails.
      */
     'admin_can_read_emails' => (bool) env('ADMIN_CAN_READ_EMAILS', false),
