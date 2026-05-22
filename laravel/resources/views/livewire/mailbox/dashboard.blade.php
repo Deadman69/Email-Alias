@@ -246,7 +246,7 @@
                             wire:model.live.debounce.500ms="customLocalPart"
                             label="{{ __('Local part') }}"
                             placeholder="my-alias"
-                            suffix="@{{ $this->domain }}"
+                            suffix="{{ '@' . $this->domain }}"
                         />
 
                         @if (!$errors->first('customLocalPart') && ! $localPartAvailable && $suggestedAlternative)

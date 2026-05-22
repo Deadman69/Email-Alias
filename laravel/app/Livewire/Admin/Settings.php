@@ -233,7 +233,9 @@ class Settings extends Component
 
         foreach ($data as $key => $newValue) {
             $oldValue = $previous[$key] ?? null;
-            $normalized = fn ($v) => is_bool($v) ? (int) $v : $v;
+            // $settings->all() returns raw DB strings; Livewire props are typed.
+            // Stringify both sides so "1" === true and "20" === 20.
+            $normalized = fn ($v) => is_bool($v) ? ($v ? '1' : '0') : (string) ($v ?? '');
 
             if ($normalized($oldValue) !== $normalized($newValue)) {
                 $changed[$key] = in_array($key, $secretKeys, true)

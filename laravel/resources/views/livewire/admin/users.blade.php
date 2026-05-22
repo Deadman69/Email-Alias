@@ -224,7 +224,7 @@
                         wire:model="createCustomLocalPart"
                         label="{{ __('Local part') }}"
                         placeholder="my-alias"
-                        suffix="@{{ $this->domain }}"
+                        suffix="{{ '@' . $this->domain }}"
                     />
                     <flux:error name="createCustomLocalPart" />
                 @else

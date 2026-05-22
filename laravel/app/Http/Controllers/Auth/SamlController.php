@@ -14,14 +14,9 @@ use Illuminate\Support\Facades\Auth;
 /**
  * SAML 2.0 Service Provider controller.
  *
- * ── Dependency ────────────────────────────────────────────────────────────────
- * This controller requires the aacotroneo/laravel-saml2 package:
- *
- *   composer require aacotroneo/laravel-saml2
- *   php artisan vendor:publish --provider="Aacotroneo\Saml2\Saml2ServiceProvider"
- *
- * After installing, replace the abort(501) stubs below with the actual
- * Aacotroneo\Saml2\Saml2Auth calls and uncomment the constructor injection.
+ * Settings are loaded at request time from the platform DB (via config('emailalias.saml_*')),
+ * which is populated by the BootstrapSettings middleware before any controller runs.
+ * This avoids the boot-time config limitation of aacotroneo/laravel-saml2.
  *
  * ── Routes ────────────────────────────────────────────────────────────────────
  * GET  /auth/saml/metadata  → SP metadata XML (share with the IdP)
@@ -31,19 +26,22 @@ use Illuminate\Support\Facades\Auth;
  */
 class SamlController extends Controller
 {
-    // Uncomment when aacotroneo/laravel-saml2 is installed:
-    // public function __construct(private readonly \Aacotroneo\Saml2\Saml2Auth $saml2Auth) {}
-
     /**
      * Serve the SP metadata XML.
      * Register this URL in the IdP as your Service Provider entity.
      */
     public function metadata(): Response
     {
-        $this->requireSamlPackage();
+        $auth     = $this->buildAuth();
+        $settings = $auth->getSettings();
+        $metadata = $settings->getSPMetadata();
 
-        // $metadata = $this->saml2Auth->getMetadata();
-        // return response($metadata, 200, ['Content-Type' => 'text/xml']);
+        $errors = $settings->validateMetadata($metadata);
+        if (! empty($errors)) {
+            abort(500, 'Invalid SP metadata: ' . implode(', ', $errors));
+        }
+
+        return response($metadata, 200, ['Content-Type' => 'text/xml']);
     }
 
     /**
@@ -51,9 +49,9 @@ class SamlController extends Controller
      */
     public function login(): RedirectResponse
     {
-        $this->requireSamlPackage();
+        $url = $this->buildAuth()->login(route('dashboard'), [], false, false, true);
 
-        // return redirect($this->saml2Auth->login(route('dashboard')));
+        return redirect()->away($url);
     }
 
     /**
@@ -61,22 +59,31 @@ class SamlController extends Controller
      */
     public function acs(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
-        $this->requireSamlPackage();
+        $auth = $this->buildAuth();
+        $auth->processResponse();
 
-        // $errors = $this->saml2Auth->acs();
-        //
-        // if (! empty($errors)) {
-        //     return redirect()->route('login')->withErrors([
-        //         'email' => __('SAML authentication failed: ') . implode(', ', $errors),
-        //     ]);
-        // }
-        //
-        // $samlUser = $this->saml2Auth->getSaml2User();
-        // $email    = $samlUser->getUserId();   // NameID — typically the email
-        // $attrs    = $samlUser->getAttributes();
-        // $name     = $attrs['displayName'][0] ?? $attrs['givenName'][0] ?? $email;
-        //
-        // return $this->loginOrCreate($email, 'saml:' . $samlUser->getNameId(), $name, $auditLogger);
+        $errors = $auth->getErrors();
+
+        if (! empty($errors)) {
+            return redirect()->route('login')->withErrors([
+                'email' => __('SAML authentication failed: ') . implode(', ', $errors),
+            ]);
+        }
+
+        if (! $auth->isAuthenticated()) {
+            return redirect()->route('login')->withErrors([
+                'email' => __('SAML authentication failed: response not authenticated.'),
+            ]);
+        }
+
+        $nameId = $auth->getNameId();                 // typically the email
+        $attrs  = $auth->getAttributes();
+        $name   = $attrs['displayName'][0]
+            ?? $attrs['http://schemas.microsoft.com/identity/claims/displayname'][0]
+            ?? $attrs['givenName'][0]
+            ?? $nameId;
+
+        return $this->loginOrCreate($nameId, 'saml:' . $nameId, (string) $name, $auditLogger);
     }
 
     /**
@@ -84,19 +91,24 @@ class SamlController extends Controller
      */
     public function sls(AuditLogger $auditLogger): RedirectResponse
     {
-        $this->requireSamlPackage();
+        $auth = $this->buildAuth();
 
-        // $this->saml2Auth->sls(config('app.url'));
-        // Auth::logout();
-        // return redirect('/');
+        $auth->processSLO(false, null, false, function () use ($auditLogger): void {
+            $auditLogger->log(AuditEvent::UserLogout, Auth::user());
+            Auth::logout();
+        });
+
+        $errors = $auth->getErrors();
+
+        if (! empty($errors)) {
+            return redirect('/')->withErrors(['saml' => implode(', ', $errors)]);
+        }
+
+        return redirect('/');
     }
 
     // ── Shared login logic ────────────────────────────────────────────────────────
 
-    /**
-     * Find or create the user, then log them in.
-     * Extracted so it can be called after the SAML assertion is parsed.
-     */
     private function loginOrCreate(
         string $email,
         string $externalId,
@@ -113,7 +125,6 @@ class SamlController extends Controller
                 ]);
             }
 
-            // Link SAML identity if not already stored
             if ($user->external_id !== $externalId) {
                 $user->external_id = $externalId;
                 $user->save();
@@ -139,15 +150,63 @@ class SamlController extends Controller
         return redirect()->intended(route('mailbox.dashboard'));
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────────
+    // ── Auth builder ──────────────────────────────────────────────────────────────
 
     /**
-     * @throws \RuntimeException if the SAML package is not installed.
+     * Build a OneLogin SAML Auth instance from current platform settings.
+     * Called on every request so DB-sourced config is always fresh.
      */
-    private function requireSamlPackage(): void
+    private function buildAuth(): \OneLogin\Saml2\Auth
     {
-        if (! class_exists(\Aacotroneo\Saml2\Saml2Auth::class)) {
-            abort(501, 'SAML support requires "composer require aacotroneo/laravel-saml2". See README_TODO.md.');
-        }
+        $spEntityId = (string) config('emailalias.saml_sp_entity_id')
+            ?: route('saml.metadata');
+
+        return new \OneLogin\Saml2\Auth([
+            'strict' => app()->isProduction(),
+            'debug'  => (bool) config('app.debug'),
+            'baseurl' => config('app.url'),
+
+            'sp' => [
+                'entityId' => $spEntityId,
+                'assertionConsumerService' => [
+                    'url'     => route('saml.acs'),
+                    'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST',
+                ],
+                'singleLogoutService' => [
+                    'url'     => route('saml.sls'),
+                    'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+                ],
+                'NameIDFormat' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+                'x509cert'  => '',
+                'privateKey' => '',
+            ],
+
+            'idp' => [
+                'entityId' => (string) config('emailalias.saml_idp_entity_id', ''),
+                'singleSignOnService' => [
+                    'url'     => (string) config('emailalias.saml_idp_sso_url', ''),
+                    'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+                ],
+                'singleLogoutService' => [
+                    'url'     => (string) config('emailalias.saml_idp_slo_url', ''),
+                    'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+                ],
+                'x509cert' => (string) config('emailalias.saml_idp_certificate', ''),
+            ],
+
+            'security' => [
+                'authnRequestsSigned'   => false,
+                'logoutRequestSigned'   => false,
+                'logoutResponseSigned'  => false,
+                'signMetadata'          => false,
+                'wantMessagesSigned'    => false,
+                'wantAssertionsSigned'  => true,
+                'wantNameId'            => true,
+                'wantNameIdEncrypted'   => false,
+                'wantAssertionsEncrypted' => false,
+                'signatureAlgorithm'    => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+                'digestAlgorithm'       => 'http://www.w3.org/2001/04/xmlenc#sha256',
+            ],
+        ]);
     }
 }

@@ -77,13 +77,12 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureScramble(): void
     {
-        Scramble::registerApi('default')
-            ->afterOpenApiGenerated(function (OpenApi $openApi): void {
-                $openApi->secure(
-                    SecurityScheme::http('bearer')
-                        ->setDescription('Personal access token — create one in Settings → API Tokens.')
-                );
-            });
+        Scramble::afterOpenApiGenerated(function (OpenApi $openApi): void {
+            $openApi->secure(
+                SecurityScheme::http('bearer')
+                    ->setDescription('Personal access token — create one in Settings → API Tokens.')
+            );
+        });
     }
 
     /**
