@@ -220,13 +220,19 @@
                 </flux:field>
 
                 @if ($createAliasMode === 'custom')
-                    <flux:input
-                        wire:model="createCustomLocalPart"
-                        label="{{ __('Local part') }}"
-                        placeholder="my-alias"
-                        suffix="{{ '@' . $this->domain }}"
-                    />
-                    <flux:error name="createCustomLocalPart" />
+                    <flux:field>
+                        <flux:label>{{ __('Local part') }}</flux:label>
+
+                        <flux:input.group>
+                            <flux:input wire:model.live.debounce.500ms="createCustomLocalPart" placeholder="my-alias" />
+                            
+                            <flux:input.group.suffix class="shrink-0">
+                                {{ '@' . $this->domain }}
+                            </flux:input.group.suffix>
+                        </flux:input.group>
+
+                        <flux:error name="createCustomLocalPart" />
+                    </flux:field>
                 @else
                     <flux:text class="text-sm text-zinc-500">
                         {{ __('A random address will be generated for you.') }}

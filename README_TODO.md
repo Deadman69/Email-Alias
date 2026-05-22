@@ -240,7 +240,7 @@
 - [x] Il faut pouvoir désactiver les mail custom comme les mails permanent — nouveau setting `alias_allow_custom`
 - [x] Les webhooks des emails ne sont pas envoyés — `to_tsvector` SQLite fix (LIKE fallback), webhook condition corrigée (URL seule suffit)
 - [x] Il n'y a aucune option pour delete des mails reçu — bouton trash existait mais caché (missing `group` class sur la row)
-- [ ] La doc API n'est pas accessible via `/docs/api` (erreur 404) — Scramble installé et configuré mais vérifier que les routes sont bien enregistrées
+- [x] La doc API n'est pas accessible via `/docs/api` (erreur 404) — Scramble installé et configuré mais vérifier que les routes sont bien enregistrées
 - [x] Dans la partie settings de l'admin, dans "authentication", quand on clique sur "Enable SSO" il faut débloquer/bloquer les champs instantanément — `wire:model.live` ajouté
 - [x] "SCIM bearer token" ne devrait pas être désactivé si on n'utilise pas le SSO — déjà indépendant dans le template
 - [x] Socialite Azure, `Driver [azure] not supported` — AzureProvider créé, driver enregistré
@@ -264,7 +264,7 @@
     - [ ] Pour l'application : http://localhost:80/ --> Rien du tout
     - [ ] container reverb & worker, erreur : `SQLSTATE[42P01]: Undefined table: 7 ERROR:  relation "cache" does not exist LINE 1: select * from "cache" where "key" in ($1) (Connection: pgsql, Host: db, Port: 5432, Database: emailalias, SQL: select * from "cache" where "key" in (emailalias-cache-laravel:reverb:restart))`
 
-- [ ] Logs, super-admin platform change : erreurs avec les types, presque tous les champs non-string ressortent :
+- [x] Logs, super-admin platform change : erreurs avec les types, presque tous les champs non-string ressortent :
 ```
 "version_check_enabled": {
     "from": "1",
@@ -283,4 +283,4 @@
     "to": 10485760
 },
 ```
-- [ ] Création email custom (user & admin), ajouter en dur le "@XXXX.com" après le local part pour avoir un rendu visuel
+- [x] Création email custom (user & admin), ajouter en dur le "@XXXX.com" après le local part pour avoir un rendu visuel

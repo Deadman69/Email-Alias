@@ -242,12 +242,19 @@
 
                 @if ($aliasMode === 'custom')
                     <div>
-                        <flux:input
-                            wire:model.live.debounce.500ms="customLocalPart"
-                            label="{{ __('Local part') }}"
-                            placeholder="my-alias"
-                            suffix="{{ '@' . $this->domain }}"
-                        />
+                        <flux:field>
+                            <flux:label>{{ __('Local part') }}</flux:label>
+
+                            <flux:input.group>
+                                <flux:input wire:model.live.debounce.500ms="customLocalPart" placeholder="my-alias" />
+                                
+                                <flux:input.group.suffix class="shrink-0">
+                                    {{ '@' . $this->domain }}
+                                </flux:input.group.suffix>
+                            </flux:input.group>
+
+                            <flux:error name="customLocalPart" />
+                        </flux:field>
 
                         @if (!$errors->first('customLocalPart') && ! $localPartAvailable && $suggestedAlternative)
                             <div class="mt-1 flex items-center gap-1 text-sm text-amber-600">
