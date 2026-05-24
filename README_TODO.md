@@ -83,6 +83,7 @@
 - [ ] NTH: Super Admin manual quota override per user (column on `users` table: `custom_max_storage_bytes`)
 - [ ] NTH: Being able to download emails
 - [ ] NTH: Being able to have multiple domaines ("example.com", "test.com", "testing.org")
+    - [ ] NTH : In the super admin panel, having an information if the domains are connected (check if their MX records ping to the app & display status. Do not block anything if they are not working properly)
 
 ---
 
@@ -195,20 +196,14 @@
 
 ## Enterprise / Scale
 
-### 🔴 P0 — Bloquants production
-
 - [x] Object storage (MinIO / S3) — `ATTACHMENT_DISK=s3`, driver S3 path-style, MinIO service dans docker-compose
 - [x] Full-text search dans les e-mails — `tsvector` PostgreSQL, GIN index, scope `search()`, UI + API
 - [x] Tests IDOR & isolation utilisateurs — user A ne peut pas accéder aux ressources de user B
 - [x] SCIM 2.0 provisioning (Azure AD) — endpoints Users CRUD, bearer token, déprovision via `active=false`
 
-### 🟡 P1 — Avant généralisation
-
 - [x] Export audit logs — téléchargement CSV / JSON depuis le panel admin
 - [x] Reverb scaling — config sticky-session Caddy, `REVERB_MAX_CONNECTIONS`, doc horizontale
 - [x] Backup & restore — service pg_dump schedulé dans docker-compose + runbook BACKUP.md
-
-### 🟢 P2 — Itératif
 
 - [x] Métriques Prometheus — endpoint `/metrics` (format texte Prometheus), scraper dans docker-compose
 - [x] Gestion des sessions actives — liste sessions en cours + révocation individuelle / globale
@@ -255,9 +250,9 @@
 - [x] Dans le "audit-log-viewer", l'icone "magnifying-glass" est décalée — `items-end` ajouté sur le flex container
 - [ ] Les super-admin n'ont aucun moyens de créer des tokens d'API pour l'appli elle même (NTH)
 - [x] Toutes les tooltips doivent utiliser les tooltips FluxUI — tous les `title=""` remplacés par `flux:tooltip`
-- [ ] Dans la config super-admin, pouvoir changer le logo de l'application (NTH — nécessite upload de fichier)
+- [ ] Dans la config super-admin, pouvoir changer le logo de l'application (NTH — nécessite upload de fichier) et l'appliquer partout (sidebar, auth...)
 
-- [ ] Il faudrait créer un script interactif qui remplisse les `.env` des applications en fonction de ce qui est activé/désactivé ?
+- [ ] NTH : Il faudrait créer un script interactif qui remplisse les `.env` des applications en fonction de ce qui est activé/désactivé ?
 
 - [ ] Infra (dev) :
     - [ ] Pour l'application : http://localhost:8000/ `NS_ERROR_NET_EMPTY_RESPONSE`
