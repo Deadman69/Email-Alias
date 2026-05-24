@@ -1,4 +1,4 @@
-<x-layouts.auth.simple :title="__('Authentication Error')">
+<div>
     <div class="flex flex-col gap-6 text-center">
 
         <div class="flex flex-col items-center gap-3">
@@ -57,4 +57,4 @@
         </div>
 
     </div>
-</x-layouts.auth.simple>
+</div>

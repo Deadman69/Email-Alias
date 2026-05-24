@@ -466,7 +466,7 @@
             <div class="space-y-6 pt-4">
 
                 <flux:callout variant="info" icon="information-circle">
-                    <flux:callout.text>{{ __('Domains registered here determine which recipient addresses the SMTP receiver accepts. The primary domain is the default for new aliases.') }}</flux:callout.text>
+                    <flux:callout.text>{{ __('Domains registered here determine which recipient addresses the SMTP receiver accepts. The primary domain is the default for new aliases. It can take a few minutes to impact the SMTP server depending on your configuration of the "DOMAIN_REFRESH_MS" variable (by default, 5 minutes).') }}</flux:callout.text>
                 </flux:callout>
 
                 {{-- Add domain form (NOT part of main settings save) --}}
