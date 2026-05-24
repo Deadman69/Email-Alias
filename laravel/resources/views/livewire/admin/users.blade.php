@@ -196,6 +196,15 @@
                     </flux:select>
                 @endif
 
+                {{-- Domain selector — only shown when more than one domain is configured --}}
+                @if (count($this->availableDomains) > 1)
+                    <flux:select wire:model.live="createDomain" label="{{ __('Domain') }}">
+                        @foreach ($this->availableDomains as $d)
+                            <flux:select.option value="{{ $d }}">{{ $d }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                @endif
+
                 {{-- Address format --}}
                 <flux:field>
                     <flux:label>{{ __('Address format') }}</flux:label>

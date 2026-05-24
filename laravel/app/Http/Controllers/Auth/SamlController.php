@@ -76,14 +76,26 @@ class SamlController extends Controller
             ]);
         }
 
-        $nameId = $auth->getNameId();                 // typically the email
-        $attrs  = $auth->getAttributes();
-        $name   = $attrs['displayName'][0]
-            ?? $attrs['http://schemas.microsoft.com/identity/claims/displayname'][0]
-            ?? $attrs['givenName'][0]
-            ?? $nameId;
+        $attrs = $auth->getAttributes();
 
-        return $this->loginOrCreate($nameId, 'saml:' . $nameId, (string) $name, $auditLogger);
+        // ── Email resolution ──────────────────────────────────────────────────
+        $emailAttr = (string) config('emailalias.saml_attr_email', '');
+        $email     = ($emailAttr && isset($attrs[$emailAttr][0]))
+            ? $attrs[$emailAttr][0]
+            : $auth->getNameId(); // fallback: NameID is usually the email
+
+        // ── Display name resolution ───────────────────────────────────────────
+        $nameAttr = (string) config('emailalias.saml_attr_name', '');
+        if ($nameAttr && isset($attrs[$nameAttr][0])) {
+            $name = $attrs[$nameAttr][0];
+        } else {
+            $name = $attrs['displayName'][0]
+                ?? $attrs['http://schemas.microsoft.com/identity/claims/displayname'][0]
+                ?? $attrs['givenName'][0]
+                ?? $email;
+        }
+
+        return $this->loginOrCreate((string) $email, 'saml:' . $email, (string) $name, $auditLogger);
     }
 
     /**
@@ -161,6 +173,10 @@ class SamlController extends Controller
         $spEntityId = (string) config('emailalias.saml_sp_entity_id')
             ?: route('saml.metadata');
 
+        $spCert = (string) config('emailalias.saml_sp_x509cert', '');
+        $spKey  = (string) config('emailalias.saml_sp_private_key', '');
+        $hasSp  = $spCert !== '' && $spKey !== '';
+
         return new \OneLogin\Saml2\Auth([
             'strict' => app()->isProduction(),
             'debug'  => (bool) config('app.debug'),
@@ -177,8 +193,8 @@ class SamlController extends Controller
                     'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
                 ],
                 'NameIDFormat' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
-                'x509cert'  => '',
-                'privateKey' => '',
+                'x509cert'   => $spCert,
+                'privateKey' => $spKey,
             ],
 
             'idp' => [
@@ -195,10 +211,11 @@ class SamlController extends Controller
             ],
 
             'security' => [
-                'authnRequestsSigned'   => false,
-                'logoutRequestSigned'   => false,
-                'logoutResponseSigned'  => false,
-                'signMetadata'          => false,
+                // Signing is enabled only when the SP cert + key are both configured.
+                'authnRequestsSigned'   => $hasSp,
+                'logoutRequestSigned'   => $hasSp,
+                'logoutResponseSigned'  => $hasSp,
+                'signMetadata'          => $hasSp,
                 'wantMessagesSigned'    => false,
                 'wantAssertionsSigned'  => true,
                 'wantNameId'            => true,

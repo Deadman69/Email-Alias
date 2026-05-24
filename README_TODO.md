@@ -37,6 +37,8 @@
 - [x] `alias_shares` migration — ULID PK, alias_id + user_id + shared_by_id
 - [x] `settings` migration — string PK key/value store
 - [x] `personal_access_tokens` migration — base Sanctum table + `restricted_alias_ids` JSON column
+- [x] `domains` migration — ULID PK, unique `name`, `is_primary` bool, timestamps
+- [x] `add_domain_to_aliases` migration — nullable `domain` column on `aliases` table
 - [x] `AliasFactory`, `InboundEmailFactory`
 - [x] `DemoSeeder` — super_admin + user + 3 aliases + 5 realistic HTML emails + 1 share
 
@@ -54,9 +56,9 @@
 - [x] `PersonalAccessToken` — extends Sanctum token, `restricted_alias_ids`, `canAccessAlias()`
 - [x] `AliasType` enum — `Session | Duration | Permanent`
 - [x] `Role` enum — `User | Admin | SuperAdmin`, hierarchical `isAtLeast()`
-- [x] `AuditEvent` enum — 29 events including API, webhook, auth, profile and bulk events
+- [x] `AuditEvent` enum — 30 events including API, webhook, auth, profile, bulk and download events
 - [x] `TokenAbility` enum — 9 scopes (user + admin), `label()`, `description()`, i18n-ready
-- [x] `AliasService` — `create()`, `delete(actingUser)`, `extend()`, `suggestAlternative()`, `isAddressAvailable()`, `enforceRateLimit()`
+- [x] `AliasService` — `create(domain:)`, `delete(actingUser)`, `extend()`, `suggestAlternative(domain:)`, `isAddressAvailable(domain:)`, `enforceRateLimit()` — multi-domain support
 - [x] `AuditLogger` — centralized `log()` service
 - [x] `HtmlSanitizer` — HTMLPurifier: strip `on*`, injections, external images; regex fallback if package absent
 - [x] `SettingService` — get/set/fill, cache, secret encryption, `CONFIG_MAP`; never caches empty result on fresh install
@@ -79,11 +81,10 @@
 - [x] Per-user storage quota (`alias_max_user_storage_bytes`) — drops email if total across all mailboxes exceeded, notifies owner
 - [x] `MailboxQuotaExceeded` notification — stored in DB, shown in notification bell (1 notif/hour/alias/quota_type max)
 - [x] App version — hardcoded in `VERSION` file, read-only in admin panel, `version_check_enabled` toggle for future GitHub auto-check
+- [x] `Domain` model — `HasUlids`, `allNames()`, `primaryName()`, `checkMx()` (DNS MX probe)
+- [x] `EmailDownloadController` — `.eml` export (RFC 2822), multipart/alternative + attachments, `quoted_printable_encode`, base64
 - [ ] NTH: Super Admin manual quota override per mailbox (column on `aliases` table: `custom_max_bytes`)
 - [ ] NTH: Super Admin manual quota override per user (column on `users` table: `custom_max_storage_bytes`)
-- [ ] NTH: Being able to download emails
-- [ ] NTH: Being able to have multiple domaines ("example.com", "test.com", "testing.org")
-    - [ ] NTH : In the super admin panel, having an information if the domains are connected (check if their MX records ping to the app & display status. Do not block anything if they are not working properly)
 
 ---
 
@@ -106,7 +107,7 @@
 - [x] API tokens — Sanctum personal access tokens with ability scopes and optional alias restriction
 - [x] Token abilities server-side filtered by role (regular users cannot create admin-scoped tokens)
 - [x] Super Admins cannot be modified via API; `super_admin` role cannot be assigned via API
-- [x] Multi-provider SSO — Azure AD, Keycloak/Generic OIDC (zero extra packages, OIDC discovery), SAML 2.0 stubs (requires `aacotroneo/laravel-saml2`)
+- [x] Multi-provider SSO — Azure AD, Keycloak/Generic OIDC (zero extra packages, OIDC discovery), SAML 2.0 (SP signing + attribute mapping, requires `aacotroneo/laravel-saml2`)
 - [x] `is_active` flag on `users` — SCIM deprovision blocks login (Fortify + SSO callback)
 - [x] `external_id` on `users` — `"{provider}:{sub}"` for provider-scoped SSO identity; backward compat with `azure_id`
 - [x] `SsoProvider` enum — `azure | keycloak | saml`; configurable from Super Admin settings panel
@@ -118,7 +119,7 @@
 - [x] `InboundEmailController` — `POST /internal/inbound` → dispatch job → 202
 - [x] `AttachmentController` (web) — authenticated download via Gate
 - [x] `SsoController` — provider-agnostic redirect + callback (Azure / OIDC / SAML)
-- [x] `SamlController` — SAML metadata, login, ACS (CSRF-exempt), SLS; stubs ready for `aacotroneo/laravel-saml2`
+- [x] `SamlController` — SAML metadata, login, ACS (CSRF-exempt), SLS; SP signing when cert+key configured; configurable attribute mapping
 - [x] `DocsController` removed — API docs served by Scramble at `/docs/api`
 - [x] `Api/V1/AliasController` — index, store, show, destroy (IDOR protected, token alias check)
 - [x] `Api/V1/EmailController` — index (brief), show (full + mark read), destroy
@@ -127,8 +128,9 @@
 - [x] `Api/V1/Admin/UserController` — index, update (role/status; no super_admin modification)
 - [x] `Api/V1/Admin/AuditLogController` — index with filters, paginated up to 200
 - [x] Admin API routes use `'admin'` middleware alias (not class reference)
-- [x] Mailbox routes: `/mailbox`, `/mailbox/{alias}`, `/mailbox/emails/{email}`
-- [x] Admin routes: `/admin`, `/admin/users`, `/admin/audit`, `/admin/settings`
+- [x] `EmailDownloadController` — `GET /mailbox/emails/{email}/download` → `.eml` streamed download
+- [x] Mailbox routes: `/mailbox`, `/mailbox/{alias}`, `/mailbox/emails/{email}`, `/mailbox/emails/{email}/download`
+- [x] Admin routes: `/admin`, `/admin/users`, `/admin/audit`, `/admin/settings`, `/admin/domains`
 - [x] Health endpoints: `GET /health` (HTML/JSON) + `GET /api/v1/health` (JSON) — visibility driven by `health_check_visibility` setting
 - [x] Dedicated user stats dashboard at `/dashboard` — aliases, emails, unread, storage used, recent emails
 
@@ -136,12 +138,13 @@
 
 ## Livewire / UI
 
-- [x] `Mailbox\Dashboard` — aliases (own + shared), create, delete/extend (owner), share modal, webhook modal
+- [x] `Mailbox\Dashboard` — aliases (own + shared), create (multi-domain selector), delete/extend (owner), share modal, webhook modal
 - [x] `Mailbox\Inbox` — email list, read/unread filter, real-time Reverb, mark read, delete (ULID routing)
-- [x] `Mailbox\ViewEmail` — email detail, attachments, truncation banner, external images on demand
+- [x] `Mailbox\ViewEmail` — email detail, attachments, truncation banner, external images on demand, `.eml` download button
 - [x] `Admin\Dashboard` — global alias view, stats, search, user filter, delete
 - [x] `Admin\AuditLogViewer` — log consultation
-- [x] `Admin\Settings` — 5 tabs (General, Auth, Security, Aliases, Email), saved to DB with cache-bust
+- [x] `Admin\Settings` — 5 tabs (General, Auth, Security, Aliases, Email), saved to DB with cache-bust, logo upload/remove, SAML SP signing + attr mapping
+- [x] `Admin\Domains` — list, add, delete (with primary auto-promotion), set-primary, MX check badge — super_admin only
 - [x] `Settings\Profile` — name, email, per-user language preference
 - [x] `Settings\ApiTokens` — create tokens (abilities, alias scope, expiry), revoke, plain-text shown once
 - [x] Webhook modal — URL, signing secret with copy button, manual rotation with confirmation, PHP + Node.js verification examples
@@ -160,7 +163,8 @@
     - [x] Exact datetime tooltips on all relative dates (`title` with `isoFormat('LLL')`)
     - [x] Per-user timezone preference — `timezone` column on `users`, selector in profile settings
     - [x] Timezone-aware display — `SetLocale` middleware applies `date_default_timezone_set()`
-- [x] Admin sidebar navigation — Dashboard, Users, Audit Log, Settings links
+- [x] Admin sidebar navigation — Dashboard, Users, Audit Log, Domains (super_admin), Settings links
+- [x] Custom logo — upload (PNG/JPG/WebP, max 2 MB, SVG rejected for XSS), preview, remove; applied in sidebar, auth layouts (simple/card/split)
 - [x] Search by user name/email in audit log
 
 ---
@@ -241,7 +245,7 @@
 - [x] "SCIM bearer token" ne devrait pas être désactivé si on n'utilise pas le SSO — déjà indépendant dans le template
 - [x] Socialite Azure, `Driver [azure] not supported` — AzureProvider créé, driver enregistré
 - [x] Socialite Keycloak / OIDC : `$scopeSeparator must not be defined` — type hint retiré
-- [ ] Socialite SAML : `Driver [saml] not supported` — nécessite `composer require aacotroneo/laravel-saml2` (NTH)
+- [x] Socialite SAML : `Driver [saml] not supported` — implémenté via `OneLogin\Saml2\Auth` at request time (DB settings → `config('emailalias.saml_*')`)
 - [x] Super-admin config "Email" : dépendance mailbox size & user storage — callout informatif ajouté, descriptions améliorées
 - [ ] "Allow admins to read email bodies" n'a l'air de ne rien faire — la policy fonctionne via InboundEmailPolicy mais il faut une UI admin pour naviguer les mailboxes des autres users
 - [x] Certaines popup sont trop petites — Create API token (max-w-2xl), webhook (max-w-2xl), share (max-w-xl), admin create alias (max-w-xl)
@@ -250,7 +254,7 @@
 - [x] Dans le "audit-log-viewer", l'icone "magnifying-glass" est décalée — `items-end` ajouté sur le flex container
 - [ ] Les super-admin n'ont aucun moyens de créer des tokens d'API pour l'appli elle même (NTH)
 - [x] Toutes les tooltips doivent utiliser les tooltips FluxUI — tous les `title=""` remplacés par `flux:tooltip`
-- [ ] Dans la config super-admin, pouvoir changer le logo de l'application (NTH — nécessite upload de fichier) et l'appliquer partout (sidebar, auth...)
+- [x] Dans la config super-admin, pouvoir changer le logo de l'application (NTH — nécessite upload de fichier) et l'appliquer partout (sidebar, auth...)
 
 - [ ] NTH : Il faudrait créer un script interactif qui remplisse les `.env` des applications en fonction de ce qui est activé/désactivé ?
 
@@ -280,3 +284,52 @@
 },
 ```
 - [x] Création email custom (user & admin), ajouter en dur le "@XXXX.com" après le local part pour avoir un rendu visuel
+
+---
+
+## NTH — Backlog priorisé
+
+> Items classés par ordre de priorité décroissante. Les entrées marquées *(voir aussi…)* ont un contexte supplémentaire ailleurs dans ce fichier.
+
+### 1. ~~Téléchargement d'emails~~ ✅
+- [x] Bouton « Télécharger » dans `ViewEmail` — export en `.eml` (format brut, réimportable dans n'importe quel client mail)
+- [x] Route dédiée `GET /mailbox/emails/{email}/download` — gate `InboundEmailPolicy::view`
+- [x] Entrée dans l'audit log : `AuditEvent::EmailDownloaded`
+- [x] `EmailDownloadController::buildEml()` — RFC 2822, multipart/alternative + mixed, quoted-printable body, base64 attachments
+- [ ] Optionnel : export PDF (headless Chrome ou `dompdf`) avec pièces jointes intégrées
+- [ ] Optionnel : téléchargement groupé depuis `Inbox` — sélection multiple + archive `.zip` (`.eml` par email)
+
+### 2. ~~Multi-domaines~~ ✅
+- [x] Colonne `domain` nullable sur la table `aliases` (défaut = domaine principal de la plateforme)
+- [x] Table `domains` : `id` (ULID), `name` (unique), `is_primary`, timestamps — gérable depuis le panel Super Admin
+- [x] Sélecteur de domaine dans le formulaire de création d'alias (user + admin) — masqué si un seul domaine
+- [x] `Domain` model — `allNames()`, `primaryName()`, `checkMx()` (DNS MX probe)
+- [x] `AliasService` — `?string $domain = null` sur `create()`, `isAddressAvailable()`, `suggestAlternative()`
+- [x] Panel Super Admin — page « Domaines » (`/admin/domains`, super_admin only) :
+    - [x] Liste des domaines avec statut MX (vérification via `dns_get_record()`) — indicateur visuel, ne bloque rien
+    - [x] Ajout / suppression (avec promotion auto du prochain si on supprime le primary)
+    - [x] Set-primary en un clic
+    - [x] Entrée dans le menu admin sidebar (icône `globe-alt`)
+- [ ] SMTP receiver : accepter les RCPT TO sur tous les domaines configurés (env `SMTP_ALLOWED_DOMAINS` → liste)
+
+### 3. ~~SSO SAML 2.0 — SP signing & attribute mapping~~ ✅
+> Le contrôleur est implémenté (`SamlController` via `OneLogin\Saml2\Auth` at request time).
+
+- [x] Signature des `AuthnRequest` côté SP — clé privée (`saml_sp_private_key`, chiffrée en DB) + certificat SP (`saml_sp_x509cert`) dans les settings
+- [x] Signing conditionnel — `authnRequestsSigned`, `logoutRequestSigned`, `logoutResponseSigned`, `signMetadata` activés seulement quand cert + key sont tous les deux renseignés
+- [x] Cartographie d'attributs configurable — `saml_attr_email` et `saml_attr_name` dans les settings (fallback auto sur NameID + schemas courants Microsoft/displayName/givenName)
+- [x] Champs de configuration dans le panel Super Admin (Auth → SAML 2.0 → sections IdP / SP / Attribute mapping)
+- [x] Callout « SAML 2.0 is ready » remplace l'ancien warning « package required »
+- [ ] Tests d'intégration avec un vrai IdP (Keycloak, ADFS, Okta, Azure AD SAML)
+- [ ] Métadonnées SP — vérifier validité XML avec un validateur XSD
+- [ ] Gestion des erreurs SAML dans l'UI (page d'erreur lisible, pas de stack trace)
+
+### 4. ~~Logo personnalisable~~ ✅
+- [x] Upload du logo depuis le panel Super Admin (settings tab « General »)
+    - Formats acceptés : PNG, JPG/JPEG, WebP — max 2 MB — **SVG interdit** (risque XSS)
+    - Stockage sur le disque `public`
+    - Clé `app_logo_path` dans la table `settings` (via `SettingService`)
+- [x] Composant Blade `<x-app-logo>` — `<img>` si logo custom uploadé, SVG icon par défaut sinon
+- [x] Appliqué partout : sidebar (`app-logo.blade.php`), auth layouts (`simple`, `card`, `split`)
+- [x] Prévisualisation dans le panel settings (image actuelle affichée)
+- [x] Bouton « Remove » (supprime le fichier + vide `app_logo_path` → retour à l'icône par défaut)

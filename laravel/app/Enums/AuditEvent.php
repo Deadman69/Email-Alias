@@ -11,9 +11,10 @@ enum AuditEvent: string
     case AliasShared   = 'alias.shared';
     case AliasUnshared = 'alias.unshared';
 
-    case EmailReceived = 'email.received';
-    case EmailRead     = 'email.read';
-    case EmailDeleted  = 'email.deleted';
+    case EmailReceived    = 'email.received';
+    case EmailRead        = 'email.read';
+    case EmailDeleted     = 'email.deleted';
+    case EmailDownloaded  = 'email.downloaded';
 
     case UserLogin          = 'user.login';
     case UserLogout         = 'user.logout';
@@ -60,6 +61,7 @@ enum AuditEvent: string
             self::EmailReceived      => 'Email received',
             self::EmailRead          => 'Email read',
             self::EmailDeleted       => 'Email deleted',
+            self::EmailDownloaded    => 'Email downloaded',
             self::EmailsBulkRead     => 'Emails bulk read',
             self::UserLogin          => 'User login',
             self::UserLogout         => 'User logout',

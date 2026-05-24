@@ -7,20 +7,29 @@ use App\Services\AuditLogger;
 use App\Services\SettingService;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Title('Platform Settings')]
 #[Layout('layouts.app')]
 class Settings extends Component
 {
+    use WithFileUploads;
     // ── General ───────────────────────────────────────────────────────────────────
     public string $app_name              = '';
     public string $app_locale            = 'en';
     public bool   $version_check_enabled = true;
     public string $health_check_visibility = 'public';
+
+    // ── Logo upload (not stored as a setting key — handled separately) ────────────
+    /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
+    public $logoFile = null;
+
+    public string $currentLogoPath = '';
 
     // ── Auth ─────────────────────────────────────────────────────────────────────
     public bool   $sso_enabled          = false;
@@ -33,12 +42,18 @@ class Settings extends Component
     public string $oidc_client_id       = '';
     public string $oidc_client_secret   = '';
     public string $oidc_issuer_url      = '';
-    // SAML 2.0
+    // SAML 2.0 — IdP
     public string $saml_idp_entity_id   = '';
     public string $saml_idp_sso_url     = '';
     public string $saml_idp_slo_url     = '';
     public string $saml_idp_certificate = '';
+    // SAML 2.0 — SP
     public string $saml_sp_entity_id    = '';
+    public string $saml_sp_x509cert     = '';
+    public string $saml_sp_private_key  = '';  // leave blank to keep existing encrypted value
+    // SAML 2.0 — Attribute mapping
+    public string $saml_attr_email      = '';
+    public string $saml_attr_name       = '';
     // General auth
     public bool   $local_auth_enabled   = true;
     public bool   $registration_enabled = false;
@@ -83,12 +98,20 @@ class Settings extends Component
         $this->oidc_client_id      = (string) $settings->get('oidc_client_id', '');
         $this->oidc_client_secret  = '';  // leave blank to keep existing value
         $this->oidc_issuer_url     = (string) $settings->get('oidc_issuer_url', '');
-        // SAML 2.0
+        // SAML 2.0 — IdP
         $this->saml_idp_entity_id   = (string) $settings->get('saml_idp_entity_id', '');
         $this->saml_idp_sso_url     = (string) $settings->get('saml_idp_sso_url', '');
         $this->saml_idp_slo_url     = (string) $settings->get('saml_idp_slo_url', '');
         $this->saml_idp_certificate = (string) $settings->get('saml_idp_certificate', '');
+        // SAML 2.0 — SP
         $this->saml_sp_entity_id    = (string) $settings->get('saml_sp_entity_id', '');
+        $this->saml_sp_x509cert     = (string) $settings->get('saml_sp_x509cert', '');
+        $this->saml_sp_private_key  = '';  // never expose in Livewire state
+        // SAML 2.0 — Attribute mapping
+        $this->saml_attr_email      = (string) $settings->get('saml_attr_email', '');
+        $this->saml_attr_name       = (string) $settings->get('saml_attr_name', '');
+        // Logo
+        $this->currentLogoPath      = (string) $settings->get('app_logo_path', '');
         // SCIM
         $this->scim_bearer_token   = ''; // Never expose in Livewire state
         $this->local_auth_enabled  = (bool) $settings->get('local_auth_enabled', true);
@@ -118,6 +141,17 @@ class Settings extends Component
         return config('app.url', '');
     }
 
+    /** Public URL of the currently saved logo, or null when none is set. */
+    #[Computed]
+    public function logoUrl(): ?string
+    {
+        if ($this->currentLogoPath && Storage::disk('public')->exists($this->currentLogoPath)) {
+            return Storage::disk('public')->url($this->currentLogoPath);
+        }
+
+        return null;
+    }
+
     #[Computed]
     public function appVersion(): string
     {
@@ -132,6 +166,54 @@ class Settings extends Component
         if (! $value && $this->alias_default_type === 'permanent') {
             $this->alias_default_type = 'session';
         }
+    }
+
+    // ── Logo ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Upload and store a new logo image.
+     * Only PNG, WebP, and JPEG are accepted — SVG is explicitly forbidden (XSS risk).
+     */
+    public function uploadLogo(SettingService $settings): void
+    {
+        $this->validate([
+            'logoFile' => [
+                'required',
+                'file',
+                'max:2048', // 2 MB
+                'mimes:png,jpg,jpeg,webp',
+            ],
+        ]);
+
+        // Delete the old logo if one exists.
+        if ($this->currentLogoPath && Storage::disk('public')->exists($this->currentLogoPath)) {
+            Storage::disk('public')->delete($this->currentLogoPath);
+        }
+
+        $path = $this->logoFile->store('logos', 'public');
+
+        $settings->set('app_logo_path', $path);
+        $this->currentLogoPath = $path;
+        $this->logoFile        = null;
+        unset($this->logoUrl);
+
+        Flux::toast(variant: 'success', text: __('Logo updated.'));
+    }
+
+    /**
+     * Remove the custom logo and revert to the built-in icon.
+     */
+    public function removeLogo(SettingService $settings): void
+    {
+        if ($this->currentLogoPath && Storage::disk('public')->exists($this->currentLogoPath)) {
+            Storage::disk('public')->delete($this->currentLogoPath);
+        }
+
+        $settings->set('app_logo_path', '');
+        $this->currentLogoPath = '';
+        unset($this->logoUrl);
+
+        Flux::toast(variant: 'success', text: __('Logo removed.'));
     }
 
 
@@ -154,6 +236,10 @@ class Settings extends Component
             'saml_idp_slo_url'              => 'nullable|url|max:500',
             'saml_idp_certificate'          => 'nullable|string|max:8192',
             'saml_sp_entity_id'             => 'nullable|string|max:500',
+            'saml_sp_x509cert'              => 'nullable|string|max:8192',
+            'saml_sp_private_key'           => 'nullable|string|max:8192',
+            'saml_attr_email'               => 'nullable|string|max:500',
+            'saml_attr_name'                => 'nullable|string|max:500',
             'scim_bearer_token'             => 'nullable|string|min:32|max:500',
             'alias_max_per_user'            => 'required|integer|min:1|max:1000',
             'alias_default_type'            => ['required', \Illuminate\Validation\Rule::in(
@@ -193,6 +279,9 @@ class Settings extends Component
             'saml_idp_slo_url'                 => $this->saml_idp_slo_url,
             'saml_idp_certificate'             => $this->saml_idp_certificate,
             'saml_sp_entity_id'                => $this->saml_sp_entity_id,
+            'saml_sp_x509cert'                 => $this->saml_sp_x509cert,
+            'saml_attr_email'                  => $this->saml_attr_email,
+            'saml_attr_name'                   => $this->saml_attr_name,
             'local_auth_enabled'               => $this->local_auth_enabled,
             'registration_enabled'             => $this->registration_enabled,
             'two_factor_required'              => $this->two_factor_required,
@@ -226,8 +315,13 @@ class Settings extends Component
             $this->scim_bearer_token = '';
         }
 
+        if ($this->saml_sp_private_key !== '') {
+            $data['saml_sp_private_key'] = $this->saml_sp_private_key;
+            $this->saml_sp_private_key = '';
+        }
+
         // Build a diff of what changed (hide secret values).
-        $secretKeys = ['azure_client_secret', 'oidc_client_secret', 'scim_bearer_token'];
+        $secretKeys = ['azure_client_secret', 'oidc_client_secret', 'scim_bearer_token', 'saml_sp_private_key'];
         $previous   = $settings->all();
         $changed    = [];
 

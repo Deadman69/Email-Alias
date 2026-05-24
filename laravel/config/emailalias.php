@@ -2,10 +2,18 @@
 
 return [
     /*
-     * The domain used for generated email addresses.
+     * The domain used for generated email addresses (legacy fallback).
+     * When domains are configured in the database this value is superseded.
      * MX records must point to this server.
      */
     'domain' => env('APP_DOMAIN', 'example.com'),
+
+    /*
+     * Custom application logo.
+     * Path relative to the 'public' storage disk (e.g. "logos/logo.png").
+     * When empty the default built-in SVG icon is used.
+     */
+    'app_logo_path' => '',
 
     /*
      * Shared secret between the SMTP receiver and Laravel.
@@ -116,12 +124,18 @@ return [
     // The /.well-known/openid-configuration endpoint is auto-discovered from this.
     'oidc_issuer_url'    => env('OIDC_ISSUER_URL', ''),
 
-    // ── SAML 2.0 — requires aacotroneo/laravel-saml2 (see README_TODO.md) ────────
+    // ── SAML 2.0 — requires aacotroneo/laravel-saml2 ─────────────────────────────
     'saml_idp_entity_id'   => env('SAML_IDP_ENTITY_ID', ''),
     'saml_idp_sso_url'     => env('SAML_IDP_SSO_URL', ''),
     'saml_idp_slo_url'     => env('SAML_IDP_SLO_URL', ''),     // optional
     'saml_idp_certificate' => env('SAML_IDP_CERTIFICATE', ''), // PEM — no header/footer
     'saml_sp_entity_id'    => env('SAML_SP_ENTITY_ID', ''),    // defaults to APP_URL
+    // SP signing — when both cert + key are set, requests are signed
+    'saml_sp_x509cert'     => '',   // PEM — no header/footer — override from DB
+    'saml_sp_private_key'  => '',   // PEM — no header/footer — stored encrypted in DB
+    // Attribute mapping — defaults cover most IdPs
+    'saml_attr_email'      => '',   // attribute name for email (blank = use NameID)
+    'saml_attr_name'       => '',   // attribute name for display name (blank = auto)
 
     /*
      * Whether local login (email + password) is enabled.

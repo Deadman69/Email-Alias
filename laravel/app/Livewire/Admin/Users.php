@@ -7,6 +7,7 @@ use App\Enums\AuditEvent;
 use App\Enums\Role;
 use App\Models\Alias;
 use App\Models\AuditLog;
+use App\Models\Domain;
 use App\Models\User;
 use App\Services\AliasService;
 use App\Services\AuditLogger;
@@ -55,6 +56,8 @@ class Users extends Component
 
     public string $createLabel = '';
 
+    public string $createDomain = '';
+
     // ── Computed ──────────────────────────────────────────────────────────────────
 
     #[Computed]
@@ -85,9 +88,21 @@ class Users extends Component
     }
 
     #[Computed]
+    public function availableDomains(): array
+    {
+        return Domain::allNames();
+    }
+
+    #[Computed]
     public function domain(): string
     {
-        return config('emailalias.domain', 'example.com');
+        $domains = $this->availableDomains;
+
+        if ($this->createDomain && in_array($this->createDomain, $domains, true)) {
+            return $this->createDomain;
+        }
+
+        return $domains[0] ?? config('emailalias.domain', 'example.com');
     }
 
     // ── Role management ───────────────────────────────────────────────────────────
@@ -290,6 +305,7 @@ class Users extends Component
                 duration:  $type === AliasType::Duration ? $this->createDuration : null,
                 label:     $this->createLabel ?: null,
                 byAdmin:   true,
+                domain:    $this->domain,
             );
 
             $this->showCreateModal = false;
@@ -311,9 +327,10 @@ class Users extends Component
 
     private function resetCreateForm(): void
     {
-        $this->reset('createCustomLocalPart', 'createAliasType', 'createDuration', 'createLabel', 'createAliasMode');
+        $this->reset('createCustomLocalPart', 'createAliasType', 'createDuration', 'createLabel', 'createAliasMode', 'createDomain');
         $this->createAliasType = 'session';
         $this->createAliasMode = 'random';
         $this->createDuration  = '24h';
+        unset($this->domain, $this->availableDomains);
     }
 }

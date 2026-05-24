@@ -17,8 +17,8 @@
                 </flux:heading>
             </div>
 
-            @if ($this->email->body_html)
-                <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2">
+                @if ($this->email->body_html)
                     <flux:button
                         size="xs"
                         :variant="$viewMode === 'rendered' ? 'primary' : 'ghost'"
@@ -30,8 +30,17 @@
                         :variant="$viewMode === 'raw' ? 'primary' : 'ghost'"
                         wire:click="setViewMode('raw')"
                     >{{ __('Raw HTML') }}</flux:button>
-                </div>
-            @endif
+                @endif
+
+                <flux:tooltip content="{{ __('Download as .eml') }}">
+                    <flux:button
+                        size="xs"
+                        variant="ghost"
+                        icon="arrow-down-tray"
+                        :href="route('mailbox.email.download', $this->email->id)"
+                    />
+                </flux:tooltip>
+            </div>
         </div>
 
         {{-- Metadata --}}

@@ -6,6 +6,7 @@ use App\Enums\AliasType;
 use App\Enums\AuditEvent;
 use App\Models\Alias;
 use App\Models\AliasShare;
+use App\Models\Domain;
 use App\Models\User;
 use App\Services\AliasService;
 use App\Services\AuditLogger;
@@ -37,6 +38,8 @@ class Dashboard extends Component
     public string $duration = '24h';
 
     public string $label = '';
+
+    public string $selectedDomain = '';
 
     public bool $localPartAvailable = true;
 
@@ -102,10 +105,24 @@ class Dashboard extends Component
             ->get();
     }
 
+    /** All configured domain names (primary first). */
+    #[Computed]
+    public function availableDomains(): array
+    {
+        return Domain::allNames();
+    }
+
+    /** The domain currently selected for alias creation. */
     #[Computed]
     public function domain(): string
     {
-        return config('emailalias.domain', 'example.com');
+        $domains = $this->availableDomains;
+
+        if ($this->selectedDomain && in_array($this->selectedDomain, $domains, true)) {
+            return $this->selectedDomain;
+        }
+
+        return $domains[0] ?? config('emailalias.domain', 'example.com');
     }
 
     /**
@@ -196,10 +213,10 @@ class Dashboard extends Component
         }
 
         $service = app(AliasService::class);
-        $this->localPartAvailable = $service->isAddressAvailable($value);
+        $this->localPartAvailable = $service->isAddressAvailable($value, $this->domain);
 
         if (! $this->localPartAvailable) {
-            $this->suggestedAlternative = $service->suggestAlternative($value);
+            $this->suggestedAlternative = $service->suggestAlternative($value, $this->domain);
         } else {
             $this->suggestedAlternative = '';
         }
@@ -236,6 +253,7 @@ class Dashboard extends Component
                 localPart: $localPart,
                 duration: $type === AliasType::Duration ? $this->duration : null,
                 label: $this->label ?: null,
+                domain: $this->domain,
             );
 
             $this->showCreateModal = false;
@@ -486,10 +504,11 @@ class Dashboard extends Component
 
     private function resetCreateForm(): void
     {
-        $this->reset('customLocalPart', 'aliasType', 'duration', 'label', 'aliasMode', 'suggestedAlternative');
+        $this->reset('customLocalPart', 'aliasType', 'duration', 'label', 'aliasMode', 'suggestedAlternative', 'selectedDomain');
         $this->localPartAvailable = true;
         $this->aliasType = 'session';
         $this->aliasMode = 'random';
         $this->duration = '24h';
+        unset($this->domain, $this->availableDomains);
     }
 }

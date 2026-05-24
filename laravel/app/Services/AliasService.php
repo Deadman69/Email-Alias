@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AliasType;
 use App\Enums\AuditEvent;
 use App\Models\Alias;
+use App\Models\Domain;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -26,14 +27,15 @@ class AliasService
         ?string $duration = null,
         ?string $label = null,
         bool $byAdmin = false,
+        ?string $domain = null,
     ): Alias {
         if (! $byAdmin) {
             $this->enforceRateLimit($user);
         }
         $this->ensureUserCanCreateAlias($user);
 
-        $localPart = $localPart ? $this->normalizeLocalPart($localPart) : $this->generateUniqueLocalPart();
-        $domain    = config('emailalias.domain');
+        $domain    = $domain ?: Domain::primaryName();
+        $localPart = $localPart ? $this->normalizeLocalPart($localPart) : $this->generateUniqueLocalPart($domain);
         $address   = "{$localPart}@{$domain}";
 
         $this->ensureAddressAvailable($address);
@@ -53,6 +55,7 @@ class AliasService
         $alias = Alias::create([
             'address'    => $address,
             'local_part' => $localPart,
+            'domain'     => $domain,
             'type'       => $type,
             'duration'   => $duration,
             'user_id'    => $user->id,
@@ -111,9 +114,9 @@ class AliasService
     /**
      * Suggest an alternative local part if the desired one is taken.
      */
-    public function suggestAlternative(string $localPart): string
+    public function suggestAlternative(string $localPart, ?string $domain = null): string
     {
-        $domain    = config('emailalias.domain');
+        $domain    = $domain ?: Domain::primaryName();
         $candidate = $this->normalizeLocalPart($localPart);
         $i         = 2;
 
@@ -128,9 +131,9 @@ class AliasService
     /**
      * Check if a local part is available (not taken, not soft-deleted).
      */
-    public function isAddressAvailable(string $localPart): bool
+    public function isAddressAvailable(string $localPart, ?string $domain = null): bool
     {
-        $domain  = config('emailalias.domain');
+        $domain  = $domain ?: Domain::primaryName();
         $address = $this->normalizeLocalPart($localPart) . "@{$domain}";
 
         return ! Alias::withTrashed()->where('address', $address)->exists();
@@ -188,9 +191,9 @@ class AliasService
         }
     }
 
-    private function generateUniqueLocalPart(): string
+    private function generateUniqueLocalPart(?string $domain = null): string
     {
-        $domain = config('emailalias.domain');
+        $domain = $domain ?: Domain::primaryName();
 
         do {
             $localPart = Str::lower(Str::random(8));

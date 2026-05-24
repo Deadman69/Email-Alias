@@ -5,8 +5,10 @@ use App\Http\Controllers\Auth\SamlController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Internal\InboundEmailController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\Mailbox\EmailDownloadController;
 use App\Livewire\Admin\AuditLogViewer;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Admin\Domains as AdminDomains;
 use App\Livewire\Admin\Settings as AdminSettings;
 use App\Livewire\Admin\Users as AdminUsers;
 use App\Livewire\Mailbox\Dashboard;
@@ -51,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/mailbox', Dashboard::class)->name('mailbox.dashboard');
     Route::get('/mailbox/{alias}', Inbox::class)->name('mailbox.inbox');
     Route::get('/mailbox/emails/{email}', ViewEmail::class)->name('mailbox.email');
+    Route::get('/mailbox/emails/{email}/download', [EmailDownloadController::class, 'eml'])->name('mailbox.email.download');
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachment.show');
 });
 
@@ -64,6 +67,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 // ── Super Admin panel (platform configuration) ────────────────────────────────
 Route::middleware(['auth', 'verified', 'super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/settings', AdminSettings::class)->name('settings');
+    Route::get('/domains', AdminDomains::class)->name('domains');
 });
 
 require __DIR__ . '/settings.php';

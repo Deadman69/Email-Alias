@@ -27,6 +27,7 @@ class SettingService
         'azure_client_secret',
         'oidc_client_secret',
         'scim_bearer_token',
+        'saml_sp_private_key',
     ];
 
     /**
@@ -71,6 +72,12 @@ class SettingService
         'saml_idp_slo_url'                 => 'emailalias.saml_idp_slo_url',
         'saml_idp_certificate'             => 'emailalias.saml_idp_certificate',
         'saml_sp_entity_id'                => 'emailalias.saml_sp_entity_id',
+        'saml_sp_x509cert'                 => 'emailalias.saml_sp_x509cert',
+        'saml_sp_private_key'              => 'emailalias.saml_sp_private_key',
+        'saml_attr_email'                  => 'emailalias.saml_attr_email',
+        'saml_attr_name'                   => 'emailalias.saml_attr_name',
+        // App logo
+        'app_logo_path'                    => 'emailalias.app_logo_path',
     ];
 
     /**
@@ -81,6 +88,7 @@ class SettingService
         // ── app ──────────────────────────────────────────────────────────────────
         'app_name'                        => ['group' => 'app',      'cast' => 'string',  'default' => 'EmailAlias'],
         'app_locale'                      => ['group' => 'app',      'cast' => 'string',  'default' => 'en'],
+        'app_logo_path'                   => ['group' => 'app',      'cast' => 'string',  'default' => ''],
         'version_check_enabled'           => ['group' => 'app',      'cast' => 'bool',    'default' => true],
         'health_check_visibility'         => ['group' => 'app',      'cast' => 'string',  'default' => 'public'],
 
@@ -104,6 +112,10 @@ class SettingService
         'saml_idp_slo_url'                => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
         'saml_idp_certificate'            => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
         'saml_sp_entity_id'               => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'saml_sp_x509cert'                => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'saml_sp_private_key'             => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'saml_attr_email'                 => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
+        'saml_attr_name'                  => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
 
         // ── security ─────────────────────────────────────────────────────────────
         'two_factor_required'             => ['group' => 'security', 'cast' => 'bool',    'default' => false],

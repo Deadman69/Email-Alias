@@ -93,6 +93,39 @@
                     <flux:description>{{ __('Periodically checks GitHub for a newer release and displays a badge in the admin panel.') }}</flux:description>
                 </flux:field>
 
+                {{-- Logo upload ──────────────────────────────────────────── --}}
+                <flux:separator text="{{ __('Application logo') }}" />
+
+                <div class="space-y-3">
+                    {{-- Current logo preview --}}
+                    @if ($this->logoUrl)
+                        <div class="flex items-center gap-4">
+                            <img src="{{ $this->logoUrl }}" alt="{{ __('Current logo') }}" class="h-12 w-auto rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
+                            <flux:button
+                                size="sm"
+                                variant="ghost"
+                                icon="trash"
+                                wire:click="removeLogo"
+                                class="text-red-500 hover:text-red-600"
+                            >
+                                {{ __('Remove') }}
+                            </flux:button>
+                        </div>
+                    @else
+                        <flux:text class="text-sm text-zinc-400">{{ __('No custom logo — using the built-in icon.') }}</flux:text>
+                    @endif
+
+                    {{-- Upload form (separate submit, not part of main settings save) --}}
+                    <form wire:submit="uploadLogo" class="flex items-start gap-3" enctype="multipart/form-data">
+                        <div class="flex-1">
+                            <flux:input type="file" wire:model="logoFile" accept=".png,.jpg,.jpeg,.webp" />
+                            <flux:error name="logoFile" />
+                            <flux:description>{{ __('PNG, JPG or WebP — max 2 MB. SVG is not accepted.') }}</flux:description>
+                        </div>
+                        <flux:button type="submit" variant="filled" size="sm">{{ __('Upload') }}</flux:button>
+                    </form>
+                </div>
+
                 <flux:field>
                     <flux:label>{{ __('Health check visibility') }}</flux:label>
                     <flux:select wire:model="health_check_visibility" class="max-w-xs">
@@ -209,15 +242,16 @@
 
                     {{-- SAML 2.0 ──────────────────────────────────────────────── --}}
                     @if ($sso_provider === 'saml')
-                        <flux:callout variant="warning" icon="exclamation-triangle">
-                            <flux:callout.heading>{{ __('SAML package required') }}</flux:callout.heading>
+                        <flux:callout variant="success" icon="check-circle">
+                            <flux:callout.heading>{{ __('SAML 2.0 is ready') }}</flux:callout.heading>
                             <flux:callout.text>
-                                {{ __('SAML 2.0 requires') }}
-                                <code class="font-mono text-xs">composer require aacotroneo/laravel-saml2</code>.
                                 {{ __('Your SP metadata is available at') }}
                                 <code class="font-mono text-xs">{{ $this->appUrl }}/auth/saml/metadata</code>.
+                                {{ __('Share this URL with your Identity Provider.') }}
                             </flux:callout.text>
                         </flux:callout>
+
+                        <flux:separator text="{{ __('Identity Provider (IdP)') }}" />
 
                         <flux:field>
                             <flux:label>{{ __('IdP Entity ID') }}</flux:label>
@@ -244,11 +278,43 @@
                             <flux:error name="saml_idp_certificate" />
                         </flux:field>
 
+                        <flux:separator text="{{ __('Service Provider (SP)') }}" />
+
                         <flux:field>
                             <flux:label>{{ __('SP Entity ID') }}</flux:label>
                             <flux:input wire:model="saml_sp_entity_id" :placeholder="$this->appUrl" />
-                            <flux:description>{{ __('Defaults to the application URL if left blank.') }}</flux:description>
+                            <flux:description>{{ __('Defaults to the metadata URL if left blank.') }}</flux:description>
                             <flux:error name="saml_sp_entity_id" />
+                        </flux:field>
+
+                        <flux:field>
+                            <flux:label>{{ __('SP X.509 certificate') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional — for SP signing') }})</span></flux:label>
+                            <flux:textarea wire:model="saml_sp_x509cert" rows="4" placeholder="MIIDXTCCAkWg..." class="font-mono text-xs" />
+                            <flux:description>{{ __('PEM — no header/footer. When both cert and key are set, outgoing SAML requests are signed.') }}</flux:description>
+                            <flux:error name="saml_sp_x509cert" />
+                        </flux:field>
+
+                        <flux:field>
+                            <flux:label>{{ __('SP private key') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional — for SP signing') }})</span></flux:label>
+                            <flux:textarea wire:model="saml_sp_private_key" rows="4" placeholder="{{ __('Leave blank to keep current value') }}" class="font-mono text-xs" />
+                            <flux:description>{{ __('PEM — no header/footer. Stored encrypted in the database.') }}</flux:description>
+                            <flux:error name="saml_sp_private_key" />
+                        </flux:field>
+
+                        <flux:separator text="{{ __('Attribute mapping') }}" />
+
+                        <flux:field>
+                            <flux:label>{{ __('Email attribute') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional') }})</span></flux:label>
+                            <flux:input wire:model="saml_attr_email" placeholder="email" />
+                            <flux:description>{{ __('SAML attribute that contains the user\'s email. Leave blank to use the NameID (recommended for most IdPs).') }}</flux:description>
+                            <flux:error name="saml_attr_email" />
+                        </flux:field>
+
+                        <flux:field>
+                            <flux:label>{{ __('Display name attribute') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional') }})</span></flux:label>
+                            <flux:input wire:model="saml_attr_name" placeholder="displayName" />
+                            <flux:description>{{ __('SAML attribute for the display name. When blank, auto-detects displayName / givenName from common IdP schemas.') }}</flux:description>
+                            <flux:error name="saml_attr_name" />
                         </flux:field>
                     @endif
 

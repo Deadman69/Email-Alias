@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[UseFactory(AliasFactory::class)]
-#[Fillable(['address', 'local_part', 'type', 'duration', 'user_id', 'label', 'expires_at', 'webhook_url'])]
+#[Fillable(['address', 'local_part', 'domain', 'type', 'duration', 'user_id', 'label', 'expires_at', 'webhook_url'])]
 #[Hidden(['webhook_secret'])]
 class Alias extends Model
 {

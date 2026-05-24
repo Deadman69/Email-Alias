@@ -215,6 +215,15 @@
                     </flux:select>
                 @endif
 
+                {{-- Domain selector — only shown when more than one domain is configured --}}
+                @if (count($this->availableDomains) > 1)
+                    <flux:select wire:model.live="selectedDomain" label="{{ __('Domain') }}">
+                        @foreach ($this->availableDomains as $d)
+                            <flux:select.option value="{{ $d }}">{{ $d }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                @endif
+
                 {{-- Address mode — Custom option hidden when disabled by admin --}}
                 @if ($this->allowCustomAddresses)
                     <flux:field>

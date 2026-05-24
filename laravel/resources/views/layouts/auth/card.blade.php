@@ -7,8 +7,18 @@
         <div class="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
             <div class="flex w-full max-w-md flex-col gap-6">
                 <a href="{{ route('home') }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>
+                    @php
+                        $authLogoPath = config('emailalias.app_logo_path', '');
+                        $authLogoUrl  = ($authLogoPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($authLogoPath))
+                            ? \Illuminate\Support\Facades\Storage::disk('public')->url($authLogoPath)
+                            : null;
+                    @endphp
                     <span class="flex h-9 w-9 items-center justify-center rounded-md">
-                        <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
+                        @if ($authLogoUrl)
+                            <img src="{{ $authLogoUrl }}" alt="{{ config('app.name', 'EmailAlias') }}" class="size-9 object-contain" />
+                        @else
+                            <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
+                        @endif
                     </span>
 
                     <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
