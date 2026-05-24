@@ -54,6 +54,24 @@
             >
                 {{ __('Email') }}
             </flux:button>
+
+            <flux:button
+                type="button"
+                wire:click="$set('activeTab', 'domains')"
+                :variant="$activeTab === 'domains' ? 'primary' : 'ghost'"
+                size="sm"
+            >
+                {{ __('Domains') }}
+            </flux:button>
+
+            <flux:button
+                type="button"
+                wire:click="$set('activeTab', 'app-tokens')"
+                :variant="$activeTab === 'app-tokens' ? 'primary' : 'ghost'"
+                size="sm"
+            >
+                {{ __('API Tokens') }}
+            </flux:button>
         </div>
 
         {{-- General --}}
@@ -443,12 +461,225 @@
             </div>
         @endif
 
-        {{-- Save button --}}
+        {{-- Domains --}}
+        @if ($activeTab === 'domains')
+            <div class="space-y-6 pt-4">
+
+                <flux:callout variant="info" icon="information-circle">
+                    <flux:callout.text>{{ __('Domains registered here determine which recipient addresses the SMTP receiver accepts. The primary domain is the default for new aliases.') }}</flux:callout.text>
+                </flux:callout>
+
+                {{-- Add domain form (NOT part of main settings save) --}}
+                <form wire:submit.prevent="addDomain" class="flex items-start gap-3">
+                    <div class="flex-1">
+                        <flux:input
+                            wire:model="newDomain"
+                            placeholder="example.com"
+                            label="{{ __('Add domain') }}"
+                        />
+                        <flux:error name="newDomain" />
+                    </div>
+                    <div class="pt-6">
+                        <flux:button type="submit" variant="primary" size="sm">
+                            {{ __('Add') }}
+                        </flux:button>
+                    </div>
+                </form>
+
+                {{-- Domain list --}}
+                @if ($this->domains->isEmpty())
+                    <flux:text class="text-sm text-zinc-400">
+                        {{ __('No domains configured. The legacy domain from .env is used as fallback.') }}
+                    </flux:text>
+                @else
+                    <div class="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-700 dark:border-zinc-700">
+                        @foreach ($this->domains as $domain)
+                            <div class="flex items-center justify-between gap-4 px-4 py-3">
+                                <div class="flex min-w-0 flex-1 items-center gap-3">
+                                    <span class="truncate font-mono text-sm">{{ $domain->name }}</span>
+
+                                    @if ($domain->is_primary)
+                                        <flux:badge color="green" size="sm">{{ __('Primary') }}</flux:badge>
+                                    @endif
+
+                                    @if (isset($mxResults[$domain->id]))
+                                        @if ($mxResults[$domain->id])
+                                            <flux:badge color="green" size="sm" icon="check-circle">MX OK</flux:badge>
+                                        @else
+                                            <flux:badge color="red" size="sm" icon="x-circle">{{ __('No MX') }}</flux:badge>
+                                        @endif
+                                    @endif
+                                </div>
+
+                                <div class="flex shrink-0 items-center gap-2">
+                                    <flux:button
+                                        size="xs"
+                                        variant="ghost"
+                                        wire:click="checkMx('{{ $domain->id }}')"
+                                        wire:loading.attr="disabled"
+                                        wire:target="checkMx('{{ $domain->id }}')"
+                                    >
+                                        {{ __('Check MX') }}
+                                    </flux:button>
+
+                                    @unless ($domain->is_primary)
+                                        <flux:button
+                                            size="xs"
+                                            variant="ghost"
+                                            wire:click="setPrimary('{{ $domain->id }}')"
+                                        >
+                                            {{ __('Set primary') }}
+                                        </flux:button>
+                                    @endunless
+
+                                    <flux:button
+                                        size="xs"
+                                        variant="ghost"
+                                        icon="trash"
+                                        wire:click="requestDeleteDomain('{{ $domain->id }}')"
+                                        class="text-red-500 hover:text-red-600"
+                                    />
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Delete confirmation modal --}}
+                <flux:modal wire:model="showConfirmDeleteDomain" class="max-w-sm">
+                    <div class="space-y-4">
+                        <flux:heading>{{ __('Remove domain?') }}</flux:heading>
+                        <flux:text>{{ __('Existing aliases using this domain are not deleted but the domain will no longer accept new mail.') }}</flux:text>
+                        <div class="flex justify-end gap-3">
+                            <flux:button variant="ghost" wire:click="$set('showConfirmDeleteDomain', false)">{{ __('Cancel') }}</flux:button>
+                            <flux:button variant="danger" wire:click="deleteDomain">{{ __('Remove') }}</flux:button>
+                        </div>
+                    </div>
+                </flux:modal>
+
+            </div>
+        @endif
+
+        {{-- API Tokens --}}
+        @if ($activeTab === 'app-tokens')
+            <div class="space-y-6 pt-4">
+
+                <flux:callout variant="warning" icon="exclamation-triangle">
+                    <flux:callout.text>{{ __('App tokens grant machine-level access to protected API endpoints. Tokens are shown only once — copy them immediately after creation.') }}</flux:callout.text>
+                </flux:callout>
+
+                {{-- Newly created plain token --}}
+                @if ($showPlainToken && $plainToken)
+                    <flux:callout variant="success" icon="key">
+                        <flux:callout.heading>{{ __('Token created — copy it now') }}</flux:callout.heading>
+                        <flux:callout.text>
+                            <code class="block select-all break-all rounded bg-zinc-100 p-2 font-mono text-sm dark:bg-zinc-800">{{ $plainToken }}</code>
+                        </flux:callout.text>
+                        <flux:button size="xs" variant="ghost" wire:click="dismissPlainToken" class="mt-2">
+                            {{ __('I have copied this token') }}
+                        </flux:button>
+                    </flux:callout>
+                @endif
+
+                {{-- Create token form (NOT part of main settings save) --}}
+                <form wire:submit.prevent="createAppToken" class="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                    <flux:heading size="sm">{{ __('Create new token') }}</flux:heading>
+
+                    <flux:field>
+                        <flux:label>{{ __('Name') }}</flux:label>
+                        <flux:input wire:model="newTokenName" placeholder="{{ __('e.g. SMTP receiver') }}" />
+                        <flux:error name="newTokenName" />
+                    </flux:field>
+
+                    <flux:field>
+                        <flux:label>{{ __('Abilities') }} <span class="text-zinc-400 text-xs ml-1">({{ __('comma-separated') }})</span></flux:label>
+                        <flux:input wire:model="newTokenAbilities" placeholder="read:domains" />
+                        <flux:description>{{ __('Restrict what this token can do. Use * for unrestricted access. Example: read:domains') }}</flux:description>
+                        <flux:error name="newTokenAbilities" />
+                    </flux:field>
+
+                    <flux:field>
+                        <flux:label>{{ __('Expires at') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional') }})</span></flux:label>
+                        <flux:input wire:model="newTokenExpiresAt" type="date" class="max-w-xs" />
+                        <flux:description>{{ __('Leave blank for a non-expiring token.') }}</flux:description>
+                        <flux:error name="newTokenExpiresAt" />
+                    </flux:field>
+
+                    <div class="flex justify-end">
+                        <flux:button type="submit" variant="primary" size="sm">
+                            {{ __('Create token') }}
+                        </flux:button>
+                    </div>
+                </form>
+
+                {{-- Token list --}}
+                @if ($this->appTokens->isEmpty())
+                    <flux:text class="text-sm text-zinc-400">{{ __('No tokens created yet.') }}</flux:text>
+                @else
+                    <div class="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-700 dark:border-zinc-700">
+                        @foreach ($this->appTokens as $token)
+                            <div class="flex items-start justify-between gap-4 px-4 py-3">
+                                <div class="min-w-0 flex-1 space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="truncate font-medium text-sm">{{ $token->name }}</span>
+                                        @if ($token->expires_at?->isPast())
+                                            <flux:badge color="red" size="sm">{{ __('Expired') }}</flux:badge>
+                                        @elseif ($token->expires_at)
+                                            <flux:badge color="yellow" size="sm">{{ __('Expires') }} {{ $token->expires_at->toDateString() }}</flux:badge>
+                                        @else
+                                            <flux:badge color="zinc" size="sm">{{ __('No expiry') }}</flux:badge>
+                                        @endif
+                                    </div>
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach (($token->abilities ?? ['*']) as $ability)
+                                            <flux:badge color="blue" size="sm" class="font-mono">{{ $ability }}</flux:badge>
+                                        @endforeach
+                                    </div>
+                                    <flux:text class="text-xs text-zinc-400">
+                                        {{ __('Created') }} {{ $token->created_at->diffForHumans() }}
+                                        @if ($token->last_used_at)
+                                            · {{ __('Last used') }} {{ $token->last_used_at->diffForHumans() }}
+                                        @else
+                                            · {{ __('Never used') }}
+                                        @endif
+                                    </flux:text>
+                                </div>
+
+                                <flux:button
+                                    size="xs"
+                                    variant="ghost"
+                                    icon="trash"
+                                    wire:click="requestRevokeToken('{{ $token->id }}')"
+                                    class="shrink-0 text-red-500 hover:text-red-600"
+                                />
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Revoke confirmation modal --}}
+                <flux:modal wire:model="showConfirmRevokeToken" class="max-w-sm">
+                    <div class="space-y-4">
+                        <flux:heading>{{ __('Revoke token?') }}</flux:heading>
+                        <flux:text>{{ __('Any service using this token will immediately lose access. This cannot be undone.') }}</flux:text>
+                        <div class="flex justify-end gap-3">
+                            <flux:button variant="ghost" wire:click="$set('showConfirmRevokeToken', false)">{{ __('Cancel') }}</flux:button>
+                            <flux:button variant="danger" wire:click="revokeToken">{{ __('Revoke') }}</flux:button>
+                        </div>
+                    </div>
+                </flux:modal>
+
+            </div>
+        @endif
+
+        {{-- Save button (hidden on tabs that manage their own actions) --}}
+        @if (! in_array($activeTab, ['domains', 'app-tokens']))
         <div class="flex justify-end pt-2">
             <flux:button type="submit" variant="primary">
                 {{ __('Save settings') }}
             </flux:button>
         </div>
+        @endif
 
     </form>
 

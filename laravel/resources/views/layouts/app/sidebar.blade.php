@@ -36,9 +36,6 @@
                             {{ __('Audit log') }}
                         </flux:sidebar.item>
                         @if (auth()->user()?->isSuperAdmin())
-                            <flux:sidebar.item icon="globe-alt" :href="route('admin.domains')" :current="request()->routeIs('admin.domains')" wire:navigate>
-                                {{ __('Domains') }}
-                            </flux:sidebar.item>
                             <flux:sidebar.item icon="cog-6-tooth" :href="route('admin.settings')" :current="request()->routeIs('admin.settings')" wire:navigate>
                                 {{ __('Settings') }}
                             </flux:sidebar.item>

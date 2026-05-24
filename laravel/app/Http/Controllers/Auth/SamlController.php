@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 /**
  * SAML 2.0 Service Provider controller.
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Auth;
  *
  * ── Routes ────────────────────────────────────────────────────────────────────
  * GET  /auth/saml/metadata  → SP metadata XML (share with the IdP)
+ * GET  /auth/saml/error     → Human-readable SSO error page
  * GET  /auth/saml/login     → redirect to IdP SSO URL
  * POST /auth/saml/acs       → Assertion Consumer Service (IdP POST-binding callback)
  * GET  /auth/saml/sls       → Single Logout Service (optional)
@@ -32,16 +34,29 @@ class SamlController extends Controller
      */
     public function metadata(): Response
     {
-        $auth     = $this->buildAuth();
-        $settings = $auth->getSettings();
-        $metadata = $settings->getSPMetadata();
+        try {
+            $auth     = $this->buildAuth();
+            $settings = $auth->getSettings();
+            $metadata = $settings->getSPMetadata();
 
-        $errors = $settings->validateMetadata($metadata);
-        if (! empty($errors)) {
-            abort(500, 'Invalid SP metadata: ' . implode(', ', $errors));
+            $errors = $settings->validateMetadata($metadata);
+            if (! empty($errors)) {
+                abort(500, 'Invalid SP metadata: ' . implode(', ', $errors));
+            }
+
+            return response($metadata, 200, ['Content-Type' => 'text/xml']);
+        } catch (\Throwable $e) {
+            abort(500, 'Could not generate SP metadata: ' . $e->getMessage());
         }
+    }
 
-        return response($metadata, 200, ['Content-Type' => 'text/xml']);
+    /**
+     * Human-readable SAML error page.
+     * Errors are stored in the session by acs() / sls() before redirecting here.
+     */
+    public function error(): View
+    {
+        return view('auth.saml-error');
     }
 
     /**
@@ -49,9 +64,16 @@ class SamlController extends Controller
      */
     public function login(): RedirectResponse
     {
-        $url = $this->buildAuth()->login(route('dashboard'), [], false, false, true);
+        try {
+            $url = $this->buildAuth()->login(route('dashboard'), [], false, false, true);
 
-        return redirect()->away($url);
+            return redirect()->away($url);
+        } catch (\Throwable $e) {
+            return $this->redirectToError(
+                [__('Failed to initiate SSO login: :msg', ['msg' => $e->getMessage()])],
+                $e->getTraceAsString(),
+            );
+        }
     }
 
     /**
@@ -59,20 +81,29 @@ class SamlController extends Controller
      */
     public function acs(Request $request, AuditLogger $auditLogger): RedirectResponse
     {
-        $auth = $this->buildAuth();
-        $auth->processResponse();
+        try {
+            $auth = $this->buildAuth();
+            $auth->processResponse();
+        } catch (\Throwable $e) {
+            return $this->redirectToError(
+                [__('SAML response processing failed: :msg', ['msg' => $e->getMessage()])],
+                $e->getTraceAsString(),
+            );
+        }
 
         $errors = $auth->getErrors();
 
         if (! empty($errors)) {
-            return redirect()->route('login')->withErrors([
-                'email' => __('SAML authentication failed: ') . implode(', ', $errors),
-            ]);
+            $detail = $auth->getLastErrorReason();
+
+            return $this->redirectToError(
+                array_merge($errors, $detail ? [$detail] : []),
+            );
         }
 
         if (! $auth->isAuthenticated()) {
-            return redirect()->route('login')->withErrors([
-                'email' => __('SAML authentication failed: response not authenticated.'),
+            return $this->redirectToError([
+                __('The identity provider did not authenticate you. The response may have expired or the signature is invalid.'),
             ]);
         }
 
@@ -83,6 +114,12 @@ class SamlController extends Controller
         $email     = ($emailAttr && isset($attrs[$emailAttr][0]))
             ? $attrs[$emailAttr][0]
             : $auth->getNameId(); // fallback: NameID is usually the email
+
+        if (empty($email)) {
+            return $this->redirectToError([
+                __('The identity provider did not return an email address. Check your attribute mapping configuration.'),
+            ]);
+        }
 
         // ── Display name resolution ───────────────────────────────────────────
         $nameAttr = (string) config('emailalias.saml_attr_name', '');
@@ -103,17 +140,24 @@ class SamlController extends Controller
      */
     public function sls(AuditLogger $auditLogger): RedirectResponse
     {
-        $auth = $this->buildAuth();
+        try {
+            $auth = $this->buildAuth();
 
-        $auth->processSLO(false, null, false, function () use ($auditLogger): void {
-            $auditLogger->log(AuditEvent::UserLogout, Auth::user());
-            Auth::logout();
-        });
+            $auth->processSLO(false, null, false, function () use ($auditLogger): void {
+                $auditLogger->log(AuditEvent::UserLogout, Auth::user());
+                Auth::logout();
+            });
+        } catch (\Throwable $e) {
+            return $this->redirectToError(
+                [__('Single Logout Service failed: :msg', ['msg' => $e->getMessage()])],
+                $e->getTraceAsString(),
+            );
+        }
 
         $errors = $auth->getErrors();
 
         if (! empty($errors)) {
-            return redirect('/')->withErrors(['saml' => implode(', ', $errors)]);
+            return $this->redirectToError($errors);
         }
 
         return redirect('/');
@@ -132,8 +176,8 @@ class SamlController extends Controller
 
         if ($user) {
             if (! ($user->is_active ?? true)) {
-                return redirect()->route('login')->withErrors([
-                    'email' => __('Your account has been deactivated.'),
+                return $this->redirectToError([
+                    __('Your account has been deactivated. Contact your administrator.'),
                 ]);
             }
 
@@ -162,6 +206,20 @@ class SamlController extends Controller
         return redirect()->intended(route('mailbox.dashboard'));
     }
 
+    /**
+     * Redirect to the readable SAML error page with the given errors stored in flash.
+     */
+    private function redirectToError(array $errors, ?string $debug = null): RedirectResponse
+    {
+        $redirect = redirect()->route('saml.error')->with('saml_errors', $errors);
+
+        if ($debug !== null) {
+            $redirect = $redirect->with('saml_debug', $debug);
+        }
+
+        return $redirect;
+    }
+
     // ── Auth builder ──────────────────────────────────────────────────────────────
 
     /**
@@ -178,8 +236,8 @@ class SamlController extends Controller
         $hasSp  = $spCert !== '' && $spKey !== '';
 
         return new \OneLogin\Saml2\Auth([
-            'strict' => app()->isProduction(),
-            'debug'  => (bool) config('app.debug'),
+            'strict'  => app()->isProduction(),
+            'debug'   => (bool) config('app.debug'),
             'baseurl' => config('app.url'),
 
             'sp' => [
@@ -212,17 +270,17 @@ class SamlController extends Controller
 
             'security' => [
                 // Signing is enabled only when the SP cert + key are both configured.
-                'authnRequestsSigned'   => $hasSp,
-                'logoutRequestSigned'   => $hasSp,
-                'logoutResponseSigned'  => $hasSp,
-                'signMetadata'          => $hasSp,
-                'wantMessagesSigned'    => false,
-                'wantAssertionsSigned'  => true,
-                'wantNameId'            => true,
-                'wantNameIdEncrypted'   => false,
+                'authnRequestsSigned'    => $hasSp,
+                'logoutRequestSigned'    => $hasSp,
+                'logoutResponseSigned'   => $hasSp,
+                'signMetadata'           => $hasSp,
+                'wantMessagesSigned'     => false,
+                'wantAssertionsSigned'   => true,
+                'wantNameId'             => true,
+                'wantNameIdEncrypted'    => false,
                 'wantAssertionsEncrypted' => false,
-                'signatureAlgorithm'    => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
-                'digestAlgorithm'       => 'http://www.w3.org/2001/04/xmlenc#sha256',
+                'signatureAlgorithm'     => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+                'digestAlgorithm'        => 'http://www.w3.org/2001/04/xmlenc#sha256',
             ],
         ]);
     }

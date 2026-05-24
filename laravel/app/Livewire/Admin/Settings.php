@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\AuditEvent;
+use App\Models\AppToken;
+use App\Models\Domain;
 use App\Services\AuditLogger;
 use App\Services\SettingService;
 use Flux\Flux;
@@ -10,7 +12,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -76,6 +80,34 @@ class Settings extends Component
     public int  $cleanup_retention_days       = 7;
     public int  $audit_log_retention_days     = 365;
     public bool $admin_can_read_emails        = false;
+
+    // ── Domains ───────────────────────────────────────────────────────────────────
+
+    #[Validate('required|string|max:253|regex:/^([a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i')]
+    public string $newDomain = '';
+
+    public bool $showConfirmDeleteDomain = false;
+
+    #[Locked]
+    public string $pendingDeleteDomainId = '';
+
+    /** Keyed by domain ULID — true = MX OK, false = no MX record found */
+    public array $mxResults = [];
+
+    // ── App Tokens ────────────────────────────────────────────────────────────────
+
+    public string $newTokenName      = '';
+    public string $newTokenAbilities = 'read:domains';   // comma-separated
+    public string $newTokenExpiresAt = '';               // YYYY-MM-DD or empty
+
+    /** Plain token shown once after creation — cleared on tab change or page reload */
+    public string $plainToken        = '';
+    public bool   $showPlainToken    = false;
+
+    public bool   $showConfirmRevokeToken = false;
+
+    #[Locked]
+    public string $pendingRevokeTokenId = '';
 
     // ── Active tab ────────────────────────────────────────────────────────────────
     public string $activeTab = 'general';
@@ -346,5 +378,151 @@ class Settings extends Component
         ]);
 
         Flux::toast(variant: 'success', text: __('Settings saved.'));
+    }
+
+    // ── Domain computed + actions ─────────────────────────────────────────────────
+
+    #[Computed]
+    public function domains(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Domain::orderByDesc('is_primary')->orderBy('name')->get();
+    }
+
+    public function addDomain(): void
+    {
+        $this->validateOnly('newDomain');
+
+        $name = mb_strtolower(trim($this->newDomain));
+
+        if (Domain::where('name', $name)->exists()) {
+            $this->addError('newDomain', __('This domain is already registered.'));
+            return;
+        }
+
+        // First domain automatically becomes primary.
+        $isPrimary = Domain::count() === 0;
+
+        Domain::create(['name' => $name, 'is_primary' => $isPrimary]);
+
+        $this->reset('newDomain');
+        unset($this->domains);
+
+        Flux::toast(variant: 'success', text: __('Domain added.'));
+    }
+
+    public function setPrimary(string $domainId): void
+    {
+        Domain::query()->update(['is_primary' => false]);
+        Domain::findOrFail($domainId)->update(['is_primary' => true]);
+
+        unset($this->domains);
+
+        Flux::toast(variant: 'success', text: __('Primary domain updated.'));
+    }
+
+    public function checkMx(string $domainId): void
+    {
+        $domain = Domain::findOrFail($domainId);
+        $this->mxResults[$domainId] = $domain->checkMx();
+    }
+
+    public function requestDeleteDomain(string $domainId): void
+    {
+        $this->pendingDeleteDomainId = $domainId;
+        $this->showConfirmDeleteDomain = true;
+    }
+
+    public function deleteDomain(): void
+    {
+        if (! $this->pendingDeleteDomainId) {
+            return;
+        }
+
+        $domain = Domain::findOrFail($this->pendingDeleteDomainId);
+
+        // Promote next domain to primary when deleting the current primary.
+        if ($domain->is_primary) {
+            $next = Domain::where('id', '!=', $domain->id)->orderBy('name')->first();
+            if ($next) {
+                $next->update(['is_primary' => true]);
+            }
+        }
+
+        $domain->delete();
+
+        $this->pendingDeleteDomainId = '';
+        $this->showConfirmDeleteDomain = false;
+        unset($this->domains);
+
+        Flux::toast(variant: 'success', text: __('Domain removed.'));
+    }
+
+    // ── App Token computed + actions ──────────────────────────────────────────────
+
+    #[Computed]
+    public function appTokens(): \Illuminate\Database\Eloquent\Collection
+    {
+        return AppToken::orderByDesc('created_at')->get();
+    }
+
+    public function createAppToken(): void
+    {
+        $this->validate([
+            'newTokenName'      => 'required|string|max:100',
+            'newTokenAbilities' => 'nullable|string|max:500',
+            'newTokenExpiresAt' => 'nullable|date|after:today',
+        ]);
+
+        $abilities = array_values(array_filter(
+            array_map('trim', explode(',', $this->newTokenAbilities ?: ''))
+        ));
+
+        $expiresAt = $this->newTokenExpiresAt
+            ? \Carbon\Carbon::parse($this->newTokenExpiresAt)->endOfDay()
+            : null;
+
+        ['token' => $appToken, 'plain' => $plain] = AppToken::make(
+            $this->newTokenName,
+            $abilities ?: null,
+            $expiresAt,
+        );
+
+        $appToken->save();
+
+        $this->plainToken     = $plain;
+        $this->showPlainToken = true;
+
+        $this->reset('newTokenName', 'newTokenAbilities', 'newTokenExpiresAt');
+        $this->newTokenAbilities = 'read:domains';
+        unset($this->appTokens);
+
+        Flux::toast(variant: 'success', text: __('Token created — copy it now, it will not be shown again.'));
+    }
+
+    public function dismissPlainToken(): void
+    {
+        $this->plainToken     = '';
+        $this->showPlainToken = false;
+    }
+
+    public function requestRevokeToken(string $tokenId): void
+    {
+        $this->pendingRevokeTokenId = $tokenId;
+        $this->showConfirmRevokeToken = true;
+    }
+
+    public function revokeToken(): void
+    {
+        if (! $this->pendingRevokeTokenId) {
+            return;
+        }
+
+        AppToken::findOrFail($this->pendingRevokeTokenId)->delete();
+
+        $this->pendingRevokeTokenId   = '';
+        $this->showConfirmRevokeToken = false;
+        unset($this->appTokens);
+
+        Flux::toast(variant: 'success', text: __('Token revoked.'));
     }
 }

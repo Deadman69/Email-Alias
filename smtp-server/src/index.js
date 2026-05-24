@@ -8,6 +8,7 @@ import { createServer as createHttpServer } from 'http';
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const LARAVEL_INBOUND_URL  = process.env.LARAVEL_INBOUND_URL  || 'http://app:9000/internal/inbound';
+const LARAVEL_DOMAINS_URL  = process.env.LARAVEL_DOMAINS_URL  || 'http://app:9000/internal/domains';
 const SMTP_INTERNAL_SECRET = process.env.SMTP_INTERNAL_SECRET || '';
 const PORT                 = parseInt(process.env.SMTP_PORT   || '25', 10);
 const HEALTH_PORT          = parseInt(process.env.HEALTH_PORT || '8025', 10);
@@ -15,13 +16,8 @@ const MAX_CLIENTS          = parseInt(process.env.MAX_CLIENTS || '100', 10);
 const MAX_MESSAGE_SIZE     = 25 * 1024 * 1024;  // 25 MB SMTP-level cap
 const MAX_ATTACHMENT_SIZE  =  5 * 1024 * 1024;  // 5 MB per attachment in payload
 
-// Allowed recipient domains — comma-separated env var.
-// When set, any RCPT TO pointing to a different domain is rejected immediately.
-// Leave empty to accept all domains (not recommended in production).
-const ALLOWED_DOMAINS = (process.env.SMTP_ALLOWED_DOMAIN || '')
-  .split(',')
-  .map(d => d.trim().toLowerCase())
-  .filter(Boolean);
+// Domain refresh interval in ms (default: 5 minutes).
+const DOMAIN_REFRESH_MS = parseInt(process.env.DOMAIN_REFRESH_MS || String(5 * 60 * 1000), 10);
 
 // ── Startup validation ────────────────────────────────────────────────────────
 
@@ -32,14 +28,6 @@ if (!SMTP_INTERNAL_SECRET && process.env.NODE_ENV === 'production') {
     message: 'SMTP_INTERNAL_SECRET is not set. All forwards to Laravel will be rejected with 403. Aborting.',
   }) + '\n');
   process.exit(1);
-}
-
-if (ALLOWED_DOMAINS.length === 0) {
-  process.stderr.write(JSON.stringify({
-    level: 'warn',
-    ts: new Date().toISOString(),
-    message: 'SMTP_ALLOWED_DOMAIN is not set — accepting RCPT TO for any domain (open relay).',
-  }) + '\n');
 }
 
 // ── Logging ───────────────────────────────────────────────────────────────────
@@ -55,7 +43,60 @@ const counters = {
   emails_forwarded_total: 0,
   emails_failed_total:    0,
   rcpt_rejected_total:    0,
+  domain_refresh_total:   0,
+  domain_refresh_failed:  0,
 };
+
+// ── Domain management ─────────────────────────────────────────────────────────
+
+/**
+ * Mutable set of allowed recipient domains.
+ *
+ * Seeded from SMTP_ALLOWED_DOMAIN (env, comma-separated) as a fallback and
+ * then overwritten/merged by the Laravel API on startup and every
+ * DOMAIN_REFRESH_MS milliseconds.
+ *
+ * When the set is empty, all domains are accepted (open relay — dev only).
+ */
+let allowedDomains = new Set(
+  (process.env.SMTP_ALLOWED_DOMAIN || '')
+    .split(',')
+    .map(d => d.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+/**
+ * Fetch the current domain list from Laravel and update allowedDomains.
+ * Falls back silently to the current in-memory list on error.
+ */
+async function refreshDomains() {
+  try {
+    const res = await fetch(LARAVEL_DOMAINS_URL, {
+      headers: { 'X-SMTP-Secret': SMTP_INTERNAL_SECRET },
+      signal:  AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) {
+      log('warn', 'domain_refresh_non_ok', { status: res.status });
+      counters.domain_refresh_failed++;
+      return;
+    }
+
+    const data = await res.json();
+    const domains = (data.domains || []).map(d => String(d).toLowerCase().trim()).filter(Boolean);
+
+    if (domains.length > 0) {
+      allowedDomains = new Set(domains);
+      counters.domain_refresh_total++;
+      log('info', 'domain_refresh_ok', { domains });
+    } else {
+      log('warn', 'domain_refresh_empty', { message: 'Laravel returned an empty domain list — keeping current list.' });
+    }
+  } catch (err) {
+    counters.domain_refresh_failed++;
+    log('warn', 'domain_refresh_error', { err: err.message });
+  }
+}
 
 // ── Attachment serializer ─────────────────────────────────────────────────────
 
@@ -153,15 +194,15 @@ const server = new SMTPServer({
   maxClients:       MAX_CLIENTS,
 
   onRcptTo(address, session, callback) {
-    if (ALLOWED_DOMAINS.length > 0) {
+    if (allowedDomains.size > 0) {
       const domain = address.address.split('@')[1]?.toLowerCase();
 
-      if (!domain || !ALLOWED_DOMAINS.includes(domain)) {
+      if (!domain || !allowedDomains.has(domain)) {
         counters.rcpt_rejected_total++;
         log('warn', 'rcpt_rejected', {
           address:  address.address,
           domain,
-          allowed:  ALLOWED_DOMAINS,
+          allowed:  [...allowedDomains],
           remoteIp: session.remoteAddress,
         });
         return callback(new Error('Recipient address rejected'));
@@ -205,12 +246,29 @@ const server = new SMTPServer({
   },
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+// ── Startup + periodic domain refresh ────────────────────────────────────────
+
+server.listen(PORT, '0.0.0.0', async () => {
   log('info', 'smtp_server_listening', {
     port:           PORT,
     maxClients:     MAX_CLIENTS,
-    allowedDomains: ALLOWED_DOMAINS.length > 0 ? ALLOWED_DOMAINS : '*',
+    allowedDomains: allowedDomains.size > 0 ? [...allowedDomains] : '*',
   });
+
+  // Fetch domains from Laravel on startup.
+  // A short delay lets Laravel finish booting in slow environments.
+  setTimeout(async () => {
+    log('info', 'domain_refresh_startup');
+    await refreshDomains();
+
+    if (allowedDomains.size === 0) {
+      log('warn', 'no_allowed_domains',
+        { message: 'No domains configured — accepting RCPT TO for any domain (open relay).' });
+    }
+  }, 3_000);
+
+  // Refresh every DOMAIN_REFRESH_MS (default 5 min) without restart.
+  setInterval(refreshDomains, DOMAIN_REFRESH_MS);
 });
 
 // ── Health-check + metrics HTTP endpoint ─────────────────────────────────────
@@ -220,7 +278,11 @@ const healthServer = createHttpServer((req, res) => {
 
   if (url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', smtpPort: PORT }));
+    res.end(JSON.stringify({
+      status:         'ok',
+      smtpPort:       PORT,
+      allowedDomains: allowedDomains.size > 0 ? [...allowedDomains] : null,
+    }));
     return;
   }
 

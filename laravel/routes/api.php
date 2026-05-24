@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AliasController;
 use App\Http\Controllers\Api\V1\AttachmentController;
+use App\Http\Controllers\Api\V1\DomainsController;
 use App\Http\Controllers\Api\V1\EmailController;
 use App\Http\Controllers\Api\V1\Admin\AliasController as AdminAliasController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
@@ -12,6 +13,11 @@ use Illuminate\Support\Facades\Route;
 // ── Health check (outside auth:sanctum — visibility handled by middleware) ────
 Route::prefix('v1')->middleware(['throttle:api', 'health.access'])->group(function (): void {
     Route::get('health', HealthController::class)->name('api.health');
+});
+
+// ── App-token–protected endpoints (machine / server-to-server) ───────────────
+Route::prefix('v1')->middleware(['throttle:api', 'app.token:read:domains'])->group(function (): void {
+    Route::get('domains', [DomainsController::class, 'index'])->name('api.domains.index');
 });
 
 Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
