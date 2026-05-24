@@ -124,6 +124,28 @@ class HealthController extends Controller
             return ['status' => 'ok', 'latency_ms' => $ms];
         }
 
-        return ['status' => 'error', 'error' => "{$errstr} ({$errno})"];
+        return ['status' => 'error', 'error' => $this->formatSocketError($errno, $errstr)];
+    }
+
+    /**
+     * Format the PHP default error to a more human readable string
+     */
+    private function formatSocketError(int $errno, string $errstr): string
+    {
+        $message = strtolower($errstr);
+        $friendly = match (true) {
+            str_contains($message, 'getaddrinfo') => __('Unknown host'),
+            str_contains($message, 'connection refused') => __('Connection refused'),
+            str_contains($message, 'timed out') => __('Connection timed out'),
+            str_contains($message, 'no route to host') => __('No route to host'),
+
+            default => __('Service unreachable'),
+        };
+
+        if (config('app.debug')) {
+            return "{$friendly} — {$errstr} ({$errno})";
+        }
+
+        return $friendly;
     }
 }

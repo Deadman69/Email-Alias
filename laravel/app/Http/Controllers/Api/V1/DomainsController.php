@@ -16,6 +16,9 @@ use Illuminate\Http\JsonResponse;
  */
 class DomainsController extends Controller
 {
+    /**
+     * List all available domains.
+     */
     public function index(): JsonResponse
     {
         $domains = Domain::orderByDesc('is_primary')->orderBy('name')->get(['name', 'is_primary']);
