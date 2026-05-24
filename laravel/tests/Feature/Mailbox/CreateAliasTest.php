@@ -49,8 +49,8 @@ it('can create a custom alias', function () {
 });
 
 it('rejects a duplicate custom alias and suggests an alternative', function () {
-    $domain = config('emailalias.domain');
-    Alias::factory()->create(['address' => "taken@{$domain}", 'local_part' => 'taken', 'user_id' => $this->user->id]);
+    $domain = \App\Models\Domain::where('is_primary', true)->value('name') ?? 'test.local';
+    Alias::factory()->create(['address' => "taken@{$domain}", 'local_part' => 'taken', 'domain' => $domain, 'user_id' => $this->user->id]);
 
     $component = Livewire::actingAs($this->user)
         ->test(Dashboard::class)

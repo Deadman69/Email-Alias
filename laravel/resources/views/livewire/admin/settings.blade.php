@@ -546,13 +546,32 @@
                 @endif
 
                 {{-- Delete confirmation modal --}}
-                <flux:modal wire:model="showConfirmDeleteDomain" class="max-w-sm">
+                <flux:modal wire:model="showConfirmDeleteDomain" class="max-w-md">
                     <div class="space-y-4">
                         <flux:heading>{{ __('Remove domain?') }}</flux:heading>
-                        <flux:text>{{ __('Existing aliases using this domain are not deleted but the domain will no longer accept new mail.') }}</flux:text>
+                        <flux:text>{{ __('What should happen to aliases that use this domain?') }}</flux:text>
+
+                        <div class="space-y-2">
+                            <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700 @if($deleteDomainMode === 'keep') ring-2 ring-blue-500 @endif">
+                                <input type="radio" wire:model.live="deleteDomainMode" value="keep" class="mt-0.5" />
+                                <div>
+                                    <div class="font-medium text-sm">{{ __('Keep aliases') }}</div>
+                                    <div class="text-xs text-zinc-500">{{ __('Aliases remain active and will keep receiving mail. The domain will no longer appear in the domain selector for new aliases.') }}</div>
+                                </div>
+                            </label>
+
+                            <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-red-200 p-3 dark:border-red-800 @if($deleteDomainMode === 'cascade') ring-2 ring-red-500 @endif">
+                                <input type="radio" wire:model.live="deleteDomainMode" value="cascade" class="mt-0.5" />
+                                <div>
+                                    <div class="font-medium text-sm text-red-600 dark:text-red-400">{{ __('Delete all associated aliases') }}</div>
+                                    <div class="text-xs text-zinc-500">{{ __('All aliases using this domain and their emails will be permanently deleted. This cannot be undone.') }}</div>
+                                </div>
+                            </label>
+                        </div>
+
                         <div class="flex justify-end gap-3">
                             <flux:button variant="ghost" wire:click="$set('showConfirmDeleteDomain', false)">{{ __('Cancel') }}</flux:button>
-                            <flux:button variant="danger" wire:click="deleteDomain">{{ __('Remove') }}</flux:button>
+                            <flux:button variant="danger" wire:click="deleteDomain">{{ __('Remove domain') }}</flux:button>
                         </div>
                     </div>
                 </flux:modal>

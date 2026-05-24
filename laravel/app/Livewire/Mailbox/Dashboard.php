@@ -112,9 +112,9 @@ class Dashboard extends Component
         return Domain::allNames();
     }
 
-    /** The domain currently selected for alias creation. */
+    /** The domain currently selected for alias creation. Null when none is configured. */
     #[Computed]
-    public function domain(): string
+    public function domain(): ?string
     {
         $domains = $this->availableDomains;
 
@@ -122,7 +122,7 @@ class Dashboard extends Component
             return $this->selectedDomain;
         }
 
-        return $domains[0] ?? config('emailalias.domain', 'example.com');
+        return $domains[0] ?? null; // null when no domains configured — creation will surface a clear error
     }
 
     /**

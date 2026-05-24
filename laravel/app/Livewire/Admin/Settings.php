@@ -86,7 +86,9 @@ class Settings extends Component
     #[Validate('required|string|max:253|regex:/^([a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i')]
     public string $newDomain = '';
 
-    public bool $showConfirmDeleteDomain = false;
+    public bool   $showConfirmDeleteDomain = false;
+    /** 'keep' = null out domain_id on aliases | 'cascade' = delete associated aliases */
+    public string $deleteDomainMode = 'keep';
 
     #[Locked]
     public string $pendingDeleteDomainId = '';
@@ -429,6 +431,7 @@ class Settings extends Component
     public function requestDeleteDomain(string $domainId): void
     {
         $this->pendingDeleteDomainId = $domainId;
+        $this->deleteDomainMode      = 'keep';
         $this->showConfirmDeleteDomain = true;
     }
 
@@ -438,9 +441,22 @@ class Settings extends Component
             return;
         }
 
+        $this->validate([
+            'deleteDomainMode' => 'required|in:keep,cascade',
+        ]);
+
         $domain = Domain::findOrFail($this->pendingDeleteDomainId);
 
-        // Promote next domain to primary when deleting the current primary.
+        if ($this->deleteDomainMode === 'cascade') {
+            // Hard-delete all aliases that belong to this domain.
+            // The Alias booted() hook will cascade to emails + attachments.
+            $domain->aliases()->each(fn ($alias) => $alias->forceDelete());
+        }
+        // 'keep': the DB FK is ON DELETE SET NULL — domain_id becomes null automatically.
+        // The alias's `domain` string column still holds the original domain name
+        // so the SMTP receiver can keep routing mail for those aliases.
+
+        // Promote the next domain to primary when deleting the current primary.
         if ($domain->is_primary) {
             $next = Domain::where('id', '!=', $domain->id)->orderBy('name')->first();
             if ($next) {
@@ -450,11 +466,15 @@ class Settings extends Component
 
         $domain->delete();
 
-        $this->pendingDeleteDomainId = '';
+        $this->pendingDeleteDomainId   = '';
         $this->showConfirmDeleteDomain = false;
         unset($this->domains);
 
-        Flux::toast(variant: 'success', text: __('Domain removed.'));
+        $msg = $this->deleteDomainMode === 'cascade'
+            ? __('Domain and all associated aliases removed.')
+            : __('Domain removed. Existing aliases were kept.');
+
+        Flux::toast(variant: 'success', text: $msg);
     }
 
     // ── App Token computed + actions ──────────────────────────────────────────────

@@ -19,6 +19,11 @@ const MAX_ATTACHMENT_SIZE  =  5 * 1024 * 1024;  // 5 MB per attachment in payloa
 // Domain refresh interval in ms (default: 5 minutes).
 const DOMAIN_REFRESH_MS = parseInt(process.env.DOMAIN_REFRESH_MS || String(5 * 60 * 1000), 10);
 
+// IMPORTANT: there is intentionally NO SMTP_ALLOWED_DOMAIN env-var fallback.
+// Domains are exclusively managed through the platform's Settings → Domains UI
+// and fetched from Laravel via /internal/domains on startup + every DOMAIN_REFRESH_MS.
+// An empty allowed-domain set means "no domains configured yet" → reject all RCPT TO.
+
 // ── Startup validation ────────────────────────────────────────────────────────
 
 if (!SMTP_INTERNAL_SECRET && process.env.NODE_ENV === 'production') {
@@ -52,18 +57,14 @@ const counters = {
 /**
  * Mutable set of allowed recipient domains.
  *
- * Seeded from SMTP_ALLOWED_DOMAIN (env, comma-separated) as a fallback and
- * then overwritten/merged by the Laravel API on startup and every
- * DOMAIN_REFRESH_MS milliseconds.
+ * Populated exclusively from the Laravel /internal/domains API on startup
+ * and refreshed every DOMAIN_REFRESH_MS milliseconds.
  *
- * When the set is empty, all domains are accepted (open relay — dev only).
+ * When the set is empty (no domains configured or refresh not yet complete)
+ * ALL RCPT TO commands are rejected — this is intentional fail-closed behavior.
+ * There is no open-relay fallback.
  */
-let allowedDomains = new Set(
-  (process.env.SMTP_ALLOWED_DOMAIN || '')
-    .split(',')
-    .map(d => d.trim().toLowerCase())
-    .filter(Boolean)
-);
+let allowedDomains = new Set();
 
 /**
  * Fetch the current domain list from Laravel and update allowedDomains.
@@ -194,19 +195,17 @@ const server = new SMTPServer({
   maxClients:       MAX_CLIENTS,
 
   onRcptTo(address, session, callback) {
-    if (allowedDomains.size > 0) {
-      const domain = address.address.split('@')[1]?.toLowerCase();
+    const domain = address.address.split('@')[1]?.toLowerCase();
 
-      if (!domain || !allowedDomains.has(domain)) {
-        counters.rcpt_rejected_total++;
-        log('warn', 'rcpt_rejected', {
-          address:  address.address,
-          domain,
-          allowed:  [...allowedDomains],
-          remoteIp: session.remoteAddress,
-        });
-        return callback(new Error('Recipient address rejected'));
-      }
+    if (!domain || allowedDomains.size === 0 || !allowedDomains.has(domain)) {
+      counters.rcpt_rejected_total++;
+      log('warn', 'rcpt_rejected', {
+        address:  address.address,
+        domain,
+        reason:   allowedDomains.size === 0 ? 'no_domains_configured' : 'domain_not_allowed',
+        remoteIp: session.remoteAddress,
+      });
+      return callback(new Error('Recipient address rejected'));
     }
 
     log('debug', 'rcpt_to', { address: address.address });
@@ -263,7 +262,7 @@ server.listen(PORT, '0.0.0.0', async () => {
 
     if (allowedDomains.size === 0) {
       log('warn', 'no_allowed_domains',
-        { message: 'No domains configured — accepting RCPT TO for any domain (open relay).' });
+        { message: 'No domains configured — all RCPT TO will be rejected until a domain is added via Settings → Domains.' });
     }
   }, 3_000);
 

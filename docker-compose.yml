@@ -42,8 +42,8 @@ services:
       # HTTP→FastCGI proxying; smtp-server needs to be on the web network to reach it.
       - LARAVEL_INBOUND_URL=${APP_URL}/internal/inbound
       - SMTP_INTERNAL_SECRET=${SMTP_INTERNAL_SECRET}
-      - SMTP_ALLOWED_DOMAIN=${SMTP_ALLOWED_DOMAIN:-}
       - NODE_ENV=production
+      # Allowed domains are fetched dynamically from Laravel — no static env var needed.
     depends_on:
       - app
     networks:

@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\AliasType;
 use App\Models\Alias;
+use App\Models\Domain;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -18,12 +19,20 @@ class AliasFactory extends Factory
      */
     public function definition(): array
     {
-        $domain = config('emailalias.domain', 'example.com');
+        // Use the primary domain or create a fallback test domain.
+        $domain = Domain::where('is_primary', true)->first()
+            ?? Domain::firstOrCreate(
+                ['name' => 'test.local'],
+                ['is_primary' => true],
+            );
+
         $localPart = Str::lower(fake()->unique()->lexify('????-????'));
 
         return [
-            'address'    => "{$localPart}@{$domain}",
+            'address'    => "{$localPart}@{$domain->name}",
             'local_part' => $localPart,
+            'domain'     => $domain->name,
+            'domain_id'  => $domain->id,
             'type'       => AliasType::Permanent,
             'user_id'    => User::factory(),
             'expires_at' => null,

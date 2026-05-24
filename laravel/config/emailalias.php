@@ -2,13 +2,6 @@
 
 return [
     /*
-     * The domain used for generated email addresses (legacy fallback).
-     * When domains are configured in the database this value is superseded.
-     * MX records must point to this server.
-     */
-    'domain' => env('APP_DOMAIN', 'example.com'),
-
-    /*
      * Custom application logo.
      * Path relative to the 'public' storage disk (e.g. "logos/logo.png").
      * When empty the default built-in SVG icon is used.

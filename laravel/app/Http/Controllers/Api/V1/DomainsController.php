@@ -20,15 +20,12 @@ class DomainsController extends Controller
     {
         $domains = Domain::orderByDesc('is_primary')->orderBy('name')->get(['name', 'is_primary']);
 
-        $legacy = (string) config('emailalias.domain', '');
-
         return response()->json([
             'domains'    => $domains->map(fn ($d) => [
                 'name'       => $d->name,
                 'is_primary' => (bool) $d->is_primary,
             ])->values(),
-            'legacy_domain' => $legacy ?: null,
-            'updated_at'    => now()->toIso8601String(),
+            'updated_at' => now()->toIso8601String(),
         ]);
     }
 }

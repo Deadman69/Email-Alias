@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[UseFactory(AliasFactory::class)]
-#[Fillable(['address', 'local_part', 'domain', 'type', 'duration', 'user_id', 'label', 'expires_at', 'webhook_url'])]
+#[Fillable(['address', 'local_part', 'domain', 'domain_id', 'type', 'duration', 'user_id', 'label', 'expires_at', 'webhook_url'])]
 #[Hidden(['webhook_secret'])]
 class Alias extends Model
 {
@@ -120,6 +120,16 @@ class Alias extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The Domain record this alias belongs to.
+     * Null when the domain was deleted but the alias was kept (domain_id is null).
+     * Use $alias->domain (string) for the actual domain name in all cases.
+     */
+    public function domainRecord(): BelongsTo
+    {
+        return $this->belongsTo(Domain::class, 'domain_id');
     }
 
     public function inboundEmails(): HasMany

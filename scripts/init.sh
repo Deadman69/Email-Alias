@@ -47,7 +47,7 @@ docker compose exec app php artisan admin:create
 
 echo ""
 echo "✓ EmailAlias est prêt !"
-echo "  App    : http://localhost:8000 (dev) ou https://${APP_DOMAIN}"
+echo "  App    : ${APP_URL:-http://localhost:8000}"
 echo "  BDD    : localhost:5432 (dev)"
 echo ""
 echo "  MX record à configurer : pointez votre domaine vers cette machine (port 25)"

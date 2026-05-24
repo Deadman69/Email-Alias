@@ -27,9 +27,9 @@ Minimum `.env` values for local development:
 
 ```env
 APP_URL=http://localhost:8000
-APP_DOMAIN=dev.local              # Fictional domain — no DNS needed
 SMTP_INTERNAL_SECRET=changeme_smtp_secret   # Must match between smtp-server and Laravel
 DB_PASSWORD=localpassword
+# Domains are managed through Settings → Domains in the web UI (no env var needed)
 ```
 
 Install dependencies:

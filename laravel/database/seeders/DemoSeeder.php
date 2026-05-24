@@ -8,6 +8,7 @@ use App\Enums\Role;
 use App\Models\Alias;
 use App\Models\AliasShare;
 use App\Models\AuditLog;
+use App\Models\Domain;
 use App\Models\InboundEmail;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -17,7 +18,12 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $domain = config('emailalias.domain', 'dev.local');
+        // ── Domain ────────────────────────────────────────────────────────────
+        $domainRecord = Domain::firstOrCreate(
+            ['name' => 'dev.local'],
+            ['is_primary' => true],
+        );
+        $domain = $domainRecord->name;
 
         // ── Users ─────────────────────────────────────────────────────────────
         $admin = User::firstOrCreate(
@@ -45,6 +51,8 @@ class DemoSeeder extends Seeder
             ['address' => "session-test@{$domain}"],
             [
                 'local_part' => 'session-test',
+                'domain'     => $domain,
+                'domain_id'  => $domainRecord->id,
                 'type'       => AliasType::Session,
                 'user_id'    => $dev->id,
                 'expires_at' => now()->addHours(2),
@@ -55,6 +63,8 @@ class DemoSeeder extends Seeder
             ['address' => "paul-projet@{$domain}"],
             [
                 'local_part' => 'paul-projet',
+                'domain'     => $domain,
+                'domain_id'  => $domainRecord->id,
                 'type'       => AliasType::Duration,
                 'duration'   => '7d',
                 'label'      => 'Projet Alpha',
@@ -67,6 +77,8 @@ class DemoSeeder extends Seeder
             ['address' => "paul-permanent@{$domain}"],
             [
                 'local_part' => 'paul-permanent',
+                'domain'     => $domain,
+                'domain_id'  => $domainRecord->id,
                 'type'       => AliasType::Permanent,
                 'label'      => 'Tests régression',
                 'user_id'    => $dev->id,

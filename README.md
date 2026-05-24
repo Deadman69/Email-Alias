@@ -88,7 +88,7 @@ Incoming email flow:
 
 ```bash
 git clone <repo> email-alias && cd email-alias
-cp .env.example .env        # fill in APP_DOMAIN, DB_PASSWORD and secrets
+cp .env.example .env        # fill in DB_PASSWORD, secrets, and other config
 
 docker compose up -d
 docker compose exec app php artisan key:generate

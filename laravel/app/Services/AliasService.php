@@ -34,9 +34,22 @@ class AliasService
         }
         $this->ensureUserCanCreateAlias($user);
 
-        $domain    = $domain ?: Domain::primaryName();
-        $localPart = $localPart ? $this->normalizeLocalPart($localPart) : $this->generateUniqueLocalPart($domain);
-        $address   = "{$localPart}@{$domain}";
+        // Resolve the target domain — must exist in the domains table.
+        $domainModel = $domain
+            ? Domain::where('name', $domain)->first()
+            : Domain::where('is_primary', true)->first();
+
+        if (! $domainModel) {
+            throw ValidationException::withMessages([
+                'domain' => $domain
+                    ? [__("Domain ':domain' is not configured on this platform.", ['domain' => $domain])]
+                    : [__('No domain is configured. Ask a Super Admin to add a domain in Settings → Domains.')],
+            ]);
+        }
+
+        $domainName = $domainModel->name;
+        $localPart  = $localPart ? $this->normalizeLocalPart($localPart) : $this->generateUniqueLocalPart($domainName);
+        $address    = "{$localPart}@{$domainName}";
 
         $this->ensureAddressAvailable($address);
 
@@ -55,7 +68,8 @@ class AliasService
         $alias = Alias::create([
             'address'    => $address,
             'local_part' => $localPart,
-            'domain'     => $domain,
+            'domain'     => $domainName,
+            'domain_id'  => $domainModel->id,
             'type'       => $type,
             'duration'   => $duration,
             'user_id'    => $user->id,
@@ -120,6 +134,10 @@ class AliasService
         $candidate = $this->normalizeLocalPart($localPart);
         $i         = 2;
 
+        if (! $domain) {
+            return $candidate; // no domain configured — just return the local part
+        }
+
         while (Alias::withTrashed()->where('address', "{$candidate}@{$domain}")->exists()) {
             $candidate = $this->normalizeLocalPart($localPart) . '-' . $i;
             $i++;
@@ -133,7 +151,12 @@ class AliasService
      */
     public function isAddressAvailable(string $localPart, ?string $domain = null): bool
     {
-        $domain  = $domain ?: Domain::primaryName();
+        $domain = $domain ?: Domain::primaryName();
+
+        if (! $domain) {
+            return true; // no domain configured yet
+        }
+
         $address = $this->normalizeLocalPart($localPart) . "@{$domain}";
 
         return ! Alias::withTrashed()->where('address', $address)->exists();
@@ -191,10 +214,8 @@ class AliasService
         }
     }
 
-    private function generateUniqueLocalPart(?string $domain = null): string
+    private function generateUniqueLocalPart(string $domain): string
     {
-        $domain = $domain ?: Domain::primaryName();
-
         do {
             $localPart = Str::lower(Str::random(8));
         } while (Alias::withTrashed()->where('address', "{$localPart}@{$domain}")->exists());

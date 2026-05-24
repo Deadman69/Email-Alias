@@ -7,24 +7,22 @@ use App\Models\Domain;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Returns the list of allowed recipient domains for the SMTP receiver.
+ * Returns the complete list of recipient domains the SMTP receiver must accept.
  *
  * Protected by the `internal` middleware (shared SMTP_INTERNAL_SECRET).
- * Called by the SMTP server on startup and periodically to refresh its list
- * without requiring a restart.
+ * Called by the SMTP server on startup and periodically to refresh its list.
+ *
+ * The response is the union of:
+ *   1. All active domains from the `domains` table.
+ *   2. Distinct domain-name strings from active aliases whose domain_id is null
+ *      (i.e. the domain was deleted but the aliases were kept).
+ *      This ensures orphaned aliases keep receiving mail.
  */
 class DomainsController extends Controller
 {
     public function index(): JsonResponse
     {
         $domains = Domain::allNames();
-
-        // Always include the legacy fallback domain from config so the SMTP
-        // server keeps working even if the domains table is empty.
-        $legacy = (string) config('emailalias.domain', '');
-        if ($legacy && ! in_array($legacy, $domains, true)) {
-            $domains[] = $legacy;
-        }
 
         return response()->json([
             'domains'    => array_values($domains),

@@ -94,7 +94,7 @@ class Users extends Component
     }
 
     #[Computed]
-    public function domain(): string
+    public function domain(): ?string
     {
         $domains = $this->availableDomains;
 
@@ -102,7 +102,7 @@ class Users extends Component
             return $this->createDomain;
         }
 
-        return $domains[0] ?? config('emailalias.domain', 'example.com');
+        return $domains[0] ?? null; // null when no domains configured
     }
 
     // ── Role management ───────────────────────────────────────────────────────────
