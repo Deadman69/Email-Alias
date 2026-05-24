@@ -90,7 +90,7 @@ class Users extends Component
     #[Computed]
     public function availableDomains(): array
     {
-        return Domain::allNames();
+        return Domain::allNames(onlyActiveDomains: true);
     }
 
     #[Computed]
@@ -287,6 +287,11 @@ class Users extends Component
 
     public function createAliasForUser(AliasService $aliasService): void
     {
+        if (! $this->domain) {
+            Flux::toast(variant: 'danger', text: __('No domain configured. Please configure a domain first.'));
+            return;
+        }
+
         if ($this->createAliasMode === 'custom') {
             $this->validateOnly('createCustomLocalPart');
         }

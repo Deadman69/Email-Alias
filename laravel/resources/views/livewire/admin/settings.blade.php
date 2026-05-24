@@ -6,7 +6,7 @@
         <flux:subheading>{{ __('These settings override .env values in real time. No server restart required.') }}</flux:subheading>
     </div>
 
-    <form wire:submit="save" class="space-y-6">
+    <div class="space-y-6">
 
         {{-- Tab navigation --}}
         <div class="flex flex-wrap gap-2 border-b border-zinc-200 pb-4 dark:border-zinc-700">
@@ -694,12 +694,12 @@
         {{-- Save button (hidden on tabs that manage their own actions) --}}
         @if (! in_array($activeTab, ['domains', 'app-tokens']))
         <div class="flex justify-end pt-2">
-            <flux:button type="submit" variant="primary">
+            <flux:button type="button" wire:click="save" variant="primary">
                 {{ __('Save settings') }}
             </flux:button>
         </div>
         @endif
 
-    </form>
+    </div>
 
 </div>

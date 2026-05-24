@@ -54,6 +54,8 @@
     "To": "To",
     "Date": "Date",
     "Size": "Size",
+    "No domain configured. Please contact your administrator.": "No domain configured. Please contact your administrator.",
+    "No domain configured. Please configure a domain first.": "No domain configured. Please configure a domain first.",
     "Email body not available": "Email body not available",
     "This email exceeded the maximum size limit (:size). Only the sender, subject and headers were kept.": "This email exceeded the maximum size limit (:size). Only the sender, subject and headers were kept.",
     "External images and trackers are blocked.": "External images and trackers are blocked.",

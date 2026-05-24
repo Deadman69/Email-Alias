@@ -390,7 +390,7 @@ class Settings extends Component
         return Domain::orderByDesc('is_primary')->orderBy('name')->get();
     }
 
-    public function addDomain(): void
+    public function addDomain(AuditLogger $auditLogger): void
     {
         $this->validateOnly('newDomain');
 
@@ -404,7 +404,12 @@ class Settings extends Component
         // First domain automatically becomes primary.
         $isPrimary = Domain::count() === 0;
 
-        Domain::create(['name' => $name, 'is_primary' => $isPrimary]);
+        $domain = Domain::create(['name' => $name, 'is_primary' => $isPrimary]);
+        $auditLogger->log(AuditEvent::DomainCreated, $domain, [
+            'actor'      => Auth::user()->email,
+            'domain'     => $domain->name,
+            'is_primary' => $domain->is_primary,
+        ]);
 
         $this->reset('newDomain');
         unset($this->domains);
@@ -412,10 +417,16 @@ class Settings extends Component
         Flux::toast(variant: 'success', text: __('Domain added.'));
     }
 
-    public function setPrimary(string $domainId): void
+    public function setPrimary(string $domainId, AuditLogger $auditLogger): void
     {
         Domain::query()->update(['is_primary' => false]);
-        Domain::findOrFail($domainId)->update(['is_primary' => true]);
+        $domain = Domain::findOrFail($domainId);
+        $domain->update(['is_primary' => true]);
+
+        $auditLogger->log(AuditEvent::DomainPrimaryChanged, $domain, [
+            'actor' => Auth::user()->email,
+            'domain' => $domain->name,
+        ]);
 
         unset($this->domains);
 
@@ -435,7 +446,7 @@ class Settings extends Component
         $this->showConfirmDeleteDomain = true;
     }
 
-    public function deleteDomain(): void
+    public function deleteDomain(AuditLogger $auditLogger): void
     {
         if (! $this->pendingDeleteDomainId) {
             return;
@@ -446,6 +457,12 @@ class Settings extends Component
         ]);
 
         $domain = Domain::findOrFail($this->pendingDeleteDomainId);
+
+        $auditLogger->log(AuditEvent::DomainDeleted, $domain, [
+            'actor' => Auth::user()->email,
+            'domain' => $domain->name,
+            'mode' => $this->deleteDomainMode,
+        ]);
 
         if ($this->deleteDomainMode === 'cascade') {
             // Hard-delete all aliases that belong to this domain.
@@ -485,7 +502,7 @@ class Settings extends Component
         return AppToken::orderByDesc('created_at')->get();
     }
 
-    public function createAppToken(): void
+    public function createAppToken(AuditLogger $auditLogger): void
     {
         $this->validate([
             'newTokenName'      => 'required|string|max:100',
@@ -509,6 +526,13 @@ class Settings extends Component
 
         $appToken->save();
 
+        $auditLogger->log(AuditEvent::AppTokenCreated, $appToken, [
+            'actor'      => Auth::user()->email,
+            'token_name' => $appToken->name,
+            'abilities'  => $appToken->abilities,
+            'expires_at' => $appToken->expires_at,
+        ]);
+
         $this->plainToken     = $plain;
         $this->showPlainToken = true;
 
@@ -531,13 +555,20 @@ class Settings extends Component
         $this->showConfirmRevokeToken = true;
     }
 
-    public function revokeToken(): void
+    public function revokeToken(AuditLogger $auditLogger): void
     {
         if (! $this->pendingRevokeTokenId) {
             return;
         }
 
-        AppToken::findOrFail($this->pendingRevokeTokenId)->delete();
+        $token = AppToken::findOrFail($this->pendingRevokeTokenId);
+
+        $auditLogger->log(AuditEvent::AppTokenRevoked, $token, [
+            'actor'      => Auth::user()->email,
+            'token_name' => $token->name,
+        ]);
+
+        $token->delete();
 
         $this->pendingRevokeTokenId   = '';
         $this->showConfirmRevokeToken = false;

@@ -36,7 +36,7 @@ class Domain extends Model
      *
      * Never falls back to .env — if no domains are configured, returns [].
      */
-    public static function allNames(): array
+    public static function allNames($onlyActiveDomains = false): array
     {
         try {
             $active = static::orderByDesc('is_primary')
@@ -45,12 +45,18 @@ class Domain extends Model
                 ->toArray();
 
             // Domains referenced by active aliases whose FK was nulled (orphaned).
-            $orphaned = Alias::whereNull('domain_id')
-                ->whereNotNull('domain')
-                ->active()
-                ->distinct()
-                ->pluck('domain')
-                ->toArray();
+            if (! $onlyActiveDomains) {
+                $orphaned = Alias::whereNull('domain_id')
+                    ->whereNotNull('domain')
+                    ->active()
+                    ->distinct()
+                    ->pluck('domain')
+                    ->toArray();
+            } else {
+                $orphaned = [];
+            }
+
+                
 
             return array_values(array_unique(array_merge($active, $orphaned)));
         } catch (\Throwable) {

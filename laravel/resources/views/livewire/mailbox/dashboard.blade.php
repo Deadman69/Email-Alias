@@ -8,10 +8,16 @@
                 <flux:text class="mt-1">{{ __('Manage your temporary email aliases.') }}</flux:text>
             </div>
 
-            @if (! $this->maxReached)
+            @if (! $this->maxReached && count($this->availableDomains) > 0)
                 <flux:button variant="primary" icon="plus" wire:click="$set('showCreateModal', true)">
                     {{ __('New alias') }}
                 </flux:button>
+            @elseif (count($this->availableDomains) === 0)
+                <flux:tooltip content="{{ __('No domain configured. Please contact your administrator.') }}">
+                    <flux:button variant="primary" icon="plus" disabled>
+                        {{ __('New alias') }}
+                    </flux:button>
+                </flux:tooltip>
             @else
                 <flux:tooltip content="{{ __('Maximum alias limit reached') }}">
                     <flux:button variant="primary" icon="plus" disabled>{{ __('New alias') }}</flux:button>
@@ -24,7 +30,11 @@
             <div class="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 py-16 dark:border-zinc-600">
                 <flux:icon name="inbox" class="mb-3 size-10 text-zinc-400" />
                 <flux:heading size="lg" class="text-zinc-500">{{ __('No aliases yet') }}</flux:heading>
-                <flux:text class="mt-1 text-zinc-400">{{ __('Create your first temporary email address.') }}</flux:text>
+                @if (count($this->availableDomains) === 0)
+                    <flux:text class="mt-1 text-red-500">{{ __('No domain configured. Please contact your administrator.') }}</flux:text>
+                @else
+                    <flux:text class="mt-1 text-zinc-400">{{ __('Create your first temporary email address.') }}</flux:text>
+                @endif
                 <flux:button variant="primary" class="mt-4" wire:click="$set('showCreateModal', true)">
                     {{ __('Create alias') }}
                 </flux:button>

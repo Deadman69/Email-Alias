@@ -46,6 +46,13 @@ enum AuditEvent: string
     case PasswordChanged  = 'password.changed';
     case SettingsSaved    = 'settings.saved';
 
+    case DomainCreated    = 'domain.created';
+    case DomainPrimaryChanged = 'domain.primary';
+    case DomainDeleted    = 'domain.deleted';
+
+    case AppTokenCreated  = 'app.token.created';
+    case AppTokenRevoked  = 'app.token.revoked';
+
     // ── Bulk actions ──────────────────────────────────────────────────────────
     case EmailsBulkRead   = 'email.bulk_read';
 
@@ -71,6 +78,11 @@ enum AuditEvent: string
             self::ProfileUpdated     => 'Profile updated',
             self::PasswordChanged    => 'Password changed',
             self::SettingsSaved      => 'Platform settings saved',
+            self::DomainCreated      => 'Domain created',
+            self::DomainPrimaryChanged => 'Domain defined as primary',
+            self::DomainDeleted      => 'Domain deleted',
+            self::AppTokenCreated    => 'Application token created',
+            self::AppTokenRevoked    => 'Application token revoked',
             self::AdminAliasCreated  => 'Admin: alias created',
             self::AdminAliasDeleted  => 'Admin: alias deleted',
             self::AdminViewedEmail   => 'Admin: email viewed',

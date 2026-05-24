@@ -54,6 +54,8 @@
     "To": "À",
     "Date": "Date",
     "Size": "Taille",
+    "No domain configured. Please contact your administrator.": "Aucun domaine n’est configuré. Veuillez contacter votre administrateur.",
+    "No domain configured. Please configure a domain first.": "Aucun domaine n’est configuré. Veuillez d’abord configurer un domaine.",
     "Email body not available": "Corps du message indisponible",
     "This email exceeded the maximum size limit (:size). Only the sender, subject and headers were kept.": "Cet e-mail dépasse la limite de taille (:size). Seuls l'expéditeur, l'objet et les en-têtes ont été conservés.",
     "External images and trackers are blocked.": "Les images externes et les traceurs sont bloqués.",

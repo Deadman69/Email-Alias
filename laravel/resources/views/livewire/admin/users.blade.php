@@ -97,12 +97,21 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-1">
                                 <flux:tooltip content="{{ __('Create alias for this user') }}">
-                                    <flux:button
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="at-symbol"
-                                        wire:click="openCreateModal('{{ $user->id }}')"
-                                    />
+                                    @if (count($this->availableDomains) > 0)
+                                        <flux:button
+                                            size="xs"
+                                            variant="ghost"
+                                            icon="at-symbol"
+                                            wire:click="openCreateModal('{{ $user->id }}')"
+                                        />
+                                    @else
+                                        <flux:button
+                                            size="xs"
+                                            variant="ghost"
+                                            icon="at-symbol"
+                                            disabled
+                                        />
+                                    @endif
                                 </flux:tooltip>
                                 @if (! $isSuperAdmin)
                                     @if ($user->is_active)
