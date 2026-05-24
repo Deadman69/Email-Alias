@@ -40,13 +40,6 @@ Route::middleware('guest')->group(function () {
 Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
     ->post('/auth/saml/acs', [SamlController::class, 'acs'])->name('saml.acs');
 
-// ── API documentation — redirects to Scramble's auto-generated Swagger UI ────
-// Scramble serves its own UI at /docs/api and spec at /docs/api.json.
-// The named route 'api.docs' is kept so existing links in the UI don't break.
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::redirect('/api/docs', '/docs/api')->name('api.docs');
-});
-
 // ── Mailbox (authenticated users) ────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', UserDashboard::class)->name('dashboard');

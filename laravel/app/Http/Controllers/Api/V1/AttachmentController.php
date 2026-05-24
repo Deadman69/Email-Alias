@@ -9,12 +9,34 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Dedoc\Scramble\Attributes\Response;
 
 class AttachmentController extends BaseApiController
 {
     /**
      * List attachments for a specific email.
      */
+    #[Response(200, 'List of email attachments',
+        type: 'array{
+            data: array<int, array{
+                id: string,
+                filename: string,
+                mime_type: string,
+                size_bytes: int,
+                download_url: string
+            }>
+        }'
+    )]
+    #[Response(403, 'Unauthorized or forbidden',
+        type: 'array{
+            message: string
+        }'
+    )]
+    #[Response(404, 'Email not found',
+        type: 'array{
+            message: string
+        }'
+    )]
     public function index(Request $request, InboundEmail $email): JsonResponse
     {
         abort_unless($request->user()->tokenCan(TokenAbility::AttachmentsRead->value), 403);
@@ -34,6 +56,17 @@ class AttachmentController extends BaseApiController
     /**
      * Stream/download a single attachment.
      */
+    #[Response(200, 'Attachment download stream')]
+    #[Response(403, 'Unauthorized or forbidden',
+        type: 'array{
+            message: string
+        }'
+    )]
+    #[Response(404, 'Attachment or file not found',
+        type: 'array{
+            message: string
+        }'
+    )]
     public function download(Request $request, Attachment $attachment): StreamedResponse
     {
         abort_unless($request->user()->tokenCan(TokenAbility::AttachmentsRead->value), 403);

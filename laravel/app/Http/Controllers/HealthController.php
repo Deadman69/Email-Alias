@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Dedoc\Scramble\Attributes\Response;
+use App\Enums\API\PlatformHealthStatus;
 
 /**
  * Returns the status of all platform services.
@@ -17,6 +19,48 @@ use Illuminate\Support\Facades\Storage;
  */
 class HealthController extends Controller
 {
+    /**
+     * Platform health status.
+     *
+     * Returns the current status of internal services such as:
+     * - Database
+     * - Cache
+     * - Storage
+     * - SMTP receiver
+     * - Reverb
+     *
+     * When one or more services are unavailable, the endpoint returns HTTP 503.
+     */
+    #[Response(200, 'Platform healthy',
+        type: 'array{
+            healthy: true,
+            status: PlatformHealthStatus,
+            version: string,
+            checks: array{
+                database: array{status: PlatformHealthStatus, latency_ms?: float, error?: string},
+                cache: array{status: PlatformHealthStatus, latency_ms?: float, error?: string},
+                storage: array{status: PlatformHealthStatus, latency_ms?: float, error?: string},
+                smtp_receiver: array{status: PlatformHealthStatus, latency_ms?: float, error?: string},
+                reverb: array{status: PlatformHealthStatus, latency_ms?: float, error?: string}
+            },
+            timestamp: string
+        }'
+    )]
+    #[Response(503, 'One or more services are degraded',
+        type: 'array{
+            healthy: false,
+            status: PlatformHealthStatus,
+            version: string,
+            checks: array{
+                database: array{status: PlatformHealthStatus, latency_ms?: float, error?: string},
+                cache: array{status: PlatformHealthStatus, latency_ms?: float, error?: string},
+                storage: array{status: PlatformHealthStatus, latency_ms?: float, error?: string},
+                smtp_receiver: array{status: PlatformHealthStatus, latency_ms?: float, error?: string},
+                reverb: array{status: PlatformHealthStatus, latency_ms?: float, error?: string}
+            },
+            timestamp: string
+        }'
+    )]
     public function __invoke(Request $request): JsonResponse|\Illuminate\View\View
     {
         $checks  = $this->runChecks();
@@ -24,7 +68,7 @@ class HealthController extends Controller
 
         $payload = [
             'healthy'  => $healthy,
-            'status'   => $healthy ? 'healthy' : 'degraded',
+            'status'   => $healthy ? PlatformHealthStatus::Healthy : PlatformHealthStatus::Degraded,
             'version'  => config('emailalias.version', '0.0.0'),
             'checks'   => $checks,
             'timestamp'=> now()->toIso8601String(),
@@ -46,13 +90,13 @@ class HealthController extends Controller
     {
         return [
             'database' => $this->checkDatabase(),
-            'cache'    => $this->checkCache(),
-            'storage'  => $this->checkStorage(),
-            'smtp receiver'     => $this->checkTcp(
+            'cache' => $this->checkCache(),
+            'storage' => $this->checkStorage(),
+            'smtp_receiver' => $this->checkTcp(
                 config('emailalias.health_smtp_host', 'smtp-server'),
                 (int) config('emailalias.health_smtp_port', 25),
             ),
-            'reverb'   => $this->checkTcp(
+            'reverb' => $this->checkTcp(
                 config('emailalias.health_reverb_host', 'reverb'),
                 (int) config('emailalias.health_reverb_port', 8080),
             ),
@@ -66,9 +110,9 @@ class HealthController extends Controller
             DB::select('SELECT 1');
             $ms = round((microtime(true) - $start) * 1000, 1);
 
-            return ['status' => 'ok', 'latency_ms' => $ms];
+            return ['status' => PlatformHealthStatus::Healthy, 'latency_ms' => $ms];
         } catch (\Throwable $e) {
-            return ['status' => 'error', 'error' => $e->getMessage()];
+            return ['status' => PlatformHealthStatus::Degraded, 'error' => $e->getMessage()];
         }
     }
 
@@ -83,10 +127,10 @@ class HealthController extends Controller
             $ms = round((microtime(true) - $start) * 1000, 1);
 
             return $value === 'ok'
-                ? ['status' => 'ok', 'latency_ms' => $ms]
-                : ['status' => 'error', 'error' => 'Cache read/write mismatch'];
+                ? ['status' => PlatformHealthStatus::Healthy, 'latency_ms' => $ms]
+                : ['status' => PlatformHealthStatus::Degraded, 'error' => 'Cache read/write mismatch'];
         } catch (\Throwable $e) {
-            return ['status' => 'error', 'error' => $e->getMessage()];
+            return ['status' => PlatformHealthStatus::Degraded, 'error' => $e->getMessage()];
         }
     }
 
@@ -102,10 +146,10 @@ class HealthController extends Controller
             $ms = round((microtime(true) - $start) * 1000, 1);
 
             return $read === 'ok'
-                ? ['status' => 'ok', 'latency_ms' => $ms]
-                : ['status' => 'error', 'error' => 'Storage read/write mismatch'];
+                ? ['status' => PlatformHealthStatus::Healthy, 'latency_ms' => $ms]
+                : ['status' => PlatformHealthStatus::Degraded, 'error' => 'Storage read/write mismatch'];
         } catch (\Throwable $e) {
-            return ['status' => 'error', 'error' => $e->getMessage()];
+            return ['status' => PlatformHealthStatus::Degraded, 'error' => $e->getMessage()];
         }
     }
 
@@ -121,10 +165,10 @@ class HealthController extends Controller
         if ($socket) {
             fclose($socket);
 
-            return ['status' => 'ok', 'latency_ms' => $ms];
+            return ['status' => PlatformHealthStatus::Healthy, 'latency_ms' => $ms];
         }
 
-        return ['status' => 'error', 'error' => $this->formatSocketError($errno, $errstr)];
+        return ['status' => PlatformHealthStatus::Degraded, 'error' => $this->formatSocketError($errno, $errstr)];
     }
 
     /**
@@ -143,7 +187,7 @@ class HealthController extends Controller
         };
 
         if (config('app.debug')) {
-            return "{$friendly} — {$errstr} ({$errno})";
+            return "{$friendly} : {$errstr} ({$errno})";
         }
 
         return $friendly;

@@ -676,6 +676,12 @@
                     </div>
                 @endif
 
+                <div class="mt-4">
+                    <flux:link :href="route('scramble.docs.ui')" wire:navigate class="text-sm">
+                        {{ __('View API documentation') }} →
+                    </flux:link>
+                </div>
+
                 {{-- Revoke confirmation modal --}}
                 <flux:modal wire:model="showConfirmRevokeToken" class="max-w-sm">
                     <div class="space-y-4">
