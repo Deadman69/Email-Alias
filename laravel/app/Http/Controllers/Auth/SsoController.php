@@ -116,6 +116,22 @@ class SsoController extends Controller
                     'password'          => null, // SSO-only account — no local password
                 ]);
             }
+        } else { // Update local user to reflect provider informations
+            $dirty = false;
+
+            if ($user->email !== $email) {
+                $user->email = $email;
+                $dirty = true;
+            }
+
+            if ($user->name !== $name) {
+                $user->name = $name;
+                $dirty = true;
+            }
+
+            if ($dirty) {
+                $user->save();
+            }
         }
 
         // Reject deactivated users (SCIM or admin deprovisioning)

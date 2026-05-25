@@ -7,10 +7,10 @@ import { createServer as createHttpServer } from 'http';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const LARAVEL_INBOUND_URL  = process.env.LARAVEL_INBOUND_URL  || 'http://app:9000/internal/inbound';
-const LARAVEL_DOMAINS_URL  = process.env.LARAVEL_DOMAINS_URL  || 'http://app:9000/internal/domains';
+const LARAVEL_INBOUND_URL  = process.env.LARAVEL_INBOUND_URL  || 'http://nginx/internal/inbound';
+const LARAVEL_DOMAINS_URL  = process.env.LARAVEL_DOMAINS_URL  || 'http://nginx/internal/domains';
 const SMTP_INTERNAL_SECRET = process.env.SMTP_INTERNAL_SECRET || '';
-const PORT                 = parseInt(process.env.SMTP_PORT   || '25', 10);
+const PORT                 = parseInt(process.env.SMTP_PORT   || '2525', 10);
 const HEALTH_PORT          = parseInt(process.env.HEALTH_PORT || '8025', 10);
 const MAX_CLIENTS          = parseInt(process.env.MAX_CLIENTS || '100', 10);
 const MAX_MESSAGE_SIZE     = 25 * 1024 * 1024;  // 25 MB SMTP-level cap

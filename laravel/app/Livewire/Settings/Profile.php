@@ -49,8 +49,12 @@ class Profile extends Component
     public function updateProfileInformation(AuditLogger $auditLogger): void
     {
         $user = Auth::user();
-
         $validated = $this->validate($this->profileRules($user->id));
+
+        // SSO-managed identities cannot modify identity fields locally.
+        if ($user->isSSO()) {
+            unset($validated['name'], $validated['email']);
+        }
 
         $user->fill($validated);
 

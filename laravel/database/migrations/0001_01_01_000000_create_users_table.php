@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable(); // nullable for SSO
             $table->rememberToken();
             $table->string('locale', 5)->nullable();
             $table->string('timezone', 64)->nullable();
@@ -25,6 +25,8 @@ return new class extends Migration
             $table->text('two_factor_recovery_codes')->nullable();
             $table->timestamp('two_factor_confirmed_at')->nullable();
             $table->string('azure_id')->nullable()->unique();
+            $table->string('external_id')->nullable()->unique();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
 

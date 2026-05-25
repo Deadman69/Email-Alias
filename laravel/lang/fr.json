@@ -380,5 +380,8 @@
     "You signed in via SSO. No password confirmation is required.": "Vous vous êtes connecté via SSO. Aucune confirmation de mot de passe n'est requise.",
 
     "Alias expiring soon": "Alias bientôt expiré",
-    "Expires in :hours hour(s)": "Expire dans :hours heure(s)"
+    "Expires in :hours hour(s)": "Expire dans :hours heure(s)",
+
+    "Information": "Information",
+    "Your profile is managed by your identity provider.": "Votre profil est géré par votre fournisseur d'identité."
 }

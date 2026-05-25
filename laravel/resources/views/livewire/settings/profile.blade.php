@@ -5,10 +5,19 @@
 
     <x-settings.layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
+            @if (auth()->user()->isSSO())
+                <flux:callout variant="info" icon="information-circle">
+                    <flux:callout.heading>{{ __('Information') }}</flux:callout.heading>
+                    <flux:callout.text>
+                        {{ __('Your profile is managed by your identity provider.') }}
+                    </flux:callout.text>
+                </flux:callout>
+            @endif
+
+            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" :disabled="auth()->user()->isSSO()" />
 
             <div>
-                <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" />
+                <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" :disabled="auth()->user()->isSSO()" />
 
                 @if ($this->hasUnverifiedEmail)
                     <div>

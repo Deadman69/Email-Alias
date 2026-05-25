@@ -34,10 +34,11 @@
                     <flux:text class="mt-1 text-red-500">{{ __('No domain configured. Please contact your administrator.') }}</flux:text>
                 @else
                     <flux:text class="mt-1 text-zinc-400">{{ __('Create your first temporary email address.') }}</flux:text>
+
+                    <flux:button variant="primary" class="mt-4" wire:click="$set('showCreateModal', true)">
+                        {{ __('Create alias') }}
+                    </flux:button>
                 @endif
-                <flux:button variant="primary" class="mt-4" wire:click="$set('showCreateModal', true)">
-                    {{ __('Create alias') }}
-                </flux:button>
             </div>
         @else
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

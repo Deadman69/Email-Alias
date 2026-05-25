@@ -9,9 +9,14 @@ if [ "${APP_ENV}" = "production" ]; then
     # concurrent runs when multiple containers start simultaneously.
     php artisan migrate --force --no-interaction
 
+    [ -L public/storage ] || php artisan storage:link
+
+    php artisan optimize:clear
+
     php artisan config:cache
     php artisan route:cache
-    php artisan view:cache
+    #php artisan view:cache
+    php artisan event:cache
 fi
 
 exec "$@"

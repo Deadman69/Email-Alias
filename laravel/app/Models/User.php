@@ -100,6 +100,14 @@ class User extends Authenticatable implements PasskeyUser
             ->implode('');
     }
 
+    /**
+     * Check if the user has been created by SSO
+     */
+    public function isSSO(): bool
+    {
+        return filled($this->external_id) || filled($this->azure_id);
+    }
+
     // ── Relations ─────────────────────────────────────────────────────────────────
 
     public function aliases(): HasMany

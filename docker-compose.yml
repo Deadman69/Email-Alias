@@ -1,5 +1,17 @@
 services:
 
+  # This container serves to copy data from app to nginx
+  init-app:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    command:
+      - /bin/sh
+      - -c
+      - cp -R /var/www/html/. /shared
+    volumes:
+      - app_data:/shared
+
   # ── Application Laravel ──────────────────────────────────────────────────────
   app:
     build:
@@ -10,16 +22,16 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
     volumes:
+      - app_data:/var/www/html
       - laravel_storage:/var/www/html/storage
     depends_on:
+      init-app:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
     networks:
       - internal
       - web
-    labels:
-      caddy: "${APP_URL}"
-      caddy.php_fastcgi: "{{upstreams 9000}}"
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 9000 || exit 1"]
       interval: 30s
@@ -36,11 +48,11 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "${SMTP_RECEIVER_PORT:-25}:25"
+      - "${SMTP_RECEIVER_PORT:-25}:2525"
     environment:
-      # Must point to an HTTP endpoint. Caddy (on the web network) handles
+      # Must point to an HTTP endpoint.
       # HTTP→FastCGI proxying; smtp-server needs to be on the web network to reach it.
-      - LARAVEL_INBOUND_URL=${APP_URL}/internal/inbound
+      - LARAVEL_INBOUND_URL=http://nginx/internal/inbound
       - SMTP_INTERNAL_SECRET=${SMTP_INTERNAL_SECRET}
       - NODE_ENV=production
       # Allowed domains are fetched dynamically from Laravel — no static env var needed.
@@ -76,12 +88,6 @@ services:
     networks:
       - internal
       - web
-    labels:
-      caddy: "${APP_URL}"
-      caddy.handle_path: "/app/*"
-      caddy.handle_path.reverse_proxy: "{{upstreams 8080}}"
-      # Sticky-session hint — enable when running multiple Reverb replicas:
-      # caddy.handle_path.reverse_proxy.lb_policy: "cookie"
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8080 || exit 1"]
       interval: 30s
@@ -89,8 +95,8 @@ services:
       retries: 3
       start_period: 20s
     # ~2 MB per WebSocket connection; align this limit with REVERB_MAX_CONNECTIONS
-    mem_limit: 2g
-    memswap_limit: 2g
+    mem_limit: 256m
+    memswap_limit: 256m
 
   # ── Queue Worker ──────────────────────────────────────────────────────────────
   worker:
@@ -138,7 +144,7 @@ services:
     mem_limit: 256m
     memswap_limit: 256m
 
-  # ── Base de données ───────────────────────────────────────────────────────────
+  # ── Database ───────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -155,15 +161,11 @@ services:
       retries: 5
     networks:
       - internal
-    mem_limit: 1g
-    memswap_limit: 1g
+    mem_limit: 256m
+    memswap_limit: 256m
 
   # ── Object Storage (MinIO — S3-compatible) ────────────────────────────────────
   minio:
-    # ⚠ Pin to a specific RELEASE tag before production:
-    #   docker pull minio/minio:latest
-    #   docker inspect --format '{{index .RepoDigests 0}}' minio/minio:latest
-    #   Then replace 'latest' with the returned digest or a dated RELEASE tag.
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -179,116 +181,35 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    mem_limit: 1g
-    memswap_limit: 1g
-
-  # ── Backup automatique PostgreSQL ─────────────────────────────────────────────
-  # Dump quotidien (format custom pg_dump -Fc), rétention 30 jours.
-  # Pour restaurer : docker compose run --rm backup pg_restore
-  #                   -h db -U $DB_USERNAME -d $DB_DATABASE /backups/<fichier>.dump
-  # ⚠  Les dumps sont en clair sur le volume. Chiffrez le volume (ex : LUKS) ou
-  #    post-chiffrez avec GPG si l'environnement l'exige.
-  # ⚠  DB_PASSWORD reste visible via 'docker inspect'. Migrez vers Docker Secrets
-  #    (mode Swarm) pour une isolation stricte des secrets.
-  backup:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        # Write credentials to .pgpass so they don't appear in the process table.
-        mkdir -p /root
-        printf 'db:5432:%s:%s:%s\n' "$$DB_DATABASE" "$$DB_USERNAME" "$$DB_PASSWORD" > /root/.pgpass
-        chmod 0600 /root/.pgpass
-
-        while true; do
-          DUMP=/backups/emailalias_$$(date +%Y%m%d_%H%M%S).dump
-
-          PGPASSFILE=/root/.pgpass pg_dump \
-            -Fc -h db -U "$$DB_USERNAME" "$$DB_DATABASE" \
-            > "$$DUMP" 2>/tmp/pg_err
-
-          EXIT=$$?
-          SIZE=$$(stat -c%s "$$DUMP" 2>/dev/null || echo 0)
-
-          if [ $$EXIT -ne 0 ] || [ "$$SIZE" -lt 4096 ]; then
-            printf '[BACKUP ERROR] pg_dump failed (exit=%s, size=%s bytes)\n' "$$EXIT" "$$SIZE" >&2
-            cat /tmp/pg_err >&2
-            rm -f "$$DUMP"
-          else
-            printf '[BACKUP OK] %s (%s bytes)\n' "$$DUMP" "$$SIZE"
-            find /backups -name '*.dump' -mtime +30 -delete
-          fi
-
-          sleep 86400
-        done
-    environment:
-      DB_USERNAME: ${DB_USERNAME:-emailalias}
-      DB_PASSWORD: ${DB_PASSWORD:-changeme_db_password}
-      DB_DATABASE: ${DB_DATABASE:-emailalias}
-    volumes:
-      - backup_data:/backups
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - internal
-    mem_limit: 512m
-    memswap_limit: 512m
-
-  # ── Prometheus (scraper de métriques) ─────────────────────────────────────────
-  # Optionnel — commenter ce service si vous n'utilisez pas Prometheus.
-  prometheus:
-    # Pinned to v2.55.0 — update deliberately, not via 'latest'.
-    # Check https://github.com/prometheus/prometheus/releases for newer stable versions.
-    image: prom/prometheus:v2.55.0
-    restart: unless-stopped
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    networks:
-      - internal
-    depends_on:
-      - app
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    mem_limit: 512m
-    memswap_limit: 512m
-
-  # ── Reverse Proxy (Caddy — HTTPS automatique) ─────────────────────────────────
-  caddy:
-    # Pinned to stable 2.9.1 release — was 'ci-alpine' (floating CI build tag).
-    # Check https://github.com/lucaslorentz/caddy-docker-proxy/releases for updates.
-    image: lucaslorentz/caddy-docker-proxy:2.9.1
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - caddy_data:/data
-    networks:
-      - web
     mem_limit: 256m
     memswap_limit: 256m
 
+  # ── Reverse Proxy ─────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - app_data:/var/www/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+      - reverb
+    networks:
+      - web
+      - internal
+
 volumes:
+  app_data:
   postgres_data:
   laravel_storage:
-  caddy_data:
   minio_data:
-  backup_data:
-  prometheus_data:
 
 networks:
   internal:
     internal: true
   web:
+  # Used for ./authentik/docker-compose.yml
+  shared-auth:
+    external: true

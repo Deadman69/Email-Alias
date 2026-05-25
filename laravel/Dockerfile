@@ -47,7 +47,7 @@ RUN apk add --no-cache \
         opcache
 
 # Production OPcache configuration
-COPY docker/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+COPY .docker/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 WORKDIR /var/www/html
 

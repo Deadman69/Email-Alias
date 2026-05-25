@@ -99,7 +99,7 @@ class AppServiceProvider extends ServiceProvider
         // Generic OIDC driver — Keycloak, Okta, Auth0, Dex, etc.
         Socialite::extend('oidc', function () {
             return new OidcProvider(
-                request:      $this->app['request'],
+                request:      request(),
                 clientId:     (string) config('emailalias.oidc_client_id', ''),
                 clientSecret: (string) config('emailalias.oidc_client_secret', ''),
                 redirectUrl:  route('sso.callback'),
@@ -110,7 +110,7 @@ class AppServiceProvider extends ServiceProvider
         // no additional package required.
         Socialite::extend('azure', function () {
             return new AzureProvider(
-                request:      $this->app['request'],
+                request:      request(),
                 clientId:     (string) config('services.azure.client_id', ''),
                 clientSecret: (string) config('services.azure.client_secret', ''),
                 redirectUrl:  route('sso.callback'),
