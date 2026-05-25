@@ -328,7 +328,7 @@
     "SSO provider": "Fournisseur SSO",
     "The identity provider users will authenticate against.": "Le fournisseur d'identité auquel les utilisateurs s'authentifieront.",
     "Azure AD": "Azure AD",
-    "Keycloak / Generic OIDC": "Keycloak / OIDC générique",
+    "Generic OIDC": "OIDC générique",
     "SAML 2.0": "SAML 2.0",
     "Issuer URL": "URL de l'émetteur (Issuer)",
     "Discovery document is fetched automatically from :": "Le document de découverte est récupéré automatiquement depuis :",

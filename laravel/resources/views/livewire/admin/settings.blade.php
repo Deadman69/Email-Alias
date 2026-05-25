@@ -188,16 +188,16 @@
                     <flux:field>
                         <flux:label>{{ __('SSO provider') }}</flux:label>
                         <flux:select wire:model.live="sso_provider" class="max-w-xs">
-                            <flux:select.option value="azure">{{ __('Azure AD') }}</flux:select.option>
-                            <flux:select.option value="keycloak">{{ __('Keycloak / Generic OIDC') }}</flux:select.option>
-                            <flux:select.option value="saml">{{ __('SAML 2.0') }}</flux:select.option>
+                            <flux:select.option value="{{ \App\Enums\SsoProvider::Azure->value }}">{{ __('Azure AD') }}</flux:select.option>
+                            <flux:select.option value="{{ \App\Enums\SsoProvider::Keycloak->value }}">{{ __('Generic OIDC') }}</flux:select.option>
+                            <flux:select.option value="{{ \App\Enums\SsoProvider::Saml->value }}">{{ __('SAML 2.0') }}</flux:select.option>
                         </flux:select>
                         <flux:description>{{ __('The identity provider users will authenticate against.') }}</flux:description>
                         <flux:error name="sso_provider" />
                     </flux:field>
 
                     {{-- Azure AD ──────────────────────────────────────────────── --}}
-                    @if ($sso_provider === 'azure')
+                    @if ($sso_provider === \App\Enums\SsoProvider::Azure->value)
                         <flux:field>
                             <flux:label>{{ __('Client ID') }}</flux:label>
                             <flux:input wire:model="azure_client_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
@@ -228,7 +228,7 @@
                     @endif
 
                     {{-- Generic OIDC (Keycloak, Okta, Auth0, Dex…) ───────────── --}}
-                    @if ($sso_provider === 'keycloak')
+                    @if ($sso_provider === \App\Enums\SsoProvider::Keycloak->value)
                         <flux:field x-data="{ issuer: @entangle('oidc_issuer_url') }">
                             <flux:label>{{ __('Issuer URL') }}</flux:label>
                             <flux:input wire:model.live="oidc_issuer_url" x-model="issuer" placeholder="https://keycloak.example.com/realms/myrealm" autocomplete="off" />
@@ -262,7 +262,7 @@
                     @endif
 
                     {{-- SAML 2.0 ──────────────────────────────────────────────── --}}
-                    @if ($sso_provider === 'saml')
+                    @if ($sso_provider === \App\Enums\SsoProvider::Saml->value)
                         <flux:callout variant="success" icon="check-circle">
                             <flux:callout.heading>{{ __('SAML 2.0 is ready') }}</flux:callout.heading>
                             <flux:callout.text>

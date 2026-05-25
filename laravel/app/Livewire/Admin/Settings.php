@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Enums\AuditEvent;
 use App\Enums\AliasType;
+use App\Enums\SsoProvider;
 use App\Models\AppToken;
 use App\Models\Domain;
 use App\Services\AuditLogger;
@@ -260,28 +261,28 @@ class Settings extends Component
         $this->validate([
             'app_name'                      => 'required|string|max:100',
             'app_locale'                    => 'required|in:en,fr',
-            'sso_provider'                  => [Rule::requiredIf($this->sso_enabled), 'nullable', 'in:azure,keycloak,saml'],
+            'sso_provider'                  => [Rule::requiredIf($this->sso_enabled), 'nullable', Rule::in([SsoProvider::Azure->value, SsoProvider::Keycloak->value, SsoProvider::Saml->value])],
 
             // Azure AD
-            'azure_client_id'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'azure'), 'nullable', 'string', 'max:255'],
+            'azure_client_id'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Azure->value), 'nullable', 'string', 'max:255'],
             'azure_client_secret'           => 'nullable|string|max:500',
-            'azure_tenant_id'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'azure'), 'nullable', 'string', 'max:255'],
+            'azure_tenant_id'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Azure->value), 'nullable', 'string', 'max:255'],
 
             // Generic OIDC (Keycloak, Okta, Auth0…)
-            'oidc_client_id'                => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'keycloak'), 'nullable', 'string', 'max:255'],
+            'oidc_client_id'                => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Keycloak->value), 'nullable', 'string', 'max:255'],
             'oidc_client_secret'            => 'nullable|string|max:500',
-            'oidc_issuer_url'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'keycloak'), 'nullable', 'url', 'max:500'],
+            'oidc_issuer_url'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Keycloak->value), 'nullable', 'url', 'max:500'],
 
             // SAML
-            'saml_idp_entity_id'            => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:500'],
-            'saml_idp_sso_url'              => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'url', 'max:500'],
+            'saml_idp_entity_id'            => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Saml->value), 'nullable', 'string', 'max:500'],
+            'saml_idp_sso_url'              => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Saml->value), 'nullable', 'url', 'max:500'],
             'saml_idp_slo_url'              => 'nullable|url|max:500',
-            'saml_idp_certificate'          => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:8192'],
-            'saml_sp_entity_id'             => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:500'],
+            'saml_idp_certificate'          => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Saml->value), 'nullable', 'string', 'max:8192'],
+            'saml_sp_entity_id'             => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Saml->value), 'nullable', 'string', 'max:500'],
             'saml_sp_x509cert'              => 'nullable|string|max:8192',
             'saml_sp_private_key'           => 'nullable|string|max:8192',
-            'saml_attr_email'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:500'],
-            'saml_attr_name'                => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:500'],
+            'saml_attr_email'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Saml->value), 'nullable', 'string', 'max:500'],
+            'saml_attr_name'                => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === SsoProvider::Saml->value), 'nullable', 'string', 'max:500'],
 
             // SCIM
             'scim_bearer_token'             => 'nullable|string|min:32|max:500',

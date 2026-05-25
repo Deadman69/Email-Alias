@@ -328,7 +328,7 @@
     "SSO provider": "SSO provider",
     "The identity provider users will authenticate against.": "The identity provider users will authenticate against.",
     "Azure AD": "Azure AD",
-    "Keycloak / Generic OIDC": "Keycloak / Generic OIDC",
+    "Generic OIDC": "Generic OIDC",
     "SAML 2.0": "SAML 2.0",
     "Issuer URL": "Issuer URL",
     "Discovery document is fetched automatically from :": "Discovery document is fetched automatically from :",

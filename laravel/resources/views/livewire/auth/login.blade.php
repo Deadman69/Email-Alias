@@ -7,7 +7,7 @@
             $provider     = config('emailalias.sso_provider', 'azure');
             $ssoLabel     = match ($provider) {
                 'azure'    => 'Azure AD',
-                'keycloak' => 'Keycloak / OIDC',
+                'keycloak' => 'OIDC',
                 'saml'     => 'SAML 2.0',
                 default    => 'SSO',
             };

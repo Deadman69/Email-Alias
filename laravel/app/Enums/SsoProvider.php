@@ -12,7 +12,7 @@ enum SsoProvider: string
     {
         return match ($this) {
             self::Azure    => 'Azure AD',
-            self::Keycloak => 'Keycloak / Generic OIDC',
+            self::Keycloak => 'Generic OIDC',
             self::Saml     => 'SAML 2.0',
         };
     }
