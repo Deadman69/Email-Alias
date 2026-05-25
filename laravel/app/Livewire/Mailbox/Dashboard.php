@@ -237,11 +237,8 @@ class Dashboard extends Component
     public function createAlias(AliasService $aliasService): void
     {
         if (! $this->domain || count($this->availableDomains) == 0) {
-            dd("ok");
             Flux::toast(variant: 'danger', text: __('No domain configured. Please contact your administrator.'));
             return;
-        } else {
-            dd([$this->domain, $this->availableDomains]);
         }
 
         if ($this->aliasMode === 'custom') {
