@@ -264,5 +264,5 @@
 
 - [ ] Most important : vérifier que tous les readme sont à jour avec les vraies fonctionnalités
     - [ ] Documentation : faire un readme avec toutes les fonctionnalités disponible (se servir depuis ce fichier todo)
-- [ ] Consistency : use the enums available instead of the hard coded variables everywhere
+- [ ] Consistency : use the enums available instead of the hard coded variables everywhere for everything that is duplicated
 - [ ] Dans le menu super-admin de settings, ajouter une option pour envoyer automatiquement les AuditLogs vers un webhook
