@@ -217,7 +217,7 @@ class Settings extends Component
             'logoFile' => [
                 'required',
                 'file',
-                'max:2048', // 2 MB
+                'max:4096', // 4 MB
                 'mimes:png,jpg,jpeg,webp',
             ],
         ]);

@@ -252,7 +252,7 @@
 - [x] Les confirmations de delete utilisent des éléments HTML/JS natifs — remplacés par des flux:modal de confirmation partout
 - [x] Dans la sidebar, les notifications ont un gros bouton vide sans texte — texte mis dans le slot du bouton
 - [x] Dans le "audit-log-viewer", l'icone "magnifying-glass" est décalée — `items-end` ajouté sur le flex container
-- [ ] Les super-admin n'ont aucun moyens de créer des tokens d'API pour l'appli elle même (NTH)
+- [x] Les super-admin n'ont aucun moyens de créer des tokens d'API pour l'appli elle même (NTH)
 - [x] Toutes les tooltips doivent utiliser les tooltips FluxUI — tous les `title=""` remplacés par `flux:tooltip`
 - [x] Dans la config super-admin, pouvoir changer le logo de l'application (NTH — nécessite upload de fichier) et l'appliquer partout (sidebar, auth...)
 
@@ -264,4 +264,5 @@
 
 - [ ] Most important : vérifier que tous les readme sont à jour avec les vraies fonctionnalités
     - [ ] Documentation : faire un readme avec toutes les fonctionnalités disponible (se servir depuis ce fichier todo)
-- [ ] Consistency : use the enums avaialbe instead of the hard coded variables everywhere
+- [ ] Consistency : use the enums available instead of the hard coded variables everywhere
+- [ ] Dans le menu super-admin de settings, ajouter une option pour envoyer automatiquement les AuditLogs vers un webhook
