@@ -260,7 +260,7 @@
 
 - [x] Création email custom (user & admin), ajouter en dur le "@XXXX.com" après le local part pour avoir un rendu visuel
 - [x] Si on a pas de domaine configurés, il faut bloquer la création de boite mail (user & admin) en justifiant
-- [ ] Dans le menu super-admin de settings pour la partie SSO il faut rendre les champs obligatoires si on active le SSO sinon risque d'oubli de champ
+- [x] Dans le menu super-admin de settings pour la partie SSO il faut rendre les champs obligatoires si on active le SSO sinon risque d'oubli de champ
 
 - [ ] Most important : vérifier que tous les readme sont à jour avec les vraies fonctionnalités
     - [ ] Documentation : faire un readme avec toutes les fonctionnalités disponible (se servir depuis ce fichier todo)

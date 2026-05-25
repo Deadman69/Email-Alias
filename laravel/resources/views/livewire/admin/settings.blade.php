@@ -200,20 +200,20 @@
                     @if ($sso_provider === 'azure')
                         <flux:field>
                             <flux:label>{{ __('Client ID') }}</flux:label>
-                            <flux:input wire:model="azure_client_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                            <flux:input wire:model="azure_client_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
                             <flux:error name="azure_client_id" />
                         </flux:field>
 
                         <flux:field>
                             <flux:label>{{ __('Client Secret') }}</flux:label>
-                            <flux:input wire:model="azure_client_secret" type="password" placeholder="{{ __('Leave blank to keep current value') }}" />
+                            <flux:input wire:model="azure_client_secret" type="password" placeholder="{{ __('Leave blank to keep current value') }}" autocomplete="off" />
                             <flux:description>{{ __('Stored encrypted in the database.') }}</flux:description>
                             <flux:error name="azure_client_secret" />
                         </flux:field>
 
                         <flux:field>
                             <flux:label>{{ __('Tenant ID') }}</flux:label>
-                            <flux:input wire:model="azure_tenant_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                            <flux:input wire:model="azure_tenant_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
                             <flux:description>{{ __('Use "common" for multi-tenant apps.') }}</flux:description>
                             <flux:error name="azure_tenant_id" />
                         </flux:field>
@@ -229,22 +229,25 @@
 
                     {{-- Generic OIDC (Keycloak, Okta, Auth0, Dex…) ───────────── --}}
                     @if ($sso_provider === 'keycloak')
-                        <flux:field>
+                        <flux:field x-data="{ issuer: @entangle('oidc_issuer_url') }">
                             <flux:label>{{ __('Issuer URL') }}</flux:label>
-                            <flux:input wire:model="oidc_issuer_url" placeholder="https://keycloak.example.com/realms/myrealm" />
-                            <flux:description>{{ __('Discovery document is fetched automatically from {issuer}/.well-known/openid-configuration.') }}</flux:description>
+                            <flux:input wire:model.live="oidc_issuer_url" x-model="issuer" placeholder="https://keycloak.example.com/realms/myrealm" autocomplete="off" />
+                            <flux:description>{{ __('Discovery document is fetched automatically from :') }}</flux:description>
+                            <code>
+                                {{ $this->oidc_issuer_url ? $this->oidc_issuer_url : "{your_idp.com}"  }}/.well-known/openid-configuration
+                            </code>
                             <flux:error name="oidc_issuer_url" />
                         </flux:field>
 
                         <flux:field>
                             <flux:label>{{ __('Client ID') }}</flux:label>
-                            <flux:input wire:model="oidc_client_id" />
+                            <flux:input wire:model="oidc_client_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
                             <flux:error name="oidc_client_id" />
                         </flux:field>
 
                         <flux:field>
                             <flux:label>{{ __('Client Secret') }}</flux:label>
-                            <flux:input wire:model="oidc_client_secret" type="password" placeholder="{{ __('Leave blank to keep current value') }}" />
+                            <flux:input wire:model="oidc_client_secret" type="password" placeholder="{{ __('Leave blank to keep current value') }}" autocomplete="off" />
                             <flux:description>{{ __('Stored encrypted in the database.') }}</flux:description>
                             <flux:error name="oidc_client_secret" />
                         </flux:field>
@@ -273,19 +276,19 @@
 
                         <flux:field>
                             <flux:label>{{ __('IdP Entity ID') }}</flux:label>
-                            <flux:input wire:model="saml_idp_entity_id" placeholder="https://idp.example.com/metadata" />
+                            <flux:input wire:model="saml_idp_entity_id" placeholder="https://idp.example.com/metadata" autocomplete="off" />
                             <flux:error name="saml_idp_entity_id" />
                         </flux:field>
 
                         <flux:field>
                             <flux:label>{{ __('IdP SSO URL') }}</flux:label>
-                            <flux:input wire:model="saml_idp_sso_url" placeholder="https://idp.example.com/sso/saml" />
+                            <flux:input wire:model="saml_idp_sso_url" placeholder="https://idp.example.com/sso/saml" autocomplete="off" />
                             <flux:error name="saml_idp_sso_url" />
                         </flux:field>
 
                         <flux:field>
                             <flux:label>{{ __('IdP SLO URL') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional') }})</span></flux:label>
-                            <flux:input wire:model="saml_idp_slo_url" placeholder="https://idp.example.com/slo/saml" />
+                            <flux:input wire:model="saml_idp_slo_url" placeholder="https://idp.example.com/slo/saml" autocomplete="off" />
                             <flux:error name="saml_idp_slo_url" />
                         </flux:field>
 
@@ -300,7 +303,7 @@
 
                         <flux:field>
                             <flux:label>{{ __('SP Entity ID') }}</flux:label>
-                            <flux:input wire:model="saml_sp_entity_id" :placeholder="$this->appUrl" />
+                            <flux:input wire:model="saml_sp_entity_id" :placeholder="$this->appUrl" autocomplete="off" />
                             <flux:description>{{ __('Defaults to the metadata URL if left blank.') }}</flux:description>
                             <flux:error name="saml_sp_entity_id" />
                         </flux:field>
@@ -323,14 +326,14 @@
 
                         <flux:field>
                             <flux:label>{{ __('Email attribute') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional') }})</span></flux:label>
-                            <flux:input wire:model="saml_attr_email" placeholder="email" />
+                            <flux:input wire:model="saml_attr_email" placeholder="email" autocomplete="off" />
                             <flux:description>{{ __('SAML attribute that contains the user\'s email. Leave blank to use the NameID (recommended for most IdPs).') }}</flux:description>
                             <flux:error name="saml_attr_email" />
                         </flux:field>
 
                         <flux:field>
                             <flux:label>{{ __('Display name attribute') }} <span class="text-zinc-400 text-xs ml-1">({{ __('optional') }})</span></flux:label>
-                            <flux:input wire:model="saml_attr_name" placeholder="displayName" />
+                            <flux:input wire:model="saml_attr_name" placeholder="displayName" autocomplete="off" />
                             <flux:description>{{ __('SAML attribute for the display name. When blank, auto-detects displayName / givenName from common IdP schemas.') }}</flux:description>
                             <flux:error name="saml_attr_name" />
                         </flux:field>
@@ -342,7 +345,7 @@
 
                 <flux:field>
                     <flux:label>{{ __('SCIM bearer token') }}</flux:label>
-                    <flux:input wire:model="scim_bearer_token" type="password" placeholder="{{ __('Leave blank to keep current value') }}" />
+                    <flux:input wire:model="scim_bearer_token" type="password" placeholder="{{ __('Leave blank to keep current value') }}" autocomplete="off" />
                     <flux:description>{{ __('Token Azure AD uses to authenticate against /scim/v2/Users. Generate a strong random string (min. 32 chars). Stored encrypted.') }}</flux:description>
                     <flux:error name="scim_bearer_token" />
                 </flux:field>

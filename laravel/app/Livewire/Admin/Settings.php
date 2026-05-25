@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\AuditEvent;
+use App\Enums\AliasType;
 use App\Models\AppToken;
 use App\Models\Domain;
 use App\Services\AuditLogger;
@@ -10,6 +11,7 @@ use App\Services\SettingService;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -70,7 +72,7 @@ class Settings extends Component
     public int    $alias_max_per_user     = 20;
     public bool   $alias_allow_permanent  = true;
     public bool   $alias_allow_custom     = true;
-    public string $alias_default_type     = 'session';
+    public string $alias_default_type     = AliasType::Session->value;
 
     // ── Email (displayed in MB in the UI, stored in bytes) ────────────────────────
     public int  $alias_max_email_size_mb      = 10;
@@ -156,7 +158,7 @@ class Settings extends Component
         $this->alias_max_per_user    = (int) $settings->get('alias_max_per_user', 20);
         $this->alias_allow_permanent = (bool) $settings->get('alias_allow_permanent', true);
         $this->alias_allow_custom    = (bool) $settings->get('alias_allow_custom', true);
-        $this->alias_default_type    = (string) $settings->get('alias_default_type', 'session');
+        $this->alias_default_type    = (string) $settings->get('alias_default_type', AliasType::Session->value);
 
         $this->alias_max_email_size_mb      = (int) round($settings->get('alias_max_email_size_bytes', 10485760) / 1024 / 1024);
         $this->alias_max_attachment_size_mb = (int) round($settings->get('alias_max_attachment_size_bytes', 5242880) / 1024 / 1024);
@@ -198,7 +200,7 @@ class Settings extends Component
     public function updatedAliasAllowPermanent(bool $value): void
     {
         if (! $value && $this->alias_default_type === 'permanent') {
-            $this->alias_default_type = 'session';
+            $this->alias_default_type = AliasType::Session->value;
         }
     }
 
@@ -258,29 +260,37 @@ class Settings extends Component
         $this->validate([
             'app_name'                      => 'required|string|max:100',
             'app_locale'                    => 'required|in:en,fr',
-            'sso_provider'                  => 'required|in:azure,keycloak,saml',
-            'azure_client_id'               => 'nullable|string|max:255',
+            'sso_provider'                  => [Rule::requiredIf($this->sso_enabled), 'nullable', 'in:azure,keycloak,saml'],
+
+            // Azure AD
+            'azure_client_id'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'azure'), 'nullable', 'string', 'max:255'],
             'azure_client_secret'           => 'nullable|string|max:500',
-            'azure_tenant_id'               => 'nullable|string|max:255',
-            'oidc_client_id'                => 'nullable|string|max:255',
+            'azure_tenant_id'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'azure'), 'nullable', 'string', 'max:255'],
+
+            // Generic OIDC (Keycloak, Okta, Auth0…)
+            'oidc_client_id'                => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'keycloak'), 'nullable', 'string', 'max:255'],
             'oidc_client_secret'            => 'nullable|string|max:500',
-            'oidc_issuer_url'               => 'nullable|url|max:500',
-            'saml_idp_entity_id'            => 'nullable|string|max:500',
-            'saml_idp_sso_url'              => 'nullable|url|max:500',
+            'oidc_issuer_url'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'keycloak'), 'nullable', 'url', 'max:500'],
+
+            // SAML
+            'saml_idp_entity_id'            => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:500'],
+            'saml_idp_sso_url'              => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'url', 'max:500'],
             'saml_idp_slo_url'              => 'nullable|url|max:500',
-            'saml_idp_certificate'          => 'nullable|string|max:8192',
-            'saml_sp_entity_id'             => 'nullable|string|max:500',
+            'saml_idp_certificate'          => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:8192'],
+            'saml_sp_entity_id'             => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:500'],
             'saml_sp_x509cert'              => 'nullable|string|max:8192',
             'saml_sp_private_key'           => 'nullable|string|max:8192',
-            'saml_attr_email'               => 'nullable|string|max:500',
-            'saml_attr_name'                => 'nullable|string|max:500',
+            'saml_attr_email'               => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:500'],
+            'saml_attr_name'                => [Rule::requiredIf($this->sso_enabled && $this->sso_provider === 'saml'), 'nullable', 'string', 'max:500'],
+
+            // SCIM
             'scim_bearer_token'             => 'nullable|string|min:32|max:500',
+
+            // Aliases
             'alias_max_per_user'            => 'required|integer|min:1|max:1000',
-            'alias_default_type'            => ['required', \Illuminate\Validation\Rule::in(
-                                                   $this->alias_allow_permanent
-                                                       ? ['session', 'duration', 'permanent']
-                                                       : ['session', 'duration']
-                                               )],
+            'alias_default_type'            => ['required', Rule::in($this->alias_allow_permanent ? [AliasType::Session->value, AliasType::Duration->value, AliasType::Permanent->value] : [AliasType::Session->value, AliasType::Duration->value])],
+
+            // Misc
             'health_check_visibility'       => 'required|in:public,auth,admin',
             'alias_max_email_size_mb'       => 'required|integer|min:1|max:100',
             'alias_max_attachment_size_mb'  => 'required|integer|min:1|max:50',

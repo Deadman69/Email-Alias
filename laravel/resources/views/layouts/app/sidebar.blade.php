@@ -35,11 +35,16 @@
                         <flux:sidebar.item icon="clipboard-document-list" :href="route('admin.audit')" :current="request()->routeIs('admin.audit')" wire:navigate>
                             {{ __('Audit log') }}
                         </flux:sidebar.item>
-                        @if (auth()->user()?->isSuperAdmin())
-                            <flux:sidebar.item icon="cog-6-tooth" :href="route('admin.settings')" :current="request()->routeIs('admin.settings')" wire:navigate>
-                                {{ __('Settings') }}
-                            </flux:sidebar.item>
-                        @endif
+                    </flux:sidebar.group>
+                </flux:sidebar.nav>
+            @endif
+
+            @if (auth()->user()?->isSuperAdmin())
+                <flux:sidebar.nav>
+                    <flux:sidebar.group :heading="__('Super-Admin')" class="grid">
+                        <flux:sidebar.item icon="cog-6-tooth" :href="route('admin.settings')" :current="request()->routeIs('admin.settings')" wire:navigate>
+                            {{ __('Settings') }}
+                        </flux:sidebar.item>
                     </flux:sidebar.group>
                 </flux:sidebar.nav>
             @endif
