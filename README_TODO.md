@@ -264,3 +264,4 @@
 
 - [ ] Most important : vérifier que tous les readme sont à jour avec les vraies fonctionnalités
     - [ ] Documentation : faire un readme avec toutes les fonctionnalités disponible (se servir depuis ce fichier todo)
+- [ ] Consistency : use the enums avaialbe instead of the hard coded variables everywhere
