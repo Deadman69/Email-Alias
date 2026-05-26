@@ -5,6 +5,7 @@ FROM php:8.4-fpm-alpine AS builder
 
 RUN apk add --no-cache \
     postgresql-dev \
+    icu-dev \
     nodejs \
     npm \
     git \
@@ -14,6 +15,7 @@ RUN apk add --no-cache \
         pgsql \
         pcntl \
         bcmath \
+        intl \
         opcache
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -39,11 +41,13 @@ FROM php:8.4-fpm-alpine
 
 RUN apk add --no-cache \
     postgresql-dev \
+    icu-dev \
     && docker-php-ext-install \
         pdo_pgsql \
         pgsql \
         pcntl \
         bcmath \
+        intl \
         opcache
 
 # Production OPcache configuration
@@ -53,6 +57,9 @@ WORKDIR /var/www/html
 
 # Copy compiled application from builder, already owned by www-data
 COPY --from=builder --chown=www-data:www-data /var/www/html /var/www/html
+
+# Keep an immutable copy of public assets to hydrate the Docker volume
+RUN cp -R /var/www/html/public /opt/public-template
 
 # Entrypoint: warms framework caches at runtime so env vars are always fresh
 COPY --chown=www-data:www-data docker-entrypoint.sh /usr/local/bin/

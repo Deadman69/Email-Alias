@@ -73,9 +73,9 @@ enum AuditEvent: string
             self::EmailRead          => 'Email read',
             self::EmailDeleted       => 'Email deleted',
             self::EmailDownloaded    => 'Email downloaded',
-            self::EmailMailboxQuotaExceeded => 'Email dropped (Mailbox storage exceeded)'
-            self::EmailUserQuotaExceeded => 'Email dropped (User storage exceeded)'
-            self::EmailMailboxRateLimit => 'Email dropped (Rate limit)'
+            self::EmailMailboxQuotaExceeded => 'Email dropped (Mailbox storage exceeded)',
+            self::EmailUserQuotaExceeded => 'Email dropped (User storage exceeded)',
+            self::EmailMailboxRateLimit => 'Email dropped (Rate limit)',
             self::EmailsBulkRead     => 'Emails bulk read',
             self::UserLogin          => 'User login',
             self::UserLogout         => 'User logout',

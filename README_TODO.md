@@ -265,4 +265,29 @@
 - [x] Most important : vérifier que tous les readme sont à jour avec les vraies fonctionnalités
     - [x] Documentation : faire un readme avec toutes les fonctionnalités disponible (se servir depuis ce fichier todo)
 - [ ] Consistency : use the enums available instead of the hard coded variables everywhere for everything that is duplicated
-- [ ] Dans le menu super-admin de settings, ajouter une option pour envoyer automatiquement les AuditLogs vers un webhook (et pouvoir les signer)
+- [ ] Dans le menu super-admin de settings, ajouter une option pour envoyer automatiquement les AuditLogs vers un webhook (et pouvoir les signer, comme pour les mailbox)
+- [ ] Désactiver les options irrelevant pour les utilisateurs SSO : Pas de passkey ni de 2FA (mais actif pour les utilisateurs natifs)
+
+
+
+--------------- PRIORITAIRE TO FIX !!!!
+
+Enums : 
+- all,unread,read  ==> Email lu/non lu dans la page inbox
+	- App\Livewire\Mailbox\Inbox
+- App\Http\Middleware\EnsureHealthCheckAccess : $visibility : public/auth/admin
+	- App\Livewire\Admin\Settings
+- App\Http\Middleware\SetLocale : 'en', 'fr'   (et partout ailleurs où on référence ça)
+	- App\Livewire\Admin\Settings
+	- App\Livewire\Settings\Profile
+- App\Livewire\Admin\Settings : utiliser les valeurs des enums même pour les valeurs par défaut
+- App\Livewire\Mailbox\Dashboard : alias type & alias mode & alias duration
+	- App\Services\AliasService (duration)
+- App\Livewire\Mailbox\ViewEmail : viewMode
+- App\Services\SettingService : default values
+- Vérifier dans les views également (je n'ai pas check ici)
+
+
+Bugs :
+- App\Http\Controllers\Internal\InboundEmailController : Il faut gérer les limites via la config (surtout pour les size max) + voir comment appliquer ces limites aussi au SMTP receiver
+- est-ce qu'on est sûr qu'un email envoyé à "TArTemPion@DomaIne.fr" arrivera à "tartempion@domaine.fr" ? (capitalisation)

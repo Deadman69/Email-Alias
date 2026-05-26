@@ -18,6 +18,7 @@ Minimum values to change in `.env`:
 
 ```env
 APP_ENV=production
+APP_KEY=base64:<app_key_to_generate>
 APP_DEBUG=false
 APP_URL=https://mail.company.com
 
@@ -27,6 +28,17 @@ SMTP_INTERNAL_SECRET=<strong_secret>    # shared with smtp-server container
 
 REVERB_APP_KEY=<random>
 REVERB_APP_SECRET=<strong_secret>
+```
+
+To generate an application key (`APP_KEY`):
+```bash
+openssl rand -base64 32
+```
+
+Then set:
+
+```env
+APP_KEY=base64:GENERATED_VALUE
 ```
 
 > All business settings (SSO, 2FA, quotas, retention…) are configured in the UI after first launch — not via env vars.
@@ -46,8 +58,6 @@ Port 25 must be reachable inbound. Some cloud providers block it by default — 
 
 ```bash
 docker compose up -d
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate --force
 docker compose exec app php artisan admin:create --super-admin
 ```
 
@@ -95,9 +105,4 @@ git pull
 docker compose build app smtp-server
 docker compose up -d
 docker compose exec app php artisan migrate --force
-```
-
-If static assets changed (new Vite build):
-```bash
-docker compose exec app npm run build
 ```

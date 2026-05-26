@@ -1,21 +1,28 @@
 #!/bin/sh
 set -e
 
-# Warm framework caches at container start (not at build time).
-# This ensures env vars injected by the orchestrator are always reflected in
-# the cached config — rebuilding the image is never needed just for a secret change.
+# Hydrate public volume on first boot
+if [ ! -f /var/www/html/public/index.php ]; then
+    echo "Initializing public volume..."
+    cp -R /opt/public-template/. /var/www/html/public/
+fi
+
+mkdir -p storage/logs
+mkdir -p bootstrap/cache
+
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+
+php artisan migrate --force --no-interaction
+[ -L public/storage ] || php artisan storage:link
+
+php artisan optimize:clear
+
+# Warm framework caches at container start
 if [ "${APP_ENV}" = "production" ]; then
-    # Run pending migrations automatically. Laravel's migration lock prevents
-    # concurrent runs when multiple containers start simultaneously.
-    php artisan migrate --force --no-interaction
-
-    [ -L public/storage ] || php artisan storage:link
-
-    php artisan optimize:clear
-
     php artisan config:cache
     php artisan route:cache
-    #php artisan view:cache
+    # php artisan view:cache
     php artisan event:cache
 fi
 
