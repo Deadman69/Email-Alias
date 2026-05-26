@@ -85,7 +85,7 @@
 
             {{-- API Docs link --}}
             <div class="mt-4">
-                <flux:link :href="route('scramble.docs.ui')" wire:navigate class="text-sm">
+                <flux:link :href="route('scramble.docs.ui')" wire:navigate class="text-sm" external="true">
                     {{ __('View API documentation') }} →
                 </flux:link>
             </div>
