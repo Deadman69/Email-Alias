@@ -15,12 +15,8 @@ Route::prefix('v1')->middleware(['throttle:api', 'health.access'])->group(functi
     Route::get('health', HealthController::class)->name('api.health');
 });
 
-// ── App-token–protected endpoints (machine / server-to-server) ───────────────
-Route::prefix('v1')->middleware(['throttle:api', 'app.token:read:domains'])->group(function (): void {
-    Route::get('domains', [DomainsController::class, 'index'])->name('api.domains.index');
-});
-
 Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
+    Route::get('domains', [DomainsController::class, 'index'])->name('api.domains.index');
 
     // ── User API ──────────────────────────────────────────────────────────────
     Route::get('aliases', [AliasController::class, 'index'])->name('api.aliases.index');

@@ -129,11 +129,20 @@ class AliasController extends BaseApiController
             'label' => 'nullable|string|max:255',
         ]);
 
+        $type = AliasType::from($data['type']);
+
+        if (! config('emailalias.allow_custom', true) && ! empty($data['local_part'])) {
+            abort(403, 'Custom addresses are disabled.');
+        }
+        if (! config('emailalias.allow_permanent', true) && $type === AliasType::Permanent) {
+            abort(403, 'Permanent aliases are disabled.');
+        }
+
         $alias = $aliasService->create(
             user:      $request->user(),
-            type:      $data['type']->value,
+            type:      $type,
             localPart: $data['local_part'] ?? null,
-            duration:  $data['duration']?->value,
+            duration:  $data['duration'] ?? null,
             label:     $data['label'] ?? null,
         );
 

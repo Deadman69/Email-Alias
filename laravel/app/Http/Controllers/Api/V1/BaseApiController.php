@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Alias;
 use App\Models\PersonalAccessToken;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 /**
  * Base controller for API v1 routes.
@@ -15,6 +16,8 @@ use Illuminate\Http\Request;
  */
 abstract class BaseApiController extends Controller
 {
+    use AuthorizesRequests;
+    
     /**
      * Verify that the current token is allowed to access the given alias.
      * Must be called after policy authorization (which checks ownership/sharing).
