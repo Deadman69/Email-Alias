@@ -267,7 +267,9 @@
 - [ ] Consistency : use the enums available instead of the hard coded variables everywhere for everything that is duplicated
 - [ ] Dans le menu super-admin de settings, ajouter une option pour envoyer automatiquement les AuditLogs vers un webhook (et pouvoir les signer, comme pour les mailbox)
 - [ ] Désactiver les options irrelevant pour les utilisateurs SSO : Pas de passkey ni de 2FA (mais actif pour les utilisateurs natifs)
-
+- [ ] Ajouter les CRUD complets pour les différentes ressources
+    - [ ] Alias : update & extend duration
+    - [ ] Admin : CRUD
 
 
 --------------- PRIORITAIRE TO FIX !!!!
