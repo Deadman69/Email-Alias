@@ -383,6 +383,14 @@
     "Alias expiring soon": "Alias expiring soon",
     "Expires in :hours hour(s)": "Expires in :hours hour(s)",
 
+    "Manage your profile and account settings": "Manage your profile and account settings",
+    "Delete account": "Delete account",
+    "Delete your account and all of its resources": "Delete your account and all of its resources ",
+    "Update the appearance settings for your account": "Update the appearance settings for your account",
+    "Light": "Light",
+    "Dark": "Dark",
+    "Just updated": "Just updated",
+
     "Information": "Information",
     "Your profile is managed by your identity provider.": "Your profile is managed by your identity provider."
 }
