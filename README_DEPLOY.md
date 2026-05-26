@@ -1,77 +1,90 @@
-# EmailAlias — Deployment
+# EmailAlias — Production Deployment
 
-Production deployment guide.
+Requirements: Linux host · Docker ≥ 24 with Compose · port 25 open inbound · a domain with DNS access.
 
-## Requirements
-
-| Item | Detail |
-|---|---|
-| Server | Linux, **port 25 open** (inbound), 512 MB RAM min |
-| Runtime | Docker ≥ 24 with Compose |
-| Domain | DNS access for an MX record |
-| HTTPS | Handled automatically by Caddy (Let's Encrypt) |
+> HTTPS is not handled by the stack itself. Terminate TLS upstream (Caddy, Traefik, Nginx + Certbot, or a cloud LB).
 
 ---
 
-## 1 — Environment variables
+## Mandatory
 
-### Docker-compose variables
-Copy `.env.example` to `.env` and fill in the required values, all the others values are not required to be changed by default:
-
-```env
-APP_NAME="EmailAlias"
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://emailalias.your_domain.com
-
-DB_PASSWORD=changeme_db_password 
-
-REVERB_APP_KEY=changeme_reverb_key
-REVERB_APP_SECRET=changeme_reverb_secret
-
-MINIO_ROOT_PASSWORD=changeme_minio_password
-```
-
-> All business settings (SSO, 2FA, limits, retention…) are managed exclusively via `/admin/settings` after first launch. Sensitive secrets (e.g. Azure client secret) are stored encrypted in the database.
-
-### Laravel variables
-
-Copy `./laravel/.env.example` to `./laravel/.env` and fill the required values, remember that they are overwritten by the docker-compose variables.
-Therefore you only need to generate the Laravel key using the command : `docker compose exec app php artisan key:generate`
-
----
-
-## 2 — DNS
-
-Add an MX record on your domain:
-
-```
-Type      MX
-Name      @   (or mail.company.com)
-Value     <server IP or hostname>
-TTL       300
-Priority  10
-```
-
-Verify: `nslookup -type=MX mail.company.com`
-
----
-
-## 3 — Launch
+### 1 — Environment
 
 ```bash
-# Start all services
-docker compose up -d
+cp .env.example .env
+```
 
-# Create the first Super Admin
+Minimum values to change in `.env`:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://mail.company.com
+
+DB_PASSWORD=<strong_secret>
+
+SMTP_INTERNAL_SECRET=<strong_secret>    # shared with smtp-server container
+
+REVERB_APP_KEY=<random>
+REVERB_APP_SECRET=<strong_secret>
+```
+
+> All business settings (SSO, 2FA, quotas, retention…) are configured in the UI after first launch — not via env vars.
+
+### 2 — DNS
+
+Add an MX record pointing to your server's IP:
+
+```
+Type    Priority  Host              Value
+MX      10        mail.company.com  <server-ip>
+```
+
+Port 25 must be reachable inbound. Some cloud providers block it by default — open it in your firewall/security group.
+
+### 3 — Launch
+
+```bash
+docker compose up -d
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --force
 docker compose exec app php artisan admin:create --super-admin
 ```
 
+### 4 — First configuration
+
+Log in as Super Admin → **Admin → Settings → Domains** and add your domain (e.g. `mail.company.com`). The SMTP receiver will pick it up within 5 minutes.
+
 ---
 
-## 4 — Initial configuration (UI)
+## Multi-node / scaling
 
-Log in at `https://<APP_URL>/admin/settings` with the Super Admin account and configure the application.
+By default all services run on a single host. For multi-node setups:
+
+**Object storage (MinIO)** — replace the bundled MinIO with an external S3-compatible bucket (AWS S3, Scaleway, Hetzner Object Storage…):
+
+```env
+# laravel/.env
+FILESYSTEM_DISK=s3
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_DEFAULT_REGION=eu-west-1
+AWS_BUCKET=emailalias
+AWS_ENDPOINT=https://s3.eu-west-1.amazonaws.com   # omit for AWS, set for S3-compatible
+AWS_USE_PATH_STYLE_ENDPOINT=true                   # required for MinIO / Hetzner
+```
+
+Then remove the `minio` service from `docker-compose.yml`.
+
+**Queue workers** — scale the `worker` service horizontally:
+```bash
+docker compose up -d --scale worker=4
+```
+Workers are stateless; all state is in PostgreSQL.
+
+**WebSocket (Reverb)** — for >500 concurrent users, run multiple Reverb replicas behind a sticky-session load balancer. Set `REVERB_MAX_CONNECTIONS` to tune memory usage (~2 MB/connection).
+
+**Database** — the `db` service is a single PostgreSQL container. For HA, replace it with an external managed PostgreSQL (RDS, Supabase, Neon…) and remove the `db` service.
 
 ---
 
@@ -84,18 +97,7 @@ docker compose up -d
 docker compose exec app php artisan migrate --force
 ```
 
----
-
-## Internal services & ports
-
-| Service | Role | Internal port |
-|---|---|---|
-| `app` | Laravel (PHP-FPM) | 9000 |
-| `smtp-server` | SMTP ingestion | 25 |
-| `reverb` | WebSocket | 8080 |
-| `worker` | Queue jobs | — |
-| `scheduler` | Cron (cleanup) | — |
-| `db` | PostgreSQL 16 | 5432 |
-| `nginx` | HTTP reverse proxy | 80 |
-
-Only ports 80 and 25 are exposed publicly. Everything else stays on the internal Docker network.
+If static assets changed (new Vite build):
+```bash
+docker compose exec app npm run build
+```

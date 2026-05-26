@@ -262,7 +262,7 @@
 - [x] Si on a pas de domaine configurés, il faut bloquer la création de boite mail (user & admin) en justifiant
 - [x] Dans le menu super-admin de settings pour la partie SSO il faut rendre les champs obligatoires si on active le SSO sinon risque d'oubli de champ
 
-- [ ] Most important : vérifier que tous les readme sont à jour avec les vraies fonctionnalités
-    - [ ] Documentation : faire un readme avec toutes les fonctionnalités disponible (se servir depuis ce fichier todo)
+- [x] Most important : vérifier que tous les readme sont à jour avec les vraies fonctionnalités
+    - [x] Documentation : faire un readme avec toutes les fonctionnalités disponible (se servir depuis ce fichier todo)
 - [ ] Consistency : use the enums available instead of the hard coded variables everywhere for everything that is duplicated
 - [ ] Dans le menu super-admin de settings, ajouter une option pour envoyer automatiquement les AuditLogs vers un webhook (et pouvoir les signer)
