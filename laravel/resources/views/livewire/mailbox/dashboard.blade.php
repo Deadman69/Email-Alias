@@ -313,7 +313,7 @@
     </flux:modal>
 
     {{-- ── Webhook Modal ──────────────────────────────────────────────────────── --}}
-    <flux:modal wire:model="showWebhookModal" name="webhook-alias" class="max-w-2xl">
+    <flux:modal wire:model="showWebhookModal" name="webhook-alias" class="max-w-3xl">
         <div class="space-y-5 p-6">
             <div>
                 <flux:heading size="lg">{{ __('Webhook') }}</flux:heading>
