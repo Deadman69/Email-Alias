@@ -51,7 +51,7 @@ class Users extends Component
 
     public string $createAliasMode = 'random';
 
-    #[Validate('nullable|string|min:3|max:64|regex:/^[a-z0-9\-_\.]+$/i')]
+    #[Validate('nullable|string|min:3|max:64|regex:/^(?!\.)(?!.*\.\.)([a-z0-9!#$%&\'*+\/=?^_`{|}~.-]{1,64})(?<!\.)$/i')]
     public string $createCustomLocalPart = '';
 
     public string $createLabel = '';

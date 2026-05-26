@@ -11,6 +11,7 @@ use App\Models\InboundEmail;
 use App\Jobs\DeliverWebhook;
 use App\Notifications\MailboxQuotaExceeded;
 use App\Notifications\MailboxSpamDetected;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
@@ -46,13 +47,9 @@ class ProcessInboundEmail implements ShouldQueue
 
     public function handle(): void
     {
-        $matchedAliases = Alias::active()
-            ->whereIn('address', $this->recipients)
-            ->get();
-
+        $matchedAliases = Alias::active()->whereIn('address', $this->recipients)->get();
         if ($matchedAliases->isEmpty()) {
             Log::debug('No active alias found for recipients', ['recipients' => $this->recipients]);
-
             return;
         }
 
@@ -70,6 +67,21 @@ class ProcessInboundEmail implements ShouldQueue
                 Log::info('Inbound email dropped: alias rate limit exceeded', [
                     'alias'    => $alias->address,
                     'alias_id' => $alias->id,
+                ]);
+
+                AuditLog::create([
+                    'user_id'        => $alias->user_id,
+                    'event'          => AuditEvent::EmailMailboxRateLimit,
+                    'auditable_type' => Alias::class,
+                    'auditable_id'   => $alias->id,
+                    'metadata'       => [
+                        'from'        => $this->fromAddress,
+                        'subject'     => $this->subject,
+                        'alias'       => $alias->address,
+                        'size'        => $this->sizeBytes,
+                        'truncated'   => $isTruncated,
+                        'attachments' => count($this->attachments),
+                    ],
                 ]);
                 continue;
             }
@@ -90,6 +102,23 @@ class ProcessInboundEmail implements ShouldQueue
                         'usage'     => $mailboxUsage,
                         'incoming'  => $this->sizeBytes,
                         'limit'     => $maxMailboxBytes,
+                    ]);
+                    AuditLog::create([
+                        'user_id'        => $alias->user_id,
+                        'event'          => AuditEvent::EmailMailboxQuotaExceeded,
+                        'auditable_type' => Alias::class,
+                        'auditable_id'   => $alias->id,
+                        'metadata'       => [
+                            'from'        => $this->fromAddress,
+                            'subject'     => $this->subject,
+                            'alias'       => $alias->address,
+                            'size'        => $this->sizeBytes,
+                            'truncated'   => $isTruncated,
+                            'attachments' => count($this->attachments),
+                            'usage'       => $mailboxUsage,
+                            'incoming'    => $this->sizeBytes,
+                            'limit'       => $maxMailboxBytes,
+                        ],
                     ]);
                     continue;
                 }
@@ -113,6 +142,23 @@ class ProcessInboundEmail implements ShouldQueue
                         'usage'    => $userUsage,
                         'incoming' => $this->sizeBytes,
                         'limit'    => $maxUserBytes,
+                    ]);
+                    AuditLog::create([
+                        'user_id'        => $alias->user_id,
+                        'event'          => AuditEvent::EmailUserQuotaExceeded,
+                        'auditable_type' => Alias::class,
+                        'auditable_id'   => $alias->id,
+                        'metadata'       => [
+                            'from'        => $this->fromAddress,
+                            'subject'     => $this->subject,
+                            'alias'       => $alias->address,
+                            'size'        => $this->sizeBytes,
+                            'truncated'   => $isTruncated,
+                            'attachments' => count($this->attachments),
+                            'usage'       => $userUsage,
+                            'incoming'    => $this->sizeBytes,
+                            'limit'       => $maxUserBytes,
+                        ],
                     ]);
                     continue;
                 }

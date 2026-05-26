@@ -16,6 +16,10 @@ enum AuditEvent: string
     case EmailDeleted     = 'email.deleted';
     case EmailDownloaded  = 'email.downloaded';
 
+    case EmailMailboxQuotaExceeded = 'email.mailbox.quota.exceeded';
+    case EmailUserQuotaExceeded = 'email.user.quota.exceeded';
+    case EmailMailboxRateLimit = 'email.mailbox.rate-limit';
+
     case UserLogin          = 'user.login';
     case UserLogout         = 'user.logout';
     case TwoFactorEnabled   = '2fa.enabled';
@@ -69,6 +73,9 @@ enum AuditEvent: string
             self::EmailRead          => 'Email read',
             self::EmailDeleted       => 'Email deleted',
             self::EmailDownloaded    => 'Email downloaded',
+            self::EmailMailboxQuotaExceeded => 'Email dropped (Mailbox storage exceeded)'
+            self::EmailUserQuotaExceeded => 'Email dropped (User storage exceeded)'
+            self::EmailMailboxRateLimit => 'Email dropped (Rate limit)'
             self::EmailsBulkRead     => 'Emails bulk read',
             self::UserLogin          => 'User login',
             self::UserLogout         => 'User logout',

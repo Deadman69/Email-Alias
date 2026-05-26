@@ -124,7 +124,7 @@ class AliasController extends BaseApiController
 
         $data = $request->validate([
             'type' => ['required', 'string', new Enum(AliasType::class)],
-            'local_part' => ['nullable', 'string', 'min:3', 'max:64', 'regex:/^[a-z0-9\-_\.]+$/i'],
+            'local_part' => ['nullable', 'string', 'min:3', 'max:64', 'regex:/^(?!\.)(?!.*\.\.)([a-z0-9!#$%&\'*+\/=?^_`{|}~.-]{1,64})(?<!\.)$/i'],
             'duration' => ['nullable', Rule::in(array_keys(AliasType::durationsOptions()))],
             'label' => 'nullable|string|max:255',
         ]);
