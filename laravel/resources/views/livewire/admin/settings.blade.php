@@ -680,7 +680,7 @@
                 @endif
 
                 <div class="mt-4">
-                    <flux:link :href="route('scramble.docs.ui')" wire:navigate class="text-sm" external="true">
+                    <flux:link :href="route('scramble.docs.ui')" wire:navigate class="text-sm" target="_blank">
                         {{ __('View API documentation') }} →
                     </flux:link>
                 </div>
