@@ -66,7 +66,7 @@ COPY --chown=www-data:www-data docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Run as non-root for defense-in-depth
-USER www-data
+# USER www-data
 
 EXPOSE 9000
 

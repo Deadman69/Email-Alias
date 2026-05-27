@@ -71,6 +71,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - public_data:/var/www/html/public
+      - laravel_storage:/var/www/html/storage
     networks:
       - internal
       - web
@@ -97,6 +100,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - public_data:/var/www/html/public
+      - laravel_storage:/var/www/html/storage
     networks:
       - internal
     mem_limit: 512m
@@ -125,6 +131,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - public_data:/var/www/html/public
+      - laravel_storage:/var/www/html/storage
     networks:
       - internal
     mem_limit: 256m

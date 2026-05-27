@@ -103,11 +103,14 @@ curl -X POST http://localhost:8000/internal/inbound \
 **Option B — full SMTP end-to-end**
 
 ```bash
-swaks --to xk3f9a2b@dev.local \
+echo "test attachment" > /tmp/test.txt
+swaks --to alias@domain.com \
       --from sender@example.com \
-      --server localhost --port 2525 \
+      --server localhost --port 25 \
       --header "Subject: SMTP test" \
-      --body "Hello"
+      --header "Content-Type: text/html" \
+      --body "<h1>Hello this is a test email</h1><img src='https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/SIPI_Jelly_Beans_4.1.07.tiff/lossy-page1-250px-SIPI_Jelly_Beans_4.1.07.tiff.jpg' /><p>Did you see the file above ?</p>" \
+      --attach /tmp/test.txt
 ```
 
 > Port 2525 is non-privileged; the SMTP container remaps it from port 25 internally.
@@ -119,7 +122,7 @@ swaks --to xk3f9a2b@dev.local \
 The REST API is at `/api/v1`, authenticated with Sanctum Bearer tokens. Swagger UI is at `/api/docs`.
 
 ```bash
-# Create a personal token via Tinker
+# Create a personal token via Tinker or via the User Interface.
 docker compose exec app php artisan tinker
 >>> $user = \App\Models\User::first();
 >>> echo $user->createToken('dev', ['*'])->plainTextToken;

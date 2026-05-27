@@ -67,6 +67,35 @@
             </div>
         </div>
 
+        {{-- Attachments --}}
+        @if ($this->email->attachments->isNotEmpty())
+            <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <flux:text class="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-400">
+                    {{ __(':count attachment(s)', ['count' => $this->email->attachments->count()]) }}
+                </flux:text>
+
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($this->email->attachments as $attachment)
+                        <a
+                            href="{{ route('attachment.show', $attachment->id) }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm transition hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600"
+                        >
+                            <flux:icon
+                                name="{{ $attachment->isImage() ? 'photo' : 'paper-clip' }}"
+                                class="size-4 shrink-0 text-zinc-400"
+                            />
+                            <span class="max-w-[200px] truncate font-medium text-zinc-700 dark:text-zinc-300">
+                                {{ $attachment->filename }}
+                            </span>
+                            <span class="shrink-0 text-xs text-zinc-400">{{ $attachment->humanSize() }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         {{-- WARNING: email too large, body not stored --}}
         @if ($this->email->is_truncated)
             <flux:callout variant="danger" icon="exclamation-triangle">
@@ -118,35 +147,5 @@
                 </div>
             @endif
         @endif
-
-        {{-- Attachments --}}
-        @if ($this->email->attachments->isNotEmpty())
-            <div class="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-                <flux:text class="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-400">
-                    {{ __(':count attachment(s)', ['count' => $this->email->attachments->count()]) }}
-                </flux:text>
-
-                <div class="flex flex-wrap gap-2">
-                    @foreach ($this->email->attachments as $attachment)
-                        <a
-                            href="{{ route('attachment.show', $attachment->id) }}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm transition hover:border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600"
-                        >
-                            <flux:icon
-                                name="{{ $attachment->isImage() ? 'photo' : 'paper-clip' }}"
-                                class="size-4 shrink-0 text-zinc-400"
-                            />
-                            <span class="max-w-[200px] truncate font-medium text-zinc-700 dark:text-zinc-300">
-                                {{ $attachment->filename }}
-                            </span>
-                            <span class="shrink-0 text-xs text-zinc-400">{{ $attachment->humanSize() }}</span>
-                        </a>
-                    @endforeach
-                </div>
-            </div>
-        @endif
-
     </div>
 </div>

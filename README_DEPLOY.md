@@ -102,7 +102,7 @@ Workers are stateless; all state is in PostgreSQL.
 
 ```bash
 git pull
-docker compose build app smtp-server
+docker compose build app worker scheduler reverb smtp-server
 docker compose up -d
 docker compose exec app php artisan migrate --force
 ```
