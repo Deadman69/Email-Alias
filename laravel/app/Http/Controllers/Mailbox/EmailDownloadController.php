@@ -9,6 +9,7 @@ use App\Services\AuditLogger;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 /**
  * Streams an individual email as a standard RFC 2822 .eml file.
@@ -19,6 +20,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class EmailDownloadController extends Controller
 {
+    use AuthorizesRequests;
+
     public function eml(InboundEmail $email, AuditLogger $auditLogger): StreamedResponse
     {
         $this->authorize('view', $email);

@@ -87,14 +87,14 @@ Create an alias in the UI first, then:
 ```bash
 curl -X POST http://localhost:8000/internal/inbound \
   -H "Content-Type: application/json" \
-  -H "X-SMTP-Secret: changeme" \
+  -H "X-SMTP-Secret: changeme_smtp_secret" \
   -d '{
     "to": ["xk3f9a2b@dev.local"],
     "from_address": "sender@example.com",
     "from_name": "Test Sender",
-    "subject": "Hello",
-    "body_html": "<p>Test</p>",
-    "body_text": "Test.",
+    "subject": "Hello, this is a test !",
+    "body_html": "<h1>Hello this is a test email</h1><img src='https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/SIPI_Jelly_Beans_4.1.07.tiff/lossy-page1-250px-SIPI_Jelly_Beans_4.1.07.tiff.jpg' /><p>Did you see the file above ?</p>",
+    "body_text": "<h1>Hello this is a test email</h1><img src='https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/SIPI_Jelly_Beans_4.1.07.tiff/lossy-page1-250px-SIPI_Jelly_Beans_4.1.07.tiff.jpg' /><p>Did you see the file above ?</p>",
     "headers": {},
     "size_bytes": 100
   }'

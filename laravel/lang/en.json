@@ -393,5 +393,7 @@
     "Just updated": "Just updated",
 
     "Information": "Information",
-    "Your profile is managed by your identity provider.": "Your profile is managed by your identity provider."
+    "Your profile is managed by your identity provider.": "Your profile is managed by your identity provider.",
+
+    "PNG, JPG or WebP — max :size MB. SVG is not accepted.": "PNG, JPG or WebP — max :size MB. SVG is not accepted."
 }

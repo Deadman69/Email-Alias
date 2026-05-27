@@ -270,6 +270,7 @@
     - [ ] Alias : update & extend duration
     - [ ] Admin : CRUD
 - [ ] Faire en sorte que le token admin de plateforme (généré par un super-admin dans les settings) puisse effectuer toutes les actions comme un token classique
+- [ ] Fix problème upload logo
 
 --------------- PRIORITAIRE TO FIX !!!!
 

@@ -178,6 +178,7 @@ services:
       - "80:80"
     volumes:
       - public_data:/var/www/html/public:ro
+      - laravel_storage:/var/www/html/storage:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app

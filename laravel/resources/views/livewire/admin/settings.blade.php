@@ -138,7 +138,7 @@
                         <div class="flex-1">
                             <flux:input type="file" wire:model="logoFile" accept=".png,.jpg,.jpeg,.webp" />
                             <flux:error name="logoFile" />
-                            <flux:description>{{ __('PNG, JPG or WebP — max 2 MB. SVG is not accepted.') }}</flux:description>
+                            <flux:description>{{ __('PNG, JPG or WebP — max :size MB. SVG is not accepted.', ['size' => $maxFileUploadSizeLogoMb]) }}</flux:description>
                         </div>
                         <flux:button type="submit" variant="filled" size="sm">{{ __('Upload') }}</flux:button>
                     </form>

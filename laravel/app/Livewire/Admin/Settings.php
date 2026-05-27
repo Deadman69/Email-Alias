@@ -116,6 +116,7 @@ class Settings extends Component
 
     // ── Active tab ────────────────────────────────────────────────────────────────
     public string $activeTab = 'general';
+    public int $maxFileUploadSizeLogoMb = 8; 
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -217,7 +218,7 @@ class Settings extends Component
             'logoFile' => [
                 'required',
                 'file',
-                'max:4096', // 4 MB
+                'max:'.$maxFileUploadSizeLogoMb*1024,
                 'mimes:png,jpg,jpeg,webp',
             ],
         ]);
