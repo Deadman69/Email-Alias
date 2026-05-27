@@ -286,46 +286,76 @@ class ProcessInboundEmail implements ShouldQueue
     private function storeAttachments(InboundEmail $email): void
     {
         $maxAttachmentBytes = config('emailalias.max_attachment_size_bytes', 5 * 1024 * 1024);
+        $attachmentDisk = config('filesystems.attachment_disk', 'local');
 
         foreach ($this->attachments as $att) {
+            // Skip oversized attachments
             if (($att['size_bytes'] ?? 0) > $maxAttachmentBytes) {
                 Log::info('Attachment skipped: exceeds max size', [
-                    'filename' => $att['filename'],
-                    'size'     => $att['size_bytes'],
+                    'filename' => $att['filename'] ?? null,
+                    'size'     => $att['size_bytes'] ?? null,
                     'email_id' => $email->id,
                 ]);
                 continue;
             }
 
+            // Missing payload
             if (empty($att['content_base64'])) {
+                Log::warning('Attachment skipped: empty base64 payload', [
+                    'filename' => $att['filename'] ?? null,
+                    'email_id' => $email->id,
+                ]);
                 continue;
             }
 
-            $content = base64_decode($att['content_base64'], strict: true);
-
+            // Strict base64 decode
+            $content = base64_decode($att['content_base64'], true);
             if ($content === false) {
-                Log::warning('Attachment base64 decode failed', ['filename' => $att['filename']]);
+                Log::warning('Attachment base64 decode failed', [
+                    'filename' => $att['filename'] ?? null,
+                    'email_id' => $email->id,
+                ]);
                 continue;
             }
 
-            // Sanitize filename to prevent path traversal
-            $safeFilename = Str::slug(pathinfo($att['filename'], PATHINFO_FILENAME))
-                . '.'
-                . strtolower(pathinfo($att['filename'], PATHINFO_EXTENSION) ?: 'bin');
+            $originalFilename = trim($att['filename'] ?? 'attachment.bin');
 
-            $path = 'attachments/' . $email->id . '/' . $safeFilename;
+            // Extract extension safely
+            $extension = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION));
+            if (blank($extension)) {
+                $extension = 'bin';
+            }
 
-            $attachmentDisk = config('filesystems.attachment_disk', 'local');
-            Storage::disk($attachmentDisk)->put($path, $content);
+            // Safe filesystem filename
+            $storedFilename = Str::slug(pathinfo($originalFilename, PATHINFO_FILENAME));
+            if (blank($storedFilename)) {
+                $storedFilename = Str::random(16);
+            }
+            $storedFilename .= '.' . $extension;
+
+            // Store file in a dedicated directory per email
+            $path = sprintf('attachments/%s/%s', $email->id, $storedFilename);
+            $written = Storage::disk($attachmentDisk)->put($path, $content);
+
+            // Double-check existence
+            if (! Storage::disk($attachmentDisk)->exists($path)) {
+                Log::error('Attachment missing after write', [
+                    'email_id' => $email->id,
+                    'disk'     => $attachmentDisk,
+                    'path'     => $path,
+                ]);
+                continue;
+            }
 
             Attachment::create([
-                'email_id'   => $email->id,
-                'filename'   => $att['filename'],
-                'mime_type'  => $att['content_type'] ?? 'application/octet-stream',
+                'email_id' => $email->id,
+                'original_filename' => $originalFilename,
+                'stored_filename' => $storedFilename,
+                'mime_type' => $att['content_type'] ?? 'application/octet-stream',
                 'size_bytes' => $att['size_bytes'] ?? strlen($content),
-                'disk'       => $attachmentDisk,
-                'path'       => $path,
-                'checksum'   => $att['checksum'] ?? null,
+                'disk' => $attachmentDisk,
+                'path' => $path,
+                'checksum' => $att['checksum'] ?? null,
             ]);
         }
     }

@@ -13,7 +13,7 @@ class Attachment extends Model
     use HasFactory, HasUlids;
 
     protected $fillable = [
-        'email_id', 'filename', 'mime_type', 'size_bytes', 'disk', 'path', 'checksum',
+        'email_id', 'original_filename', 'stored_filename', 'mime_type', 'size_bytes', 'disk', 'path', 'checksum',
     ];
 
     protected function casts(): array

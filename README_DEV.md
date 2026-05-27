@@ -103,14 +103,25 @@ curl -X POST http://localhost:8000/internal/inbound \
 **Option B — full SMTP end-to-end**
 
 ```bash
+cat > /tmp/mail.html <<'EOF'
+<h1>Hello this is a test email</h1>
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/SIPI_Jelly_Beans_4.1.07.tiff/lossy-page1-250px-SIPI_Jelly_Beans_4.1.07.tiff.jpg" />
+
+<p>Did you see the file above ?</p>
+EOF
+
 echo "test attachment" > /tmp/test.txt
+
 swaks --to alias@domain.com \
       --from sender@example.com \
       --server localhost --port 25 \
       --header "Subject: SMTP test" \
       --header "Content-Type: text/html" \
-      --body "<h1>Hello this is a test email</h1><img src='https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/SIPI_Jelly_Beans_4.1.07.tiff/lossy-page1-250px-SIPI_Jelly_Beans_4.1.07.tiff.jpg' /><p>Did you see the file above ?</p>" \
-      --attach /tmp/test.txt
+      --body @/tmp/mail.html \
+      --add-header "Content-Type: text/html; charset=UTF-8" \
+      --attach @/tmp/test.txt \
+      --attach @"/tmp/test 2.pdf"
 ```
 
 > Port 2525 is non-privileged; the SMTP container remaps it from port 25 internally.

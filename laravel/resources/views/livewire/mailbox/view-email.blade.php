@@ -87,7 +87,7 @@
                                 class="size-4 shrink-0 text-zinc-400"
                             />
                             <span class="max-w-[200px] truncate font-medium text-zinc-700 dark:text-zinc-300">
-                                {{ $attachment->filename }}
+                                {{ $attachment->original_filename }}
                             </span>
                             <span class="shrink-0 text-xs text-zinc-400">{{ $attachment->humanSize() }}</span>
                         </a>

@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 #[UseFactory(InboundEmailFactory::class)]
 #[Fillable([
@@ -63,6 +64,10 @@ class InboundEmail extends Model
         static::deleting(function (self $email) {
             // Load fresh so we still catch attachments even on forceDelete
             $email->attachments()->each(fn (Attachment $a) => $a->delete());
+
+            // Remove empty directory of the mail
+            $attachmentDisk = config('filesystems.attachment_disk', 'local');
+            Storage::disk($attachmentDisk)->deleteDirectory('attachments/' . $email->id);
         });
 
         // Keep search_vector in sync whenever subject, sender, or body changes.

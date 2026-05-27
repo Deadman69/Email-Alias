@@ -22,10 +22,34 @@ class AttachmentController extends Controller
             abort(404, 'Attachment not found.');
         }
 
-        return Storage::disk($attachment->disk)->download(
-            $attachment->path,
-            $attachment->filename,
-            ['Content-Type' => $attachment->mime_type]
+        $stream = Storage::disk($attachment->disk)->readStream($attachment->path);
+        abort_if($stream === false, 404);
+
+        $inlineMimeTypes = [
+            'application/pdf',
+            'text/plain',
+            'text/html',
+            'application/json',
+            'image/png',
+            'image/jpeg',
+            'image/gif',
+            'image/webp',
+        ];
+
+        $disposition = in_array($attachment->mime_type, $inlineMimeTypes, true) ? 'inline' : 'attachment';
+        return response()->stream(
+            fn () => fpassthru($stream),
+            200,
+            [
+                'Content-Type' => $attachment->mime_type,
+                'Content-Length' => $attachment->size_bytes,
+                'Content-Disposition' =>
+                    $disposition .
+                    '; filename="' .
+                    addslashes($attachment->original_filename) .
+                    '"',
+                'X-Content-Type-Options' => 'nosniff',
+            ]
         );
     }
 }

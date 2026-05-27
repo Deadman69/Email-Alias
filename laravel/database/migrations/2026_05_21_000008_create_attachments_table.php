@@ -13,7 +13,8 @@ return new class extends Migration
 
             $table->foreignUlid('email_id')->constrained('inbound_emails')->cascadeOnDelete();
 
-            $table->string('filename');
+            $table->string('original_filename');
+            $table->string('stored_filename');
             $table->string('mime_type', 255);
             $table->unsignedBigInteger('size_bytes');
 
