@@ -69,7 +69,7 @@ class Sessions extends Component
         $this->pendingRevokeSessionId = '';
         $this->showConfirmRevokeSession = false;
         unset($this->sessions);
-        \Flux\Flux::toast(text: __('Session revoked.'));
+        \Flux\Flux::toast(variant: 'success', text: __('Session revoked.'));
     }
 
     public function requestRevokeOtherSessions(): void

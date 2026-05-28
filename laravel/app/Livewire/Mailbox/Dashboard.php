@@ -415,7 +415,7 @@ class Dashboard extends Component
         $this->pendingRemoveShareId = '';
         $this->showConfirmRemoveShare = false;
         unset($this->sharingAlias, $this->aliases);
-        Flux::toast(text: __('Share removed.'));
+        Flux::toast(variant: 'success', text: __('Share removed.'));
     }
 
     // ── Webhook ───────────────────────────────────────────────────────────────────

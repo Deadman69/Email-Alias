@@ -188,7 +188,7 @@ class ApiTokens extends Component
         $this->pendingRevokeTokenId = null;
         $this->showConfirmRevokeToken = false;
         unset($this->tokens);
-        Flux::toast(text: __('Token revoked.'));
+        Flux::toast(variant: 'success', text: __('Token revoked.'));
     }
 
     public function dismissToken(): void

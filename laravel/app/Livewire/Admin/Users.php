@@ -163,10 +163,7 @@ class Users extends Component
 
         unset($this->users);
 
-        Flux::toast(
-            variant: 'success',
-            text: $user->is_active ? __('User reactivated.') : __('User suspended.'),
-        );
+        Flux::toast(variant: 'success', text: $user->is_active ? __('User reactivated.') : __('User suspended.'),);
     }
 
     // ── GDPR force-delete user ────────────────────────────────────────────────────

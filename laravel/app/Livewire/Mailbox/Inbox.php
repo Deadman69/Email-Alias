@@ -160,7 +160,7 @@ class Inbox extends Component
         }
 
         unset($this->emails, $this->unreadCount);
-        Flux::toast(text: __('All emails marked as read.'));
+        Flux::toast(variant: 'success', text: __('All emails marked as read.'));
     }
 
     /** Reset pagination when the filter tab changes. */
