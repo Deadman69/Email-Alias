@@ -5,10 +5,12 @@ namespace App\Livewire\Admin;
 use App\Enums\AuditEvent;
 use App\Enums\AliasType;
 use App\Enums\SsoProvider;
+use App\Models\ApplicationState;
 use App\Models\AppToken;
 use App\Models\Domain;
 use App\Services\AuditLogger;
 use App\Services\SettingService;
+use App\Services\VersionChecker;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -37,6 +39,9 @@ class Settings extends Component
     public $logoFile = null;
 
     public string $currentLogoPath = '';
+
+    // ── Version check ──────────────────────────────────────────────────────────
+    public ?array $versionStatus = null;
 
     // ── Auth ─────────────────────────────────────────────────────────────────────
     public bool   $sso_enabled          = false;
@@ -125,6 +130,7 @@ class Settings extends Component
         $this->app_name              = (string) $settings->get('app_name', 'EmailAlias');
         $this->app_locale            = (string) $settings->get('app_locale', 'en');
         $this->version_check_enabled    = (bool)   $settings->get('version_check_enabled', true);
+        $this->versionStatus = ApplicationState::getValue('app_version_status');
         $this->health_check_visibility = (string) $settings->get('health_check_visibility', 'public');
         $this->sso_enabled         = (bool)   $settings->get('sso_enabled', false);
         $this->sso_provider        = (string) $settings->get('sso_provider', 'azure');
@@ -587,5 +593,22 @@ class Settings extends Component
         unset($this->appTokens);
 
         Flux::toast(variant: 'success', text: __('Token revoked.'));
+    }
+
+    public function checkForUpdates(VersionChecker $checker): void
+    {
+        $this->versionStatus = $checker->check(force: true);
+
+        if (! ($this->versionStatus['success'] ?? false)) {
+            Flux::toast(variant: 'danger', text: __('Unable to check for updates.'));
+            return;
+        }
+
+        if ($this->versionStatus['has_update'] ?? false) {
+            Flux::toast(variant: 'warning', text: __('A new version is available.'));
+            return;
+        }
+
+        Flux::toast(variant: 'success', text: __('Application is up to date.'));
     }
 }

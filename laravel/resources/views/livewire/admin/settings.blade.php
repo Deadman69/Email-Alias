@@ -99,17 +99,69 @@
                     <flux:error name="app_locale" />
                 </flux:field>
 
-                <flux:field>
-                    <flux:label>{{ __('App version') }}</flux:label>
-                    <flux:input value="{{ $this->appVersion }}" disabled class="max-w-xs font-mono" />
-                    <flux:description>{{ __('Defined in the VERSION file. Update by deploying a new release.') }}</flux:description>
-                </flux:field>
+                <flux:separator text="{{ __('Application version') }}" />
 
-                <flux:field variant="inline">
-                    <flux:label>{{ __('Check for updates automatically') }}</flux:label>
-                    <flux:switch wire:model="version_check_enabled" />
-                    <flux:description>{{ __('Periodically checks GitHub for a newer release and displays a badge in the admin panel.') }}</flux:description>
-                </flux:field>
+                <div class="space-y-4">
+                    {{-- Version + manual check --}}
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div class="flex-1 max-w-xs">
+                            <flux:field>
+                                <flux:label>{{ __('App version') }}</flux:label>
+                                <flux:input value="{{ $this->appVersion }}" disabled class="font-mono"/>
+                                <flux:description>{{ __('Defined in the VERSION file. Update by deploying a new release.') }}</flux:description>
+                            </flux:field>
+                        </div>
+
+                        <div class="flex flex-col items-start gap-2">
+                            <flux:button wire:click="checkForUpdates" wire:loading.attr="disabled" wire:target="checkForUpdates" size="sm" variant="primary" icon="arrow-path">
+                                <span wire:loading.remove wire:target="checkForUpdates">{{ __('Check for updates') }}</span>
+                                <span wire:loading wire:target="checkForUpdates">{{ __('Checking...') }}</span>
+                            </flux:button>
+
+                            <div wire:loading.flex wire:target="checkForUpdates" class="items-center gap-2 text-xs text-zinc-500">
+                                <flux:icon.loading class="size-4 animate-spin" />
+                                <span>{{ __('Contacting GitHub...') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Automatic checks --}}
+                    <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="space-y-1">
+                                <flux:heading size="sm">{{ __('Automatic update checks') }}</flux:heading>
+                                <flux:text class="text-sm text-zinc-500">{{ __('Periodically checks GitHub for new releases and notifies super-admins when an update is available.') }}</flux:text>
+                            </div>
+
+                            <flux:switch wire:model="version_check_enabled" />
+                        </div>
+                    </div>
+
+                    <flux:text class="text-xs text-zinc-500">
+                        @if ($this->versionStatus && ! empty($this->versionStatus['checked_at']))
+                            {{ __('Last checked: :date', ['date' => \Carbon\Carbon::parse( $this->versionStatus['checked_at'])->diffForHumans()]) }}
+                        @else
+                            {{ __('Never checked') }}
+                        @endif
+                    </flux:text>
+
+                    {{-- Update available --}}
+                    @if ($this->versionStatus && ($this->versionStatus['has_update'] ?? false))
+                        <flux:callout variant="warning" icon="arrow-down-circle">
+                            <flux:callout.heading>{{ __('Update available') }}</flux:callout.heading>
+
+                            <flux:callout.text>{{ __('Version :latest is available. You are currently running :current.', [ 'latest' => $this->versionStatus['latest'], 'current' => $this->versionStatus['current']])}}</flux:callout.text>
+
+                            <x-slot name="actions">
+                                @if (! empty($this->versionStatus['release_url']))
+                                    <flux:button size="sm" variant="primary" href="{{ $this->versionStatus['release_url'] }}" target="_blank">
+                                        {{ __('View release') }}
+                                    </flux:button>
+                                @endif
+                            </x-slot>
+                        </flux:callout>
+                    @endif
+                </div>
 
                 {{-- Logo upload ──────────────────────────────────────────── --}}
                 <flux:separator text="{{ __('Application logo') }}" />

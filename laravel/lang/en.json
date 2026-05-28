@@ -92,6 +92,8 @@
     "Email": "Email",
     "Application name": "Application name",
     "Application URL": "Application URL",
+    "Application version": "Application version",
+    "Application logo": "Application logo",
     "Set via APP_URL in .env — cannot be changed here.": "Set via APP_URL in .env — cannot be changed here.",
     "Default language": "Default language",
     "English": "English",
@@ -395,5 +397,19 @@
     "Information": "Information",
     "Your profile is managed by your identity provider.": "Your profile is managed by your identity provider.",
 
-    "PNG, JPG or WebP — max :size MB. SVG is not accepted.": "PNG, JPG or WebP — max :size MB. SVG is not accepted."
+    "PNG, JPG or WebP — max :size MB. SVG is not accepted.": "PNG, JPG or WebP — max :size MB. SVG is not accepted.",
+
+    "Update available": "Update available",
+    "Version :latest is available. You are currently running :current.": "Version :latest is available. You are currently running :current.",
+    "View release": "View release",
+    "Unable to check for updates.": "Unable to check for updates.",
+    "A new version is available.": "A new version is available.",
+    "Application is up to date.": "Application is up to date.",
+    "Check for updates": "Check for updates",
+    "Checking...": "Checking...",
+    "Contacting GitHub...": "Contacting GitHub...",
+    "Automatic update checks": "Automatic update checks",
+    "Periodically checks GitHub for new releases and notifies super-admins when an update is available.": "Periodically checks GitHub for new releases and notifies super-admins when an update is available.",
+    "Last checked: :date": "Last checked: :date",
+    "Never checked": "Never checked"
 }

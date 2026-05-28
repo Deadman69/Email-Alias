@@ -115,6 +115,69 @@
             </flux:dropdown>
         </flux:header>
 
+        @php
+            $versionState = \App\Models\ApplicationState::getValue('app_version_status');
+            $showVersionBanner = false;
+
+            if (auth()->user()?->isSuperAdmin() && $versionState && ($versionState['has_update'] ?? false)) {
+                $dismissedVersion = session('dismissed_version');
+                $showVersionBanner = $dismissedVersion !== ($versionState['latest'] ?? null);
+            }
+        @endphp
+
+        @if ($showVersionBanner)
+            <div x-data="{open: true,
+                    async dismiss() {
+                        try {
+                            await fetch('{{ route('admin.version.banner-dismiss') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                },
+                                body: JSON.stringify({
+                                    version: '{{ $versionState['latest'] }}'
+                                })
+                            });
+
+                            this.open = false;
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }" x-show="open" x-transition
+                class="border-b border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+                <div class="flex items-center justify-between px-4 py-3">
+                    <div class="flex items-center gap-3">
+                        <flux:icon.exclamation-triangle class="size-5 text-amber-600" />
+
+                        <div class="text-sm text-amber-900 dark:text-amber-100">
+                            <span class="font-semibold">
+                                Update {{ $versionState['latest'] }} available
+                            </span>
+
+                            <span class="ml-2 opacity-80">
+                                Current version:
+                                {{ $versionState['current'] }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        @if (! empty($versionState['release_url']))
+                            <flux:button size="sm" variant="primary" href="{{ $versionState['release_url'] }}" target="_blank">
+                                View release
+                            </flux:button>
+                        @endif
+
+                        <flux:button size="sm" variant="ghost" x-on:click="dismiss">
+                            <flux:icon.x-mark class="size-4" />
+                        </flux:button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         {{ $slot }}
 
         @persist('toast')

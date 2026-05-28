@@ -55,6 +55,26 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/', AdminDashboard::class)->name('dashboard');
     Route::get('/users', AdminUsers::class)->name('users');
     Route::get('/audit', AuditLogViewer::class)->name('audit');
+
+    Route::post('/version/banner-dismiss', function () {
+        request()->validate(['version' => ['required', 'string']]);
+        session(['dismissed_version' => request('version')]);
+        return response()->json(['success' => true]);
+    })->name('version.banner-dismiss');
+    Route::get('/version/status', function () {
+        $state = \App\Models\ApplicationState::find('app_version_status');
+        if (!$state) {
+            return response()->json([
+                'has_update' => false,
+            ]);
+        }
+
+        $data = $state->value;
+        return response()->json([
+            ...$data,
+            'show_banner' => ($data['has_update'] && !session('version_banner_dismissed', false)),
+        ]);
+    })->name('version.status');
 });
 
 // ── Super Admin panel (platform configuration) ────────────────────────────────

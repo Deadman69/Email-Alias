@@ -54,8 +54,8 @@
     "To": "À",
     "Date": "Date",
     "Size": "Taille",
-    "No domain configured. Please contact your administrator.": "Aucun domaine n’est configuré. Veuillez contacter votre administrateur.",
-    "No domain configured. Please configure a domain first.": "Aucun domaine n’est configuré. Veuillez d’abord configurer un domaine.",
+    "No domain configured. Please contact your administrator.": "Aucun domaine n'est configuré. Veuillez contacter votre administrateur.",
+    "No domain configured. Please configure a domain first.": "Aucun domaine n'est configuré. Veuillez d'abord configurer un domaine.",
     "Email body not available": "Corps du message indisponible",
     "This email exceeded the maximum size limit (:size). Only the sender, subject and headers were kept.": "Cet e-mail dépasse la limite de taille (:size). Seuls l'expéditeur, l'objet et les en-têtes ont été conservés.",
     "External images and trackers are blocked.": "Les images externes et les traceurs sont bloqués.",
@@ -92,6 +92,8 @@
     "Email": "E-mail",
     "Application name": "Nom de l'application",
     "Application URL": "URL de l'application",
+    "Application version": "Version de l'application",
+    "Application logo": "Logo de l'application",
     "Set via APP_URL in .env — cannot be changed here.": "Défini via APP_URL dans .env — non modifiable ici.",
     "Default language": "Langue par défaut",
     "English": "Anglais",
@@ -395,5 +397,19 @@
     "Information": "Information",
     "Your profile is managed by your identity provider.": "Votre profil est géré par votre fournisseur d'identité.",
 
-    "PNG, JPG or WebP — max :size MB. SVG is not accepted.": "PNG, JPG ou WebP — maximum :size Mo. SVG n'est pas accepté."
+    "PNG, JPG or WebP — max :size MB. SVG is not accepted.": "PNG, JPG ou WebP — maximum :size Mo. SVG n'est pas accepté.",
+
+    "Update available": "Mise à jour disponible",
+    "Version :latest is available. You are currently running :current.": "La version :latest est disponible. Vous utilisez actuellement la version :current.",
+    "View release": "Voir la release",
+    "Unable to check for updates.": "Impossible de vérifier les mises à jour.",
+    "A new version is available.": "Une nouvelle version est disponible.",
+    "Application is up to date.": "L'application est à jour.",
+    "Check for updates": "Vérifier les mises à jour",
+    "Checking...": "Vérification...",
+    "Contacting GitHub...": "Connexion à GitHub...",
+    "Automatic update checks": "Vérification automatique des mises à jour",
+    "Periodically checks GitHub for new releases and notifies super-admins when an update is available.": "Vérifie périodiquement les nouvelles releases GitHub et notifie les super-administrateurs lorsqu'une mise à jour est disponible.",
+    "Last checked: :date": "Dernière vérification : :date",
+    "Never checked": "Jamais vérifié"
 }

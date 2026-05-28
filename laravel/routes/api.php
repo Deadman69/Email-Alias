@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\Route;
 // ── Health check (outside auth:sanctum — visibility handled by middleware) ────
 Route::prefix('v1')->middleware(['throttle:api', 'health.access'])->group(function (): void {
     Route::get('health', HealthController::class)->name('api.health');
+
+    Route::get('version', function (\App\Services\VersionChecker $checker) {
+        return response()->json($checker->check());
+    });
 });
 
 Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
