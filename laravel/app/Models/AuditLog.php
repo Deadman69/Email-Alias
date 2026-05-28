@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-#[Fillable(['user_id', 'event', 'auditable_type', 'auditable_id', 'metadata', 'ip_address', 'user_agent'])]
+#[Fillable(['user_id', 'user_email', 'event', 'auditable_type', 'auditable_id', 'metadata', 'ip_address', 'user_agent'])]
 class AuditLog extends Model
 {
     /** Audit logs are immutable — no updated_at. */

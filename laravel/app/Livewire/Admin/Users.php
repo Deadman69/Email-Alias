@@ -20,6 +20,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB;
 
 #[Title('Admin — Users')]
 #[Layout('layouts.app')]
@@ -217,37 +218,28 @@ class Users extends Component
 
             return;
         }
-
+ 
         // ── Data erasure ──────────────────────────────────────────────────────
         // 1. Load aliases with their emails and attachments.
         $target->load(['aliases.inboundEmails.attachments', 'aliases.shares']);
-
         foreach ($target->aliases as $alias) {
-            foreach ($alias->inboundEmails as $email) {
-                // Delete physical attachment files then DB rows.
-                foreach ($email->attachments as $attachment) {
-                    $attachment->delete(); // booted() deletes the file from storage
-                }
-
-                $email->forceDelete();
-            }
-
-            // Hard-delete alias shares.
-            $alias->shares()->delete();
-
             $alias->forceDelete();
         }
 
         // 2. Revoke API tokens.
         $target->tokens()->delete();
 
-        // 3. Purge audit logs linked to this user.
-        AuditLog::where('user_id', $target->id)->delete();
+        // 3. Clean audit logs linked to this user.
+        AuditLog::where('user_id', $target->id)->whereNull('user_email')->update([
+            'user_email' => $target->email,
+        ]);
+
+        AuditLog::where('user_id', $target->id)->update([
+            'user_id' => null,
+        ]);
 
         // 4. Purge database sessions.
-        \Illuminate\Support\Facades\DB::table('sessions')
-            ->where('user_id', $target->id)
-            ->delete();
+        DB::table('sessions')->where('user_id', $target->id)->delete();
 
         // 5. Log the deletion BEFORE anonymising (so we still have the email in metadata).
         $auditLogger->log(AuditEvent::AdminUserDeleted, null, [
@@ -256,15 +248,7 @@ class Users extends Component
             'actor'              => Auth::user()->email,
         ]);
 
-        // 6. Anonymise the user record (keep FK integrity for future audit references).
-        $target->forceFill([
-            'name'        => 'Deleted User',
-            'email'       => 'deleted_' . \Illuminate\Support\Str::ulid() . '@deleted.invalid',
-            'password'    => null,
-            'azure_id'    => null,
-            'external_id' => null,
-            'is_active'   => false,
-        ])->saveQuietly();
+        $target->delete();
 
         $this->pendingDeleteUserId = '';
         $this->showConfirmDeleteUser = false;

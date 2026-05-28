@@ -55,7 +55,19 @@
                             </flux:tooltip>
                         </td>
                         <td class="px-4 py-2 text-zinc-700 dark:text-zinc-300">
-                            {{ $log->user?->name ?? __('System') }}
+                            @if ($log->user)
+                                <flux:tooltip content="{{ $log->user->email }}">
+                                    <span>{{ $log->user->name }}</span>
+                                </flux:tooltip>
+                            @elseif ($log->user_email)
+                                <span class="text-zinc-500">
+                                    {{ $log->user_email }}
+                                </span>
+                            @else
+                                <span class="text-zinc-400 italic">
+                                    {{ __('System') }}
+                                </span>
+                            @endif
                         </td>
                         <td class="px-4 py-2">
                             <flux:badge size="sm" color="{{ str_starts_with($log->event->value, 'admin.') ? 'purple' : (str_starts_with($log->event->value, 'email.') ? 'blue' : 'zinc') }}">

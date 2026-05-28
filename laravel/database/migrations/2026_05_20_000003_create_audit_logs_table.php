@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('user_email', 255)->nullable(); // Keep user email on user deletion
             $table->string('event');
             // Colonnes morph explicites en varchar pour supporter à la fois
             // les ULIDs (Alias) et les entiers (User, InboundEmail)

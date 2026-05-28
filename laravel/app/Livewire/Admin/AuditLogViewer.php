@@ -30,16 +30,7 @@ class AuditLogViewer extends Component
     #[Computed]
     public function logs(): \Illuminate\Pagination\LengthAwarePaginator
     {
-        return AuditLog::with('user')
-            ->when($this->search, function ($q) {
-                $term = $this->search;
-                $q->whereHas('user', fn ($q2) => $q2->where('name', 'like', "%{$term}%")
-                    ->orWhere('email', 'like', "%{$term}%"));
-            })
-            ->when($this->eventFilter, fn ($q) => $q->where('event', $this->eventFilter))
-            ->when($this->userFilter, fn ($q) => $q->where('user_id', $this->userFilter))
-            ->when($this->dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
-            ->when($this->dateTo, fn ($q) => $q->whereDate('created_at', '<=', $this->dateTo))
+        return $this->applyFilters(AuditLog::with('user'))
             ->latest()
             ->paginate(50);
     }
@@ -68,53 +59,100 @@ class AuditLogViewer extends Component
 
     public function download(string $format): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $logs = AuditLog::with('user')
-            ->when($this->search, function ($q) {
-                $term = $this->search;
-                $q->whereHas('user', fn ($q2) => $q2->where('name', 'like', "%{$term}%")
-                    ->orWhere('email', 'like', "%{$term}%"));
-            })
-            ->when($this->eventFilter, fn ($q) => $q->where('event', $this->eventFilter))
-            ->when($this->userFilter, fn ($q) => $q->where('user_id', $this->userFilter))
-            ->when($this->dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
-            ->when($this->dateTo, fn ($q) => $q->whereDate('created_at', '<=', $this->dateTo))
+        $logs = $this->applyFilters(AuditLog::with('user'))
             ->latest()
             ->get();
 
-        $date     = now()->format('Y-m-d');
+        $date = now()->format('Y-m-d');
         $filename = "audit-log-{$date}.{$format}";
 
         if ($format === 'csv') {
             return response()->streamDownload(function () use ($logs) {
                 $out = fopen('php://output', 'w');
-                fputcsv($out, ['date', 'user', 'event', 'ip', 'details']);
+                fputcsv($out, [
+                    'date',
+                    'event',
+                    'user_name',
+                    'user_email',
+                    'user_id',
+                    'ip_address',
+                    'user_agent',
+                    'auditable_type',
+                    'auditable_id',
+                    'metadata',
+                ]);
+
                 foreach ($logs as $log) {
                     fputcsv($out, [
                         $log->created_at->toDateTimeString(),
-                        $log->user?->name ?? 'System',
                         $log->event->value,
+                        $log->user?->name,
+                        $log->user?->email ?? $log->user_email ?? 'System',
+                        $log->user_id,
                         $log->ip_address ?? '',
-                        json_encode($log->metadata ?? []),
+                        $log->user_agent ?? '',
+                        $log->auditable_type ?? '',
+                        $log->auditable_id ?? '',
+                        json_encode($log->metadata ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                     ]);
                 }
+
                 fclose($out);
-            }, $filename, ['Content-Type' => 'text/csv']);
+            }, $filename, ['Content-Type' => 'text/csv',]);
         }
 
         return response()->streamDownload(function () use ($logs) {
             $data = $logs->map(fn ($log) => [
-                'date'    => $log->created_at->toDateTimeString(),
-                'user'    => $log->user?->name ?? 'System',
-                'event'   => $log->event->value,
-                'ip'      => $log->ip_address ?? '',
-                'details' => $log->metadata ?? [],
+                'id' => $log->id,
+                'date' => $log->created_at->toIso8601String(),
+                'event' => [
+                    'value' => $log->event->value,
+                    'label' => $log->event->label(),
+                ],
+                'user' => [
+                    'id' => $log->user_id,
+                    'name' => $log->user?->name,
+                    'email' => $log->user?->email ?? $log->user_email ?? null,
+                ],
+                'request' => [
+                    'ip_address' => $log->ip_address,
+                    'user_agent' => $log->user_agent,
+                ],
+                'auditable' => [
+                    'type' => $log->auditable_type,
+                    'id' => $log->auditable_id,
+                ],
+                'metadata' => $log->metadata ?? [],
             ])->all();
 
             echo json_encode([
                 'exported_at' => now()->toIso8601String(),
-                'count'       => count($data),
-                'logs'        => $data,
+                'count' => count($data),
+                'logs' => $data,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         }, $filename, ['Content-Type' => 'application/json']);
+    }
+
+    protected function applyFilters($query)
+    {
+        return $query->when($this->search, function ($q) {
+            $term = '%' . trim($this->search) . '%';
+            $q->where(function ($query) use ($term) {
+                $query->whereHas('user', function ($q2) use ($term) {
+                    $q2->where('name', 'like', $term)
+                        ->orWhere('email', 'like', $term);
+                })
+                ->orWhere('user_email', 'like', $term)
+                ->orWhere('event', 'like', $term)
+                ->orWhere('ip_address', 'like', $term)
+                ->orWhere('metadata', 'like', $term)
+                ->orWhere('auditable_type', 'like', $term)
+                ->orWhere('auditable_id', 'like', $term);
+            });
+        })
+        ->when($this->eventFilter, fn ($q) => $q->where('event', $this->eventFilter))
+        ->when($this->userFilter, fn ($q) => $q->where('user_id', $this->userFilter))
+        ->when($this->dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $this->dateFrom))
+        ->when($this->dateTo, fn ($q) => $q->whereDate('created_at', '<=', $this->dateTo));
     }
 }
