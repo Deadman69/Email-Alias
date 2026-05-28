@@ -14,20 +14,20 @@ enum AliasType: string
     public static function durationsOptions(): array
     {
         return [
-            '1h'  => '1 hour',
-            '12h' => '12 hours',
-            '24h' => '24 hours',
-            '7d'  => '7 days',
-            '30d' => '30 days',
+            '1h'  => trans_choice(':count hour|:count hours', 1, ['count' => 1]),
+            '12h' => trans_choice(':count hour|:count hours', 12, ['count' => 12]),
+            '24h' => trans_choice(':count hour|:count hours', 24, ['count' => 24]),
+            '7d'  => trans_choice(':count day|:count days', 7, ['count' => 7]),
+            '30d' => trans_choice(':count day|:count days', 30, ['count' => 30]),
         ];
     }
 
     public function label(): string
     {
         return match ($this) {
-            self::Session   => 'Session',
-            self::Duration  => 'Duration',
-            self::Permanent => 'Permanent',
+            self::Session   => __('Session'),
+            self::Duration  => __('Duration'),
+            self::Permanent => __('Permanent'),
         };
     }
 

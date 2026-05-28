@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\SamlController;
 use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Internal\InboundEmailController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\VersionController;
 use App\Http\Controllers\Mailbox\EmailDownloadController;
 use App\Livewire\Admin\AuditLogViewer;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
@@ -37,8 +38,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/saml/sls', [SamlController::class, 'sls'])->name('saml.sls');
 });
 // ACS is POST from the IdP — exempt from CSRF via VerifyCsrfToken middleware
-Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
-    ->post('/auth/saml/acs', [SamlController::class, 'acs'])->name('saml.acs');
+Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->post('/auth/saml/acs', [SamlController::class, 'acs'])->name('saml.acs');
 
 // ── Mailbox (authenticated users) ────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -55,31 +55,14 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/', AdminDashboard::class)->name('dashboard');
     Route::get('/users', AdminUsers::class)->name('users');
     Route::get('/audit', AuditLogViewer::class)->name('audit');
-
-    Route::post('/version/banner-dismiss', function () {
-        request()->validate(['version' => ['required', 'string']]);
-        session(['dismissed_version' => request('version')]);
-        return response()->json(['success' => true]);
-    })->name('version.banner-dismiss');
-    Route::get('/version/status', function () {
-        $state = \App\Models\ApplicationState::find('app_version_status');
-        if (!$state) {
-            return response()->json([
-                'has_update' => false,
-            ]);
-        }
-
-        $data = $state->value;
-        return response()->json([
-            ...$data,
-            'show_banner' => ($data['has_update'] && !session('version_banner_dismissed', false)),
-        ]);
-    })->name('version.status');
 });
 
 // ── Super Admin panel (platform configuration) ────────────────────────────────
 Route::middleware(['auth', 'verified', 'super_admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/settings', AdminSettings::class)->name('settings');
+
+    Route::post('/version/banner-dismiss', [VersionController::class, 'banner_dismiss'])->name('version.banner-dismiss');
+    Route::get('/version/status', [VersionController::class, 'status'])->name('version.status');
 });
 
 require __DIR__ . '/settings.php';

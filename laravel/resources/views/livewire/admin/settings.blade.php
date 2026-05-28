@@ -134,6 +134,7 @@
                             </div>
 
                             <flux:switch wire:model="version_check_enabled" />
+                            <flux:error name="version_check_enabled" />
                         </div>
                     </div>
 
@@ -166,44 +167,78 @@
                 {{-- Logo upload ──────────────────────────────────────────── --}}
                 <flux:separator text="{{ __('Application logo') }}" />
 
-                <div class="space-y-3">
-                    {{-- Current logo preview --}}
-                    @if ($this->logoUrl)
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    {{-- Left side --}}
+                    <div class="space-y-4 flex-1">
+                        {{-- Current logo --}}
                         <div class="flex items-center gap-4">
-                            <img src="{{ $this->logoUrl }}" alt="{{ __('Current logo') }}" class="h-12 w-auto rounded-lg border border-zinc-200 object-contain dark:border-zinc-700">
-                            <flux:button
-                                size="sm"
-                                variant="ghost"
-                                icon="trash"
-                                wire:click="removeLogo"
-                                class="text-red-500 hover:text-red-600"
-                            >
-                                {{ __('Remove') }}
-                            </flux:button>
-                        </div>
-                    @else
-                        <flux:text class="text-sm text-zinc-400">{{ __('No custom logo — using the built-in icon.') }}</flux:text>
-                    @endif
+                            <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                                @if ($this->logoUrl)
+                                    <img src="{{ $this->logoUrl }}" alt="{{ __('Current logo') }}" class="max-h-12 max-w-12 object-contain">
+                                @else
+                                    <flux:icon.photo class="size-8 text-zinc-400" />
+                                @endif
+                            </div>
 
-                    {{-- Upload form (separate submit, not part of main settings save) --}}
-                    <form wire:submit="uploadLogo" class="flex items-start gap-3" enctype="multipart/form-data">
-                        <div class="flex-1">
-                            <flux:input type="file" wire:model="logoFile" accept=".png,.jpg,.jpeg,.webp" />
-                            <flux:error name="logoFile" />
-                            <flux:description>{{ __('PNG, JPG or WebP — max :size MB. SVG is not accepted.', ['size' => $maxFileUploadSizeLogoMb]) }}</flux:description>
+                            <div class="space-y-1">
+                                @if ($this->logoUrl)
+                                    <flux:text class="font-medium">{{ __('Custom logo configured') }}</flux:text>
+
+                                    <flux:button size="sm" variant="ghost" icon="trash" wire:click="removeLogo" class="text-red-500 hover:text-red-600">
+                                        {{ __('Remove logo') }}
+                                    </flux:button>
+                                @else
+                                    <flux:text class="text-sm text-zinc-500">
+                                        {{ __('No custom logo configured.') }}
+                                    </flux:text>
+                                @endif
+                            </div>
                         </div>
-                        <flux:button type="submit" variant="filled" size="sm">{{ __('Upload') }}</flux:button>
-                    </form>
+
+                        {{-- Upload form --}}
+                        <form wire:submit="uploadLogo" enctype="multipart/form-data" class="flex flex-col gap-3 sm:flex-row sm:items-start">
+                            <div class="flex-1">
+                                <flux:input type="file" wire:model="logoFile" accept=".png,.jpg,.jpeg,.webp"/>
+                                <flux:error name="logoFile" />
+
+                                <flux:description>
+                                    {{ __('PNG, JPG or WebP — max :size MB. SVG is not supported.', ['size' => $maxFileUploadSizeLogoMb]) }}
+                                </flux:description>
+                            </div>
+
+                            <flux:button type="submit" variant="primary" size="sm">
+                                {{ __('Upload logo') }}
+                            </flux:button>
+                        </form>
+                    </div>
                 </div>
 
+                {{-- Health checks ───────────────────────────────────────── --}}
+                <flux:separator text="{{ __('Health checks') }}" />
+
                 <flux:field>
-                    <flux:label>{{ __('Health check visibility') }}</flux:label>
-                    <flux:select wire:model="health_check_visibility" class="max-w-xs">
-                        <flux:select.option value="public">{{ __('Public — no authentication required') }}</flux:select.option>
-                        <flux:select.option value="auth">{{ __('Authenticated users only') }}</flux:select.option>
-                        <flux:select.option value="admin">{{ __('Admins only') }}</flux:select.option>
+                    <flux:label>
+                        {{ __('Health check visibility') }}
+                    </flux:label>
+
+                    <flux:select wire:model="health_check_visibility" class="max-w-md">
+                        <flux:select.option value="public">
+                            {{ __('Public — no authentication required') }}
+                        </flux:select.option>
+
+                        <flux:select.option value="auth">
+                            {{ __('Authenticated users only') }}
+                        </flux:select.option>
+
+                        <flux:select.option value="admin">
+                            {{ __('Admins only') }}
+                        </flux:select.option>
                     </flux:select>
-                    <flux:description>{{ __('Controls who can access /health and /api/v1/health endpoints.') }}</flux:description>
+
+                    <flux:description>
+                        {{ __('Controls who can access /health and /api/v1/health endpoints.') }}
+                    </flux:description>
+
                     <flux:error name="health_check_visibility" />
                 </flux:field>
             </div>
@@ -212,31 +247,46 @@
         {{-- Authentication --}}
         @if ($activeTab === 'auth')
             <div class="space-y-6 pt-4">
-
                 <flux:separator text="{{ __('Local authentication') }}" />
 
-                <flux:field variant="inline">
-                    <flux:label>{{ __('Enable local login (email + password)') }}</flux:label>
-                    <flux:switch wire:model="local_auth_enabled" />
-                    <flux:description>{{ __('Disable only if SSO is the sole authentication method.') }}</flux:description>
-                </flux:field>
-                <flux:error name="local_auth_enabled" />
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="space-y-1">
+                            <flux:heading size="sm">{{ __('Enable local login (email + password)') }}</flux:heading>
+                            <flux:text class="text-sm text-zinc-500">{{ __('Disable only if SSO is the sole authentication method.') }}</flux:text>
+                        </div>
 
-                <flux:field variant="inline">
-                    <flux:label>{{ __('Allow user self-registration') }}</flux:label>
-                    <flux:switch wire:model="registration_enabled" />
-                    <flux:description>{{ __('If disabled, only admins can create accounts.') }}</flux:description>
-                </flux:field>
+                        <flux:switch wire:model="local_auth_enabled" />
+                        <flux:error name="local_auth_enabled" />
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="space-y-1">
+                            <flux:heading size="sm">{{ __('Allow user self-registration') }}</flux:heading>
+                            <flux:text class="text-sm text-zinc-500">{{ __('If disabled, only admins can create accounts.') }}</flux:text>
+                        </div>
+
+                        <flux:switch wire:model="registration_enabled" />
+                        <flux:error name="registration_enabled" />
+                    </div>
+                </div>
 
                 <flux:separator text="{{ __('SSO') }}" />
 
-                <flux:field variant="inline">
-                    <flux:label>{{ __('Enable SSO') }}</flux:label>
-                    <flux:switch wire:model.live="sso_enabled" />
-                </flux:field>
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="space-y-1">
+                            <flux:heading size="sm">{{ __('Enable SSO') }}</flux:heading>
+                        </div>
 
-                <div @class(['space-y-4', 'opacity-40 pointer-events-none' => ! $sso_enabled])>
+                        <flux:switch wire:model.live="sso_enabled" />
+                        <flux:error name="sso_enabled" />
+                    </div>
+                </div>
 
+                <div @class(['space-y-4', 'rounded-xl', 'border', 'border-zinc-200', 'p-4', 'dark:border-zinc-700', 'opacity-40 pointer-events-none' => ! $sso_enabled])>
                     <flux:field>
                         <flux:label>{{ __('SSO provider') }}</flux:label>
                         <flux:select wire:model.live="sso_provider" class="max-w-xs">
@@ -415,11 +465,17 @@
         {{-- Security --}}
         @if ($activeTab === 'security')
             <div class="space-y-4 pt-4">
-                <flux:field variant="inline">
-                    <flux:label>{{ __('Require 2FA for all users') }}</flux:label>
-                    <flux:switch wire:model="two_factor_required" />
-                    <flux:description>{{ __('Users who have not set up 2FA will be redirected to the setup page on login.') }}</flux:description>
-                </flux:field>
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="space-y-1">
+                            <flux:heading size="sm">{{ __('Require 2FA for local users') }}</flux:heading>
+                            <flux:text class="text-sm text-zinc-500">{{ __('Users who have not set up 2FA will be redirected to the setup page on login.') }}</flux:text>
+                        </div>
+
+                        <flux:switch wire:model="two_factor_required" />
+                        <flux:error name="two_factor_required" />
+                    </div>
+                </div>
             </div>
         @endif
 
@@ -444,17 +500,29 @@
                     <flux:description>{{ __('The type pre-selected when a user creates a new alias.') }}</flux:description>
                 </flux:field>
 
-                <flux:field variant="inline">
-                    <flux:label>{{ __('Allow permanent aliases') }}</flux:label>
-                    <flux:switch wire:model.live="alias_allow_permanent" />
-                    <flux:description>{{ __('If disabled, users can only create session or duration aliases.') }}</flux:description>
-                </flux:field>
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="space-y-1">
+                            <flux:heading size="sm">{{ __('Allow permanent aliases') }}</flux:heading>
+                            <flux:text class="text-sm text-zinc-500">{{ __('If disabled, users can only create session or duration aliases.') }}</flux:text>
+                        </div>
 
-                <flux:field variant="inline">
-                    <flux:label>{{ __('Allow custom addresses') }}</flux:label>
-                    <flux:switch wire:model="alias_allow_custom" />
-                    <flux:description>{{ __('If disabled, only randomly-generated addresses are allowed — users cannot choose their own local part.') }}</flux:description>
-                </flux:field>
+                        <flux:switch wire:model="alias_allow_permanent" />
+                        <flux:error name="alias_allow_permanent" />
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="space-y-1">
+                            <flux:heading size="sm">{{ __('Allow custom addresses') }}</flux:heading>
+                            <flux:text class="text-sm text-zinc-500">{{ __('If disabled, only randomly-generated addresses are allowed — users cannot choose their own local part.') }}</flux:text>
+                        </div>
+
+                        <flux:switch wire:model="alias_allow_custom" />
+                        <flux:error name="alias_allow_custom" />
+                    </div>
+                </div>
             </div>
         @endif
 
@@ -508,11 +576,17 @@
                     <flux:error name="audit_log_retention_days" />
                 </flux:field>
 
-                <flux:field variant="inline">
-                    <flux:label>{{ __('Allow admins to read email bodies') }}</flux:label>
-                    <flux:switch wire:model="admin_can_read_emails" />
-                    <flux:description class="text-red-600 dark:text-red-400">{{ __('Enabling this gives admins full access to email content. Use with caution.') }}</flux:description>
-                </flux:field>
+                <div class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="space-y-1">
+                            <flux:heading size="sm">{{ __('Allow admins to read email bodies') }}</flux:heading>
+                            <flux:text class="text-sm text-zinc-500">{{ __('Enabling this gives admins full access to email content. Use with caution.') }}</flux:text>
+                        </div>
+
+                        <flux:switch wire:model="admin_can_read_emails" />
+                        <flux:error name="admin_can_read_emails" />
+                    </div>
+                </div>
             </div>
         @endif
 
@@ -527,12 +601,7 @@
                 {{-- Add domain form (NOT part of main settings save) --}}
                 <form wire:submit.prevent="addDomain" class="flex items-start gap-3">
                     <div class="flex-1">
-                        <flux:input
-                            wire:model="newDomain"
-                            placeholder="example.com"
-                            label="{{ __('Add domain') }}"
-                        />
-                        <flux:error name="newDomain" />
+                        <flux:input wire:model="newDomain" placeholder="example.com" label="{{ __('Add domain') }}"/>
                     </div>
                     <div class="pt-6">
                         <flux:button type="submit" variant="primary" size="sm">
