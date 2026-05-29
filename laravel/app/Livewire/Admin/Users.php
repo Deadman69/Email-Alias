@@ -112,11 +112,12 @@ class Users extends Component
      * Update a user's role. Super Admins cannot be modified and the SuperAdmin
      * role cannot be assigned.
      */
-    public function updateRole(string $userId, string $role): void
+    public function updateRole(string $userId, string $role, AuditLogger $auditLogger): void
     {
         $user = User::findOrFail($userId);
+        $previousRole = $user->role;
 
-        if ($user->role === Role::SuperAdmin) {
+        if ($previousRole === Role::SuperAdmin) {
             Flux::toast(variant: 'danger', text: __('Cannot modify a Super Admin.'));
 
             return;
@@ -132,6 +133,13 @@ class Users extends Component
 
         $user->role = $roleEnum;
         $user->save();
+
+        $auditLogger->log(AuditEvent::RoleChanged, $user, [
+            'method' => 'web',
+            'user_id' => $user->id,
+            'before'  => $previousRole,
+            'after'   => $user->role,
+        ]);
 
         unset($this->users);
         Flux::toast(variant: 'success', text: __('Role updated.'));

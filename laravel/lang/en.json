@@ -492,9 +492,10 @@
 
     "Emails bulk read": "Emails bulk read",
 
+    "User register": "User register",
     "User login": "User login",
     "User logout": "User logout",
-
+    "Role changed": "Role changed",
     "2FA enabled": "2FA enabled",
     "2FA disabled": "2FA disabled",
 

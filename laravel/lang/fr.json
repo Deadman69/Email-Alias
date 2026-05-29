@@ -492,9 +492,10 @@
 
     "Emails bulk read": "Emails marqués comme lus en masse",
 
+    "User register": "Inscription utilisateur",
     "User login": "Connexion utilisateur",
     "User logout": "Déconnexion utilisateur",
-
+    "Role changed": "Rôle modifié",
     "2FA enabled": "2FA activée",
     "2FA disabled": "2FA désactivée",
 

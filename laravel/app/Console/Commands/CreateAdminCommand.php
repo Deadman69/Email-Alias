@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Enums\Role;
+use App\Enums\AuditEvent;
 use App\Models\User;
+use App\Models\AuditLog;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use function Laravel\Prompts\confirm;
@@ -58,6 +60,16 @@ class CreateAdminCommand extends Command
             $existingUser->update(['role' => $targetRole]);
             $this->info("User [{$email}] promoted to {$targetRole->label()}.");
 
+            AuditLog::create([
+                'user_id'        => $existingUser->id,
+                'event'          => AuditEvent::RoleChanged,
+                'auditable_type' => $existingUser,
+                'auditable_id'   => $existingUser?->getKey(),
+                'metadata'       => ['method' => 'cli', 'before' => $existingUser->role, 'after' => $targetRole->value],
+                'ip_address'     => null,
+                'user_agent'     => null,
+            ]);
+
             return self::SUCCESS;
         }
 
@@ -65,12 +77,23 @@ class CreateAdminCommand extends Command
         $name = text(label: 'Name', required: true);
         $pwd  = password(label: 'Password', required: true, validate: fn ($v) => strlen($v) >= 8 ? null : 'Minimum 8 characters.');
 
-        User::create([
+        $user = User::create([
             'name'              => $name,
             'email'             => $email,
             'password'          => Hash::make($pwd),
             'role'              => $targetRole,
             'email_verified_at' => now(),
+        ]);
+
+        // AuditLogger is not relevant here since this is a CLI action.
+        AuditLog::create([
+            'user_id'        => $user->id,
+            'event'          => AuditEvent::UserRegister,
+            'auditable_type' => $user,
+            'auditable_id'   => $user?->getKey(),
+            'metadata'       => ['method' => 'cli', 'role' => $user->role],
+            'ip_address'     => null,
+            'user_agent'     => null,
         ]);
 
         $this->info("{$targetRole->label()} user [{$email}] created successfully.");

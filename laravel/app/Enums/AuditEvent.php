@@ -20,8 +20,10 @@ enum AuditEvent: string
     case EmailUserQuotaExceeded = 'email.user.quota.exceeded';
     case EmailMailboxRateLimit = 'email.mailbox.rate-limit';
 
+    case UserRegister       = 'user.register';
     case UserLogin          = 'user.login';
     case UserLogout         = 'user.logout';
+    case RoleChanged        = 'role.changed';
     case TwoFactorEnabled   = '2fa.enabled';
     case TwoFactorDisabled  = '2fa.disabled';
 
@@ -77,8 +79,10 @@ enum AuditEvent: string
             self::EmailUserQuotaExceeded => __('Email dropped (User storage exceeded)'),
             self::EmailMailboxRateLimit => __('Email dropped (Rate limit)'),
             self::EmailsBulkRead     => __('Emails bulk read'),
+            self::UserRegister       => __('User register'),
             self::UserLogin          => __('User login'),
             self::UserLogout         => __('User logout'),
+            self::RoleChanged        => __('Role changed'),
             self::TwoFactorEnabled   => __('2FA enabled'),
             self::TwoFactorDisabled  => __('2FA disabled'),
             self::SsoAccountLinked   => __('SSO account linked'),

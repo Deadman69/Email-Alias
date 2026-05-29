@@ -85,6 +85,8 @@ class SsoController extends Controller
             $user = User::where('azure_id', $legacyId)->first();
         }
 
+        $created = false;
+
         if (! $user) {
             $existingByEmail = User::where('email', $email)->first();
 
@@ -115,6 +117,8 @@ class SsoController extends Controller
                     'email_verified_at' => now(),
                     'password'          => null, // SSO-only account — no local password
                 ]);
+
+                $created = true;
             }
         } else { // Update local user to reflect provider informations
             $dirty = false;
@@ -139,6 +143,10 @@ class SsoController extends Controller
             return redirect()->route('login')->withErrors([
                 'email' => __('Your account has been deactivated.'),
             ]);
+        }
+
+        if ($created) {
+            $auditLogger->log(AuditEvent::UserRegister, $user, ['method' => 'sso_' . $provider->value, 'role' => $user->role], $user->id);
         }
 
         Auth::login($user, remember: true);

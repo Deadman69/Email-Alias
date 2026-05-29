@@ -171,14 +171,11 @@ class SamlController extends Controller
         string $name,
         AuditLogger $auditLogger,
     ): RedirectResponse {
-        $user = User::where('external_id', $externalId)->first()
-            ?? User::where('email', $email)->first();
-
+        $user = User::where('external_id', $externalId)->first() ?? User::where('email', $email)->first();
+        $created = false;
         if ($user) {
             if (! ($user->is_active ?? true)) {
-                return $this->redirectToError([
-                    __('Your account has been deactivated. Contact your administrator.'),
-                ]);
+                return $this->redirectToError([__('Your account has been deactivated. Contact your administrator.'),]);
             }
 
             if ($user->external_id !== $externalId) {
@@ -198,6 +195,12 @@ class SamlController extends Controller
                 'email_verified_at' => now(),
                 'password'          => null,
             ]);
+
+            $created = true;
+        }
+
+        if ($created) {
+            $auditLogger->log(AuditEvent::UserRegister, $user, ['method' => 'sso_saml', 'role' => $user->role], $user->id);
         }
 
         Auth::login($user, remember: true);
