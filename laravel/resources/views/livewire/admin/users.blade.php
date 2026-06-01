@@ -197,7 +197,7 @@
                 </flux:field>
 
                 {{-- Duration --}}
-                @if ($createAliasType === 'duration')
+                @if ($createAliasType === \App\Enums\AliasType::Duration->value)
                     <flux:select wire:model="createDuration" label="{{ __('Duration') }}">
                         @foreach ($this->durationOptions as $val => $label)
                             <flux:select.option value="{{ $val }}">{{ $label }}</flux:select.option>
@@ -221,7 +221,7 @@
                         <flux:button
                             type="button"
                             wire:click="$set('createAliasMode', 'random')"
-                            :variant="$createAliasMode === 'random' ? 'primary' : 'filled'"
+                            :variant="$createAliasMode === \App\Enums\AliasMode::Random->value ? 'primary' : 'filled'"
                             class="flex-1"
                         >
                             {{ __('Random') }}
@@ -229,7 +229,7 @@
                         <flux:button
                             type="button"
                             wire:click="$set('createAliasMode', 'custom')"
-                            :variant="$createAliasMode === 'custom' ? 'primary' : 'filled'"
+                            :variant="$createAliasMode === \App\Enums\AliasMode::Custom->value ? 'primary' : 'filled'"
                             class="flex-1"
                         >
                             {{ __('Custom') }}
@@ -237,7 +237,7 @@
                     </div>
                 </flux:field>
 
-                @if ($createAliasMode === 'custom')
+                @if ($createAliasMode === \App\Enums\AliasMode::Custom->value)
                     <flux:field>
                         <flux:label>{{ __('Local part') }}</flux:label>
 

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\AliasMode;
 use App\Enums\AliasType;
 use App\Enums\AuditEvent;
 use App\Enums\Role;
@@ -46,11 +47,11 @@ class Users extends Component
     #[Locked]
     public string $createForUserId = '';
 
-    public string $createAliasType = 'session';
+    public string $createAliasType = AliasType::Session->value;
 
     public string $createDuration = '24h';
 
-    public string $createAliasMode = 'random';
+    public string $createAliasMode = AliasMode::Random->value;
 
     #[Validate('nullable|string|min:3|max:64|regex:/^(?!\.)(?!.*\.\.)([a-z0-9!#$%&\'*+\/=?^_`{|}~.-]{1,64})(?<!\.)$/i')]
     public string $createCustomLocalPart = '';
@@ -281,13 +282,13 @@ class Users extends Component
             return;
         }
 
-        if ($this->createAliasMode === 'custom') {
+        if ($this->createAliasMode === AliasMode::Custom->value) {
             $this->validateOnly('createCustomLocalPart');
         }
 
         $user      = User::findOrFail($this->createForUserId);
         $type      = AliasType::from($this->createAliasType);
-        $localPart = $this->createAliasMode === 'custom' && $this->createCustomLocalPart
+        $localPart = $this->createAliasMode === AliasMode::Custom->value && $this->createCustomLocalPart
             ? $this->createCustomLocalPart
             : null;
 
@@ -322,8 +323,8 @@ class Users extends Component
     private function resetCreateForm(): void
     {
         $this->reset('createCustomLocalPart', 'createAliasType', 'createDuration', 'createLabel', 'createAliasMode', 'createDomain');
-        $this->createAliasType = 'session';
-        $this->createAliasMode = 'random';
+        $this->createAliasType = AliasType::Session->value;
+        $this->createAliasMode = AliasMode::Random->value;
         $this->createDuration  = '24h';
         unset($this->domain, $this->availableDomains);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Mailbox;
 
+use App\Enums\AliasMode;
 use App\Enums\AliasType;
 use App\Enums\AuditEvent;
 use App\Models\Alias;
@@ -28,12 +29,12 @@ class Dashboard extends Component
 
     public bool $showCreateModal = false;
 
-    public string $aliasMode = 'random'; // 'random' | 'custom'
+    public string $aliasMode = AliasMode::Random->value;
 
     #[Validate('nullable|string|min:3|max:64|regex:/^[a-z0-9\-_\.]+$/i')]
     public string $customLocalPart = '';
 
-    public string $aliasType = 'session'; // AliasType value
+    public string $aliasType = AliasType::Session->value;
 
     public string $duration = '24h';
 
@@ -157,12 +158,12 @@ class Dashboard extends Component
     {
         // Guard: if platform settings changed after a user opened the modal,
         // reset to safe defaults so the form can't submit a disabled type/mode.
-        if (! $this->allowCustomAddresses && $this->aliasMode === 'custom') {
-            $this->aliasMode = 'random';
+        if (! $this->allowCustomAddresses && $this->aliasMode === AliasMode::Custom->value) {
+            $this->aliasMode = AliasMode::Random->value;
         }
 
-        if (! config('emailalias.allow_permanent', true) && $this->aliasType === 'permanent') {
-            $this->aliasType = 'session';
+        if (! config('emailalias.allow_permanent', true) && $this->aliasType === AliasType::Permanent->value) {
+            $this->aliasType = AliasType::Session->value;
         }
     }
 
@@ -241,13 +242,13 @@ class Dashboard extends Component
             return;
         }
 
-        if ($this->aliasMode === 'custom') {
+        if ($this->aliasMode === AliasMode::Custom->value) {
             $this->validateOnly('customLocalPart');
         }
 
         $type = AliasType::from($this->aliasType);
         // Ignore custom local part if custom addresses are disabled platform-wide.
-        $localPart = ($this->aliasMode === 'custom' && $this->allowCustomAddresses && $this->customLocalPart)
+        $localPart = ($this->aliasMode === AliasMode::Custom->value && $this->allowCustomAddresses && $this->customLocalPart)
             ? $this->customLocalPart
             : null;
 
@@ -511,9 +512,9 @@ class Dashboard extends Component
     {
         $this->reset('customLocalPart', 'aliasType', 'duration', 'label', 'aliasMode', 'suggestedAlternative', 'selectedDomain');
         $this->localPartAvailable = true;
-        $this->aliasType = 'session';
-        $this->aliasMode = 'random';
-        $this->duration = '24h';
+        $this->aliasType = AliasType::Session->value;
+        $this->aliasMode = AliasMode::Random->value;
+        $this->duration  = '24h';
         unset($this->domain, $this->availableDomains);
     }
 }

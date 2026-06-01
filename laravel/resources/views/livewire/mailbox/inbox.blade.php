@@ -103,7 +103,8 @@
 
         {{-- Filter tabs --}}
         <div class="flex gap-1">
-            @foreach (['all' => __('All'), 'unread' => __('Unread'), 'read' => __('Read')] as $val => $filterLabel)
+            @foreach (\App\Enums\EmailFilter::cases() as $emailFilter)
+            @php $val = $emailFilter->value; $filterLabel = $emailFilter->label(); @endphp
                 <flux:button
                     type="button"
                     wire:click="$set('filter', '{{ $val }}')"

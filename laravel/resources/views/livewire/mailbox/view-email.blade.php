@@ -21,13 +21,13 @@
                 @if ($this->email->body_html)
                     <flux:button
                         size="xs"
-                        :variant="$viewMode === 'rendered' ? 'primary' : 'ghost'"
+                        :variant="$viewMode === \App\Enums\EmailViewMode::Rendered->value ? 'primary' : 'ghost'"
                         wire:click="setViewMode('rendered')"
                     >{{ __('Rendered') }}</flux:button>
 
                     <flux:button
                         size="xs"
-                        :variant="$viewMode === 'raw' ? 'primary' : 'ghost'"
+                        :variant="$viewMode === \App\Enums\EmailViewMode::Raw->value ? 'primary' : 'ghost'"
                         wire:click="setViewMode('raw')"
                     >{{ __('Raw HTML') }}</flux:button>
                 @endif
@@ -109,7 +109,7 @@
         @endif
 
         {{-- WARNING: external content blocked --}}
-        @if (! $this->email->is_truncated && ! $showExternalImages && $this->hasBlockedExternalContent && $viewMode === 'rendered')
+        @if (! $this->email->is_truncated && ! $showExternalImages && $this->hasBlockedExternalContent && $viewMode === \App\Enums\EmailViewMode::Rendered->value)
             <flux:callout variant="warning" icon="eye-slash">
                 <flux:callout.heading>{{ __('External images and trackers are blocked.') }}</flux:callout.heading>
                 <flux:callout.text>
@@ -122,7 +122,7 @@
 
         {{-- Email body --}}
         @if (! $this->email->is_truncated)
-            @if ($this->email->body_html && $viewMode === 'rendered')
+            @if ($this->email->body_html && $viewMode === \App\Enums\EmailViewMode::Rendered->value)
                 <div class="flex-1 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
                     <iframe
                         id="email-frame"
@@ -132,7 +132,7 @@
                         srcdoc="{{ $this->safeHtml }}"
                     ></iframe>
                 </div>
-            @elseif ($this->email->body_html && $viewMode === 'raw')
+            @elseif ($this->email->body_html && $viewMode === \App\Enums\EmailViewMode::Raw->value)
                 <div class="flex-1 overflow-auto rounded-xl border border-zinc-200 bg-zinc-950 p-4 dark:border-zinc-700">
                     <pre class="whitespace-pre-wrap break-words text-xs text-zinc-200">{{ $this->email->body_html }}</pre>
                 </div>

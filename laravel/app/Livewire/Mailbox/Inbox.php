@@ -3,6 +3,7 @@
 namespace App\Livewire\Mailbox;
 
 use App\Enums\AuditEvent;
+use App\Enums\EmailFilter;
 use App\Models\Alias;
 use App\Models\InboundEmail;
 use App\Services\AuditLogger;
@@ -25,7 +26,7 @@ class Inbox extends Component
     #[Locked]
     public string $aliasId;
 
-    public string $filter = 'all'; // 'all' | 'unread' | 'read'
+    public string $filter = EmailFilter::All->value;
 
     public string $search = '';
 
@@ -62,9 +63,9 @@ class Inbox extends Component
         $query = InboundEmail::where('alias_id', $this->aliasId)->latest();
 
         match ($this->filter) {
-            'unread' => $query->unread(),
-            'read'   => $query->read(),
-            default  => null,
+            EmailFilter::Unread->value => $query->unread(),
+            EmailFilter::Read->value   => $query->read(),
+            default                    => null,
         };
 
         if ($this->search !== '') {

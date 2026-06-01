@@ -4,6 +4,7 @@ namespace App\Livewire\Settings;
 
 use App\Concerns\ProfileValidationRules;
 use App\Enums\AuditEvent;
+use App\Enums\Locale;
 use App\Services\AuditLogger;
 use Flux\Flux;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -24,7 +25,7 @@ class Profile extends Component
     public string $email = '';
 
     /** @var string|null null = use platform default */
-    #[Validate('nullable|string|in:en,fr')]
+    #[Validate('nullable|string|in:en,fr')] // kept as string literal — PHP attributes don't support expressions
     public ?string $locale = null;
 
     /** @var string|null IANA timezone identifier, null = server default */
@@ -78,7 +79,7 @@ class Profile extends Component
     public function updateLocale(): void
     {
         $this->validate([
-            'locale' => 'nullable|string|in:en,fr',
+            'locale'   => 'nullable|string|in:' . Locale::valuesForRule(),
             'timezone' => 'nullable|string|timezone:all',
         ]);
 
@@ -88,8 +89,8 @@ class Profile extends Component
         $user->save();
 
         // Apply immediately for the current request
-        $locale = $this->locale ?: config('app.locale', 'en');
-        if (in_array($locale, ['en', 'fr'], true)) {
+        $locale = $this->locale ?: config('app.locale', Locale::En->value);
+        if (in_array($locale, Locale::values(), true)) {
             App::setLocale($locale);
         }
 

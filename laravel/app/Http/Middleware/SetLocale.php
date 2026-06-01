@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Locale;
 use App\Services\SettingService;
 use Carbon\Carbon;
 use Closure;
@@ -25,10 +26,9 @@ class SetLocale
 
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->user()?->locale
-            ?? $this->settings->get('app_locale', 'en');
+        $locale = $request->user()?->locale ?? $this->settings->get('app_locale', Locale::En->value);
 
-        if (in_array($locale, ['en', 'fr'], true)) {
+        if (in_array($locale, Locale::values(), true)) {
             App::setLocale($locale);
             Carbon::setLocale($locale);
         }

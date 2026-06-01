@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\HealthVisibility;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,9 +26,11 @@ class EnsureHealthCheckAccess
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $visibility = config('emailalias.health_check_visibility', 'public');
+        $visibility = HealthVisibility::tryFrom(
+            config('emailalias.health_check_visibility', HealthVisibility::Public->value)
+        ) ?? HealthVisibility::Public;
 
-        if ($visibility === 'public') {
+        if ($visibility === HealthVisibility::Public) {
             return $next($request);
         }
 
@@ -39,11 +42,11 @@ class EnsureHealthCheckAccess
             $user = Auth::guard('sanctum')->user();
         }
 
-        if ($visibility === 'auth' && ! $user) {
+        if ($visibility === HealthVisibility::Auth && ! $user) {
             abort(401, 'Authentication required.');
         }
 
-        if ($visibility === 'admin') {
+        if ($visibility === HealthVisibility::Admin) {
             if (! $user) {
                 abort(401, 'Authentication required.');
             }

@@ -4,6 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Enums\AuditEvent;
 use App\Enums\AliasType;
+use App\Enums\DomainDeleteMode;
+use App\Enums\HealthVisibility;
+use App\Enums\Locale;
 use App\Enums\SsoProvider;
 use App\Models\ApplicationState;
 use App\Models\AppToken;
@@ -30,9 +33,9 @@ class Settings extends Component
     use WithFileUploads;
     // ── General ───────────────────────────────────────────────────────────────────
     public string $app_name              = '';
-    public string $app_locale            = 'en';
+    public string $app_locale            = Locale::En->value;
     public bool   $version_check_enabled = true;
-    public string $health_check_visibility = 'public';
+    public string $health_check_visibility = HealthVisibility::Public->value;
 
     // ── Logo upload (not stored as a setting key — handled separately) ────────────
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
@@ -45,7 +48,7 @@ class Settings extends Component
 
     // ── Auth ─────────────────────────────────────────────────────────────────────
     public bool   $sso_enabled          = false;
-    public string $sso_provider         = 'azure';
+    public string $sso_provider         = SsoProvider::Azure->value;
     // Azure AD
     public string $azure_client_id      = '';
     public string $azure_client_secret  = '';
@@ -96,7 +99,7 @@ class Settings extends Component
 
     public bool   $showConfirmDeleteDomain = false;
     /** 'keep' = null out domain_id on aliases | 'cascade' = delete associated aliases */
-    public string $deleteDomainMode = 'keep';
+    public string $deleteDomainMode = DomainDeleteMode::Keep->value;
 
     #[Locked]
     public string $pendingDeleteDomainId = '';
@@ -128,12 +131,12 @@ class Settings extends Component
     public function mount(SettingService $settings): void
     {
         $this->app_name              = (string) $settings->get('app_name', 'EmailAlias');
-        $this->app_locale            = (string) $settings->get('app_locale', 'en');
+        $this->app_locale            = (string) $settings->get('app_locale', Locale::En->value);
         $this->version_check_enabled    = (bool)   $settings->get('version_check_enabled', true);
         $this->versionStatus = ApplicationState::getValue('app_version_status');
-        $this->health_check_visibility = (string) $settings->get('health_check_visibility', 'public');
+        $this->health_check_visibility = (string) $settings->get('health_check_visibility', HealthVisibility::Public->value);
         $this->sso_enabled         = (bool)   $settings->get('sso_enabled', false);
-        $this->sso_provider        = (string) $settings->get('sso_provider', 'azure');
+        $this->sso_provider        = (string) $settings->get('sso_provider', SsoProvider::Azure->value);
         // Azure AD — never expose secrets in Livewire state
         $this->azure_client_id     = (string) $settings->get('azure_client_id', '');
         $this->azure_client_secret = '';  // leave blank to keep existing value
@@ -207,7 +210,7 @@ class Settings extends Component
     /** Auto-reset default type when permanent aliases are disabled. */
     public function updatedAliasAllowPermanent(bool $value): void
     {
-        if (! $value && $this->alias_default_type === 'permanent') {
+        if (! $value && $this->alias_default_type === AliasType::Permanent->value) {
             $this->alias_default_type = AliasType::Session->value;
         }
     }
@@ -267,7 +270,7 @@ class Settings extends Component
     {
         $this->validate([
             'app_name'                      => 'required|string|max:100',
-            'app_locale'                    => 'required|in:en,fr',
+            'app_locale'                    => 'required|in:' . Locale::valuesForRule(),
             'sso_provider'                  => [Rule::requiredIf($this->sso_enabled), 'nullable', Rule::in([SsoProvider::Azure->value, SsoProvider::Keycloak->value, SsoProvider::Saml->value])],
 
             // Azure AD
@@ -299,7 +302,7 @@ class Settings extends Component
             'alias_default_type'            => ['required', Rule::in($this->alias_allow_permanent ? [AliasType::Session->value, AliasType::Duration->value, AliasType::Permanent->value] : [AliasType::Session->value, AliasType::Duration->value])],
 
             // Misc
-            'health_check_visibility'       => 'required|in:public,auth,admin',
+            'health_check_visibility'       => 'required|in:' . HealthVisibility::valuesForRule(),
             'alias_max_email_size_mb'       => 'required|integer|min:1|max:100',
             'alias_max_attachment_size_mb'  => 'required|integer|min:1|max:50',
             'alias_max_mailbox_size_mb'     => 'required|integer|min:0|max:102400',
@@ -460,7 +463,7 @@ class Settings extends Component
     public function requestDeleteDomain(string $domainId): void
     {
         $this->pendingDeleteDomainId = $domainId;
-        $this->deleteDomainMode      = 'keep';
+        $this->deleteDomainMode      = DomainDeleteMode::Keep->value;
         $this->showConfirmDeleteDomain = true;
     }
 
@@ -471,7 +474,7 @@ class Settings extends Component
         }
 
         $this->validate([
-            'deleteDomainMode' => 'required|in:keep,cascade',
+            'deleteDomainMode' => 'required|in:' . DomainDeleteMode::valuesForRule(),
         ]);
 
         $domain = Domain::findOrFail($this->pendingDeleteDomainId);
@@ -482,7 +485,7 @@ class Settings extends Component
             'mode' => $this->deleteDomainMode,
         ]);
 
-        if ($this->deleteDomainMode === 'cascade') {
+        if ($this->deleteDomainMode === DomainDeleteMode::Cascade->value) {
             // Hard-delete all aliases that belong to this domain.
             // The Alias booted() hook will cascade to emails + attachments.
             $domain->aliases()->each(fn ($alias) => $alias->forceDelete());
@@ -505,7 +508,7 @@ class Settings extends Component
         $this->showConfirmDeleteDomain = false;
         unset($this->domains);
 
-        $msg = $this->deleteDomainMode === 'cascade'
+        $msg = $this->deleteDomainMode === DomainDeleteMode::Cascade->value
             ? __('Domain and all associated aliases removed.')
             : __('Domain removed. Existing aliases were kept.');
 

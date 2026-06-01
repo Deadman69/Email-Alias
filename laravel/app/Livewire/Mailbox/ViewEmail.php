@@ -3,6 +3,7 @@
 namespace App\Livewire\Mailbox;
 
 use App\Enums\AuditEvent;
+use App\Enums\EmailViewMode;
 use App\Models\InboundEmail;
 use App\Services\AuditLogger;
 use App\Services\HtmlSanitizer;
@@ -23,7 +24,7 @@ class ViewEmail extends Component
 
     public bool $showExternalImages = false;
 
-    public string $viewMode = 'rendered'; // 'rendered' | 'raw'
+    public string $viewMode = EmailViewMode::Rendered->value;
 
     /**
      * @param  InboundEmail  $email  Route-model bound email — authorization + read receipt logged here.
@@ -91,7 +92,7 @@ class ViewEmail extends Component
      */
     public function setViewMode(string $mode): void
     {
-        if (! in_array($mode, ['rendered', 'raw'], true)) {
+        if (! in_array($mode, EmailViewMode::values(), true)) {
             return;
         }
 

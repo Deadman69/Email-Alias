@@ -2,6 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\AliasType;
+use App\Enums\HealthVisibility;
+use App\Enums\Locale;
+use App\Enums\SsoProvider;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Cache;
 
@@ -87,10 +91,10 @@ class SettingService
     public const DEFINITIONS = [
         // ── app ──────────────────────────────────────────────────────────────────
         'app_name'                        => ['group' => 'app',      'cast' => 'string',  'default' => 'EmailAlias'],
-        'app_locale'                      => ['group' => 'app',      'cast' => 'string',  'default' => 'en'],
+        'app_locale'                      => ['group' => 'app',      'cast' => 'string',  'default' => Locale::En->value],
         'app_logo_path'                   => ['group' => 'app',      'cast' => 'string',  'default' => ''],
         'version_check_enabled'           => ['group' => 'app',      'cast' => 'bool',    'default' => true],
-        'health_check_visibility'         => ['group' => 'app',      'cast' => 'string',  'default' => 'public'],
+        'health_check_visibility'         => ['group' => 'app',      'cast' => 'string',  'default' => HealthVisibility::Public->value],
 
         // ── auth ─────────────────────────────────────────────────────────────────
         'sso_enabled'                     => ['group' => 'auth',     'cast' => 'bool',    'default' => false],
@@ -101,7 +105,7 @@ class SettingService
         'registration_enabled'            => ['group' => 'auth',     'cast' => 'bool',    'default' => false],
         'scim_bearer_token'               => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
         // SSO provider
-        'sso_provider'                    => ['group' => 'auth',     'cast' => 'string',  'default' => 'azure'],
+        'sso_provider'                    => ['group' => 'auth',     'cast' => 'string',  'default' => SsoProvider::Azure->value],
         // Generic OIDC
         'oidc_client_id'                  => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
         'oidc_client_secret'              => ['group' => 'auth',     'cast' => 'string',  'default' => ''],
@@ -124,7 +128,7 @@ class SettingService
         'alias_max_per_user'              => ['group' => 'aliases',  'cast' => 'int',     'default' => 20],
         'alias_allow_permanent'           => ['group' => 'aliases',  'cast' => 'bool',    'default' => true],
         'alias_allow_custom'              => ['group' => 'aliases',  'cast' => 'bool',    'default' => true],
-        'alias_default_type'              => ['group' => 'aliases',  'cast' => 'string',  'default' => 'session'],
+        'alias_default_type'              => ['group' => 'aliases',  'cast' => 'string',  'default' => AliasType::Session->value],
 
         // ── email ────────────────────────────────────────────────────────────────
         'alias_max_email_size_bytes'      => ['group' => 'email',    'cast' => 'int',     'default' => 10485760],

@@ -15,26 +15,37 @@ class InboundEmailController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // Derive byte limits from platform settings (set by super-admin, defaults in config).
+        $maxEmailBytes      = (int) config('emailalias.max_email_size_bytes', 26_214_400);      // default 25 MB
+        $maxAttachmentBytes = (int) config('emailalias.max_attachment_size_bytes', 5_242_880);   // default 5 MB
+        // base64 overhead is ~4/3; add 40 % headroom so a valid attachment is never rejected
+        $maxBase64Chars     = (int) ceil($maxAttachmentBytes * 1.4);
+        // Body sub-limits: HTML 20 % of email cap, plain text 5 %. Both capped at sane max.
+        $maxHtmlBytes  = min((int) ceil($maxEmailBytes * 0.20), 20_000_000);
+        $maxTextBytes  = min((int) ceil($maxEmailBytes * 0.05),  5_000_000);
+
         $validated = $request->validate([
-            'to'                        => ['required', 'array', 'min:1', 'max:50'],
-            'to.*'                      => ['required', 'string', 'email', 'max:255'],
-            'from_address'              => ['required', 'string', 'email', 'max:255'],
-            'from_name'                 => ['nullable', 'string', 'max:255'],
-            'subject'                   => ['nullable', 'string', 'max:998'],
-            // body limits: 2 MB for HTML, 500 KB for plain text (prevents DoS via giant payloads)
-            'body_html'                 => ['nullable', 'string', 'max:2000000'],
-            'body_text'                 => ['nullable', 'string', 'max:500000'],
-            'headers'                   => ['nullable', 'array', 'max:200'],
-            'headers.*'                 => ['nullable', 'string', 'max:8192'],
-            'size_bytes'                => ['nullable', 'integer', 'min:0', 'max:26214400'], // 25 MB cap
-            'attachments'               => ['nullable', 'array', 'max:50'],
-            'attachments.*.filename'    => ['required', 'string', 'max:255'],
-            'attachments.*.content_type'=> ['nullable', 'string', 'max:127'],
-            'attachments.*.size_bytes'  => ['nullable', 'integer', 'min:0', 'max:5242880'], // 5 MB per attachment
-            // base64 of 5 MB ≈ 6.8 MB chars; cap at 7 MB to match SMTP-level attachment limit
-            'attachments.*.content_base64' => ['nullable', 'string', 'max:7000000'],
-            'attachments.*.checksum'    => ['nullable', 'string', 'max:128'],
+            'to'                           => ['required', 'array', 'min:1', 'max:50'],
+            'to.*'                         => ['required', 'string', 'email', 'max:255'],
+            'from_address'                 => ['required', 'string', 'email', 'max:255'],
+            'from_name'                    => ['nullable', 'string', 'max:255'],
+            'subject'                      => ['nullable', 'string', 'max:998'],
+            'body_html'                    => ['nullable', 'string', 'max:' . $maxHtmlBytes],
+            'body_text'                    => ['nullable', 'string', 'max:' . $maxTextBytes],
+            'headers'                      => ['nullable', 'array', 'max:200'],
+            'headers.*'                    => ['nullable', 'string', 'max:8192'],
+            'size_bytes'                   => ['nullable', 'integer', 'min:0', 'max:' . $maxEmailBytes],
+            'attachments'                  => ['nullable', 'array', 'max:50'],
+            'attachments.*.filename'       => ['required', 'string', 'max:255'],
+            'attachments.*.content_type'   => ['nullable', 'string', 'max:127'],
+            'attachments.*.size_bytes'     => ['nullable', 'integer', 'min:0', 'max:' . $maxAttachmentBytes],
+            'attachments.*.content_base64' => ['nullable', 'string', 'max:' . $maxBase64Chars],
+            'attachments.*.checksum'       => ['nullable', 'string', 'max:128'],
         ]);
+
+        // Normalize recipient addresses to lowercase so alias lookups are case-insensitive.
+        // Aliases are always stored in lowercase; SMTP senders may use any case.
+        $validated['to'] = array_map('mb_strtolower', $validated['to']);
 
         ProcessInboundEmail::dispatch(
             recipients:   $validated['to'],
