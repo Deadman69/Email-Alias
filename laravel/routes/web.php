@@ -17,7 +17,8 @@ use App\Livewire\Mailbox\ViewEmail;
 use App\Livewire\UserDashboard;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+// Route::view('/', 'welcome')->name('home');
+Route::redirect('/', '/dashboard')->name('home');
 
 // ── Health check (visibility controlled by platform setting) ─────────────────
 Route::get('/health', HealthController::class)->middleware('health.access')->name('health');

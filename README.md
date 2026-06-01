@@ -81,6 +81,40 @@ Then log in at `http://<APP_URL>` and go to **Admin → Settings** to configure 
 
 ---
 
+## Application screenshots
+
+All the screenshots are taken from the same account, but the sidebar only display what could be done to the user.  
+So a basic user won't see the admin options.
+
+<details>
+<summary>User view</summary>
+
+![image](documentation/Dashboard.png)
+![image](documentation/Mailboxes.png)
+![image](documentation/Mailbox_creation.png)
+![image](documentation/Mailbox_view.png)
+![image](documentation/Email_view.png)
+
+</details>
+
+<details>
+<summary>Admin view</summary>
+
+![image](documentation/Admin_dashboard.png)
+![image](documentation/Admin_users.png)
+![image](documentation/Admin_audit-log.png)
+
+</details>
+
+<details>
+<summary>Super-admin view</summary>
+
+![image](documentation/Super-admin_configuration.png)
+
+</details>
+
+---
+
 ## Troubleshooting
 
 ### How do I create the first admin account?
@@ -88,6 +122,18 @@ Then log in at `http://<APP_URL>` and go to **Admin → Settings** to configure 
 docker compose exec app php artisan admin:create --super-admin
 ```
 Omit `--super-admin` for a regular admin. Super Admins have access to Settings and can manage domains, app tokens, and platform configuration.
+
+### How to promote a user or an administrator to the Super Admin role?
+You must use the CLI command for this and use it like you were creating a new user. Specify the user email to promote.
+```bash
+docker compose exec app php artisan admin:create --super-admin
+```
+
+#### How to demote a Super Admin?
+You must use the CLI command for this and use it like you were creating a new user. Specify the user email to promote and choose "Yes" when asked to downgrade to Admin.
+```bash
+docker compose exec app php artisan admin:create
+```
 
 ### How do I set up the platform after install?
 Log in as Super Admin → **Admin → Settings**. From there you can:
