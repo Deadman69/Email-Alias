@@ -529,5 +529,8 @@
     "API admin: user updated": "API admin : utilisateur mis à jour",
 
     "Webhook delivered": "Webhook délivré",
-    "Webhook failed": "Échec du webhook"
+    "Webhook failed": "Échec du webhook",
+
+    "Authentication method not tested": "Méthode d'authentification non testée",
+    "This SSO method has not been thoroughly tested. We recommend using OIDC.": "Cette méthode SSO n'a pas été testée. Nous recommandons l'utilisation de OIDC."
 }

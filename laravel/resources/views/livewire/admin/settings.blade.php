@@ -300,6 +300,11 @@
 
                     {{-- Azure AD ──────────────────────────────────────────────── --}}
                     @if ($sso_provider === \App\Enums\SsoProvider::Azure->value)
+                        <flux:callout variant="warning" icon="exclamation-triangle">
+                            <flux:callout.heading>{{ __('Authentication method not tested') }}</flux:callout.heading>
+                            <flux:callout.text>{{ __('This SSO method has not been thoroughly tested. We recommend using OIDC.') }}</flux:callout.text>
+                        </flux:callout>
+
                         <flux:field>
                             <flux:label>{{ __('Client ID') }}</flux:label>
                             <flux:input wire:model="azure_client_id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
@@ -365,6 +370,11 @@
 
                     {{-- SAML 2.0 ──────────────────────────────────────────────── --}}
                     @if ($sso_provider === \App\Enums\SsoProvider::Saml->value)
+                        <flux:callout variant="warning" icon="exclamation-triangle">
+                            <flux:callout.heading>{{ __('Authentication method not tested') }}</flux:callout.heading>
+                            <flux:callout.text>{{ __('This SSO method has not been thoroughly tested. We recommend using OIDC.') }}</flux:callout.text>
+                        </flux:callout>
+
                         <flux:callout variant="success" icon="check-circle">
                             <flux:callout.heading>{{ __('SAML 2.0 is ready') }}</flux:callout.heading>
                             <flux:callout.text>

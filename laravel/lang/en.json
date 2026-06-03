@@ -529,5 +529,8 @@
     "API admin: user updated": "API admin: user updated",
 
     "Webhook delivered": "Webhook delivered",
-    "Webhook failed": "Webhook failed"
+    "Webhook failed": "Webhook failed",
+
+    "Authentication method not tested": "Authentication method not tested",
+    "This SSO method has not been thoroughly tested. We recommend using OIDC.": "This SSO method has not been thoroughly tested. We recommend using OIDC."
 }
