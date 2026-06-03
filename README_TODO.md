@@ -270,7 +270,8 @@
     - [ ] Alias : update & extend duration
     - [ ] Admin : CRUD
 - [ ] Faire en sorte que le token admin de plateforme (généré par un super-admin dans les settings) puisse effectuer toutes les actions comme un token classique
-- [ ] Fix problème upload logo
+
 - [ ] Tester authentification :
     - [ ] Azure
     - [ ] SAML
+- [ ] Ajouter message comme quoi cette méthode d'auth n'est pas configurée pour les méthodes SSO si ce n'est pas la méthode active.
