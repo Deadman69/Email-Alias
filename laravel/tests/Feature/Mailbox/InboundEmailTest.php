@@ -2,6 +2,7 @@
 
 use App\Enums\AuditEvent;
 use App\Jobs\ProcessInboundEmail;
+use Illuminate\Support\Facades\Queue;
 use App\Models\Alias;
 use App\Models\AuditLog;
 use App\Models\InboundEmail;

@@ -128,6 +128,37 @@ swaks --to alias@domain.com \
 
 ---
 
+## Tests
+
+The `test` service uses a dedicated Docker stage that includes dev dependencies (Pest, Mockery, etc.). It is **never started by `docker compose up`** — only when explicitly invoked.
+
+```bash
+# Build the test image (once, or after changing composer.json or updating tests)
+docker compose build test
+
+# Run all tests
+docker compose run --rm test
+# Run all tests & export results
+docker compose run --rm test 2>&1 | tee /tmp/pest-output.txt
+
+# Specific file
+docker compose run --rm test tests/Feature/Admin/UsersTest.php
+
+# Filter by test name
+docker compose run --rm test --filter "shared user cannot delete"
+
+# Stop at first failure
+docker compose run --rm test --stop-on-failure
+```
+
+```bash
+# Demo seeder (against the running app)
+docker compose exec app php artisan db:seed --class=DemoSeeder
+```
+
+
+---
+
 ## API
 
 The REST API is at `/api/v1`, authenticated with Sanctum Bearer tokens. Swagger UI is at `/api/docs`.

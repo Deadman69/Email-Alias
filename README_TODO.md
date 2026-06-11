@@ -275,3 +275,6 @@
     - [ ] Azure
     - [ ] SAML
 - [ ] Ajouter message comme quoi cette méthode d'auth n'est pas configurée pour les méthodes SSO si ce n'est pas la méthode active.
+
+- [ ] Make shared alias to other users editable
+    - By default they are read-only, but there must be an option to allow the other user to edit it like the owner (read, delete emails...)

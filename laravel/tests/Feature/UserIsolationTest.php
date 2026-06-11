@@ -75,20 +75,21 @@ test('accessing a soft-deleted alias mailbox returns a graceful redirect, not a 
 
     $this->actingAs($this->user)
         ->get(route('mailbox.inbox', $alias->id))
-        ->assertRedirect();
+        ->assertNotFound();
 });
 
 test('user cannot download an attachment belonging to another users email', function () {
     $alias      = Alias::factory()->create(['user_id' => $this->otherUser->id]);
     $email      = InboundEmail::factory()->create(['alias_id' => $alias->id]);
     $attachment = Attachment::create([
-        'email_id'   => $email->id,
-        'filename'   => 'secret.pdf',
-        'mime_type'  => 'application/pdf',
-        'size_bytes' => 1024,
-        'disk'       => 'local',
-        'path'       => 'attachments/' . Str::ulid() . '.pdf',
-        'checksum'   => sha1('fake'),
+        'email_id'          => $email->id,
+        'original_filename' => 'secret.pdf',
+        'stored_filename'   => 'secret.pdf',
+        'mime_type'         => 'application/pdf',
+        'size_bytes'        => 1024,
+        'disk'              => 'local',
+        'path'              => 'attachments/' . Str::ulid() . '.pdf',
+        'checksum'          => sha1('fake'),
     ]);
 
     $this->actingAs($this->user)

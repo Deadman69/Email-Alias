@@ -139,6 +139,33 @@ services:
     mem_limit: 256m
     memswap_limit: 256m
 
+  # ── Test runner ───────────────────────────────────────────────────────────────
+  # Usage: docker compose run --rm test
+  # Uses the tester Dockerfile stage (builder + dev deps). Never starts automatically.
+  test:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+      target: tester
+    profiles:
+      - test
+    env_file: .env
+    environment:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-emailalias}
+      DB_USERNAME: ${DB_USERNAME:-emailalias}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme_db_password}
+    # We need a '.env' file for Laravel, even if we use the docker-compose environment variables.
+    entrypoint: ["/bin/sh", "-c", "touch .env && php artisan migrate --force --no-interaction && ./vendor/bin/pest \"$@\"", "--"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
   # ── Database ───────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine

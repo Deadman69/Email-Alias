@@ -206,7 +206,7 @@ class ProcessInboundEmail implements ShouldQueue
             if ($alias->webhook_url) {
                 DeliverWebhook::dispatch(
                     webhookUrl:      $alias->webhook_url,
-                    encryptedSecret: Crypt::encryptString($alias->webhook_secret),
+                    encryptedSecret: Crypt::encryptString($alias->webhook_secret ?? ''),
                     aliasOwnerId:    $alias->user_id,
                     payload:         $this->buildWebhookPayload($alias, $email),
                 );

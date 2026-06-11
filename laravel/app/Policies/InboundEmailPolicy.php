@@ -46,6 +46,21 @@ class InboundEmailPolicy
     }
 
     /**
+     * Only the alias owner can mutate (mark read/unread) an email.
+     * Shared users have read-only access.
+     */
+    public function update(User $user, InboundEmail $email): bool
+    {
+        $alias = $email->alias()->withTrashed()->first();
+
+        if (! $alias) {
+            return false;
+        }
+
+        return $alias->user_id === $user->id;
+    }
+
+    /**
      * Only the alias owner can delete emails.
      * Shared users have read-only access.
      */

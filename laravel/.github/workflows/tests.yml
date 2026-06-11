@@ -6,44 +6,86 @@ on:
       - develop
       - main
       - master
-      - workos
   pull_request:
     branches:
       - develop
       - main
       - master
-      - workos
 
 jobs:
+  # ── Quick feedback on PRs — single PHP version, PostgreSQL ──────────────────
   ci:
+    name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
-        php-version: ['8.3', '8.4', '8.5']
+        php-version:
+          - '8.4'
+          # Run the full matrix only on pushes to default branches
+          - ${{ (github.event_name == 'push') && '8.3' || '' }}
+          - ${{ (github.event_name == 'push') && '8.5' || '' }}
+        exclude:
+          - php-version: ''   # remove empty strings injected by the ternary above
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_USER: testing
+          POSTGRES_PASSWORD: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Override phpunit.xml SQLite defaults — pgsql takes precedence because
+      # phpunit.xml uses force="false" (the default), so pre-existing env vars win.
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: testing
+      DB_USERNAME: testing
+      DB_PASSWORD: testing
+      SMTP_INTERNAL_SECRET: ci-test-secret
+      # Disable version-check HTTP calls during tests
+      VERSION_CHECK_ENABLED: false
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - name: Setup PHP
+      - name: Setup PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
           tools: composer:v2
-          coverage: xdebug
+          coverage: none
+          extensions: pdo_pgsql, pgsql
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: 'npm'
 
       - name: Install Node Dependencies
-        run: npm i
+        run: npm ci
 
-      - name: Add Flux Credentials Loaded From ENV
-        run: composer config http-basic.composer.fluxui.dev "${{ secrets.FLUX_USERNAME }}" "${{ secrets.FLUX_LICENSE_KEY }}"
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ matrix.php-version }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ matrix.php-version }}-
 
-      - name: Install Dependencies
+      - name: Install PHP Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Copy Environment File
@@ -52,8 +94,11 @@ jobs:
       - name: Generate Application Key
         run: php artisan key:generate
 
-      - name: Build Assets
+      - name: Build Frontend Assets
         run: npm run build
 
+      - name: Run Database Migrations
+        run: php artisan migrate --force
+
       - name: Run Tests
-        run: ./vendor/bin/pest
+        run: ./vendor/bin/pest --stop-on-failure

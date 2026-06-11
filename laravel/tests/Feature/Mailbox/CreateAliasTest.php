@@ -3,11 +3,13 @@
 use App\Enums\AliasType;
 use App\Livewire\Mailbox\Dashboard;
 use App\Models\Alias;
+use App\Models\Domain;
 use App\Models\User;
 use Livewire\Livewire;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
+    Domain::firstOrCreate(['name' => 'test.local'], ['is_primary' => true]);
 });
 
 it('shows the mailbox dashboard when authenticated', function () {
@@ -88,7 +90,8 @@ it('can delete own alias', function () {
 
     Livewire::actingAs($this->user)
         ->test(Dashboard::class)
-        ->call('deleteAlias', $alias->id);
+        ->call('requestDeleteAlias', $alias->id)
+        ->call('deleteAlias');
 
     expect(Alias::find($alias->id))->toBeNull();
 });
@@ -99,7 +102,8 @@ it('cannot delete another user alias', function () {
 
     Livewire::actingAs($this->user)
         ->test(Dashboard::class)
-        ->call('deleteAlias', $alias->id)
+        ->call('requestDeleteAlias', $alias->id)
+        ->call('deleteAlias')
         ->assertForbidden();
 });
 

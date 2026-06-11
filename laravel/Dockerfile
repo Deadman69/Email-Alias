@@ -34,7 +34,20 @@ RUN npm ci
 COPY . .
 RUN composer dump-autoload --optimize && npm run build
 
-# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+# ── Stage 2: tester ───────────────────────────────────────────────────────────
+# Builder + dev dependencies (Pest, Mockery, etc.). Never used in production.
+FROM builder AS tester
+
+# PCOV: lightweight coverage driver — faster than Xdebug, no debugger overhead
+RUN apk add --no-cache linux-headers autoconf g++ make \
+    && pecl install pcov \
+    && docker-php-ext-enable pcov \
+    && apk del autoconf g++ make
+
+# Re-install with dev deps enabled
+RUN composer install --no-scripts --prefer-dist
+
+# ── Stage 3: runtime ──────────────────────────────────────────────────────────
 # Lean image: only PHP runtime + extensions + compiled application.
 # No Node, npm, git, or build toolchain.
 FROM php:8.4-fpm-alpine

@@ -26,7 +26,7 @@ test('GET aliases only returns aliases belonging to the authenticated user', fun
         ->assertOk();
 
     expect($response->json('data'))->toHaveCount(2)
-        ->each->scoped(fn ($a) => $a->{'is_owner'}->toBeTrue());
+        ->each(fn ($a) => $a->toMatchArray(['is_owner' => true]));
 });
 
 // ── GET /api/v1/aliases/{alias} ───────────────────────────────────────────────

@@ -87,7 +87,7 @@ class Inbox extends Component
     public function markRead(string $emailId, AuditLogger $auditLogger): void
     {
         $email = InboundEmail::findOrFail($emailId);
-        $this->authorize('view', $email);
+        $this->authorize('update', $email);
         $email->markAsRead();
         $auditLogger->log(AuditEvent::EmailRead, $email);
         unset($this->emails, $this->unreadCount);
@@ -99,7 +99,7 @@ class Inbox extends Component
     public function markUnread(string $emailId): void
     {
         $email = InboundEmail::findOrFail($emailId);
-        $this->authorize('view', $email);
+        $this->authorize('update', $email);
         $email->markAsUnread();
         unset($this->emails, $this->unreadCount);
     }
@@ -148,7 +148,7 @@ class Inbox extends Component
     public function markAllRead(AuditLogger $auditLogger): void
     {
         $alias = Alias::findOrFail($this->aliasId);
-        $this->authorize('view', $alias);
+        $this->authorize('update', $alias);
 
         $count = InboundEmail::where('alias_id', $this->aliasId)->unread()->count();
         InboundEmail::where('alias_id', $this->aliasId)->unread()->update(['read_at' => now()]);
