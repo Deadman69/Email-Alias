@@ -18,6 +18,10 @@ jobs:
     name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: laravel
+
     strategy:
       fail-fast: false
       matrix:
