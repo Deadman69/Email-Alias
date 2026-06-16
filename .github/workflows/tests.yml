@@ -28,7 +28,6 @@ jobs:
         php-version:
           - '8.4'
           # Run the full matrix only on pushes to default branches
-          - ${{ (github.event_name == 'push') && '8.3' || '' }}
           - ${{ (github.event_name == 'push') && '8.5' || '' }}
         exclude:
           - php-version: ''   # remove empty strings injected by the ternary above
