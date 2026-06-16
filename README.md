@@ -71,13 +71,146 @@ Then log in at `http://<APP_URL>` and go to **Admin → Settings** to configure 
 
 ---
 
+## Development
+
+No PHP, Node, or Composer needed locally — everything runs inside containers.
+
+```bash
+git clone <repo-url> email-alias && cd email-alias
+cp .env.example .env          # set APP_URL=http://localhost:8000, DB_PASSWORD=localpassword, SMTP_INTERNAL_SECRET=changeme
+
+docker compose up -d
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --seed   # includes demo data
+```
+
+| Service | URL |
+|---|---|
+| App | http://localhost:8000 |
+| PostgreSQL | localhost:5432 |
+| Reverb | localhost:8080 |
+| SMTP receiver | localhost:2525 |
+
+Demo accounts (seeded by `DemoSeeder`):
+
+| Email | Password | Role |
+|---|---|---|
+| admin@example.com | password | Super Admin |
+| dev@example.com | password | User |
+
+### Common commands
+
+```bash
+# Artisan
+docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate:fresh --seed
+docker compose exec app php artisan tinker
+
+# Tests (Pest)
+docker compose run --rm test
+docker compose run --rm test --filter=AliasService
+docker compose run --rm test --stop-on-failure
+
+# With coverage (HTML report in laravel/coverage/)
+docker compose run --rm test vendor/bin/pest --coverage-html coverage/
+
+# Code style (Pint)
+docker compose exec app vendor/bin/pint --dirty
+
+# Assets
+docker compose exec app npm run dev     # watch mode
+docker compose exec app npm run build   # one-time
+
+# Logs
+docker compose logs -f app
+docker compose logs -f smtp-server
+```
+
+### Testing email ingestion
+
+**Option A — POST directly to the internal endpoint (fastest)**
+
+Create an alias in the UI first, then:
+
+```bash
+curl -X POST http://localhost:8000/internal/inbound \
+  -H "Content-Type: application/json" \
+  -H "X-SMTP-Secret: changeme" \
+  -d '{
+    "to": ["xk3f9a2b@dev.local"],
+    "from_address": "sender@example.com",
+    "from_name": "Test Sender",
+    "subject": "Hello, this is a test",
+    "body_html": "<h1>Hello</h1>",
+    "body_text": "Hello",
+    "headers": {},
+    "size_bytes": 100
+  }'
+```
+
+**Option B — full SMTP end-to-end**
+
+```bash
+swaks --to alias@domain.com \
+      --from sender@example.com \
+      --server localhost --port 2525 \
+      --header "Subject: SMTP test"
+```
+
+> Port 2525 is non-privileged; the SMTP container maps it from port 25 internally.
+
+### API
+
+The REST API is at `/api/v1`, authenticated with Sanctum Bearer tokens. Swagger UI is at `/api/docs`.
+
+```bash
+docker compose exec app php artisan tinker
+>>> $user = \App\Models\User::first();
+>>> echo $user->createToken('dev', ['*'])->plainTextToken;
+```
+
+App-level tokens (machine-to-machine): **Admin → Settings → API Tokens**.
+
+### Project structure
+
+```
+email-alias/
+├── docker-compose.yml
+├── .env.example
+├── nginx/
+├── smtp-server/
+│   └── src/index.js            # SMTP receiver → POST /internal/inbound
+└── laravel/
+    ├── app/
+    │   ├── Http/Controllers/
+    │   │   ├── Api/V1/         # REST endpoints
+    │   │   ├── Auth/           # SSO (OAuth2, SAML)
+    │   │   └── Internal/       # InboundEmailController
+    │   ├── Jobs/               # ProcessInboundEmail, CleanupExpiredAliases, DeliverWebhook
+    │   ├── Livewire/
+    │   │   ├── Mailbox/        # Dashboard, Inbox, ViewEmail
+    │   │   ├── Admin/          # Dashboard, Users, AuditLogViewer, Settings
+    │   │   └── Settings/       # Profile, Security, Appearance, ApiTokens
+    │   ├── Models/
+    │   └── Services/           # AliasService, AuditLogger, SettingService, HtmlSanitizer
+    ├── config/emailalias.php
+    ├── database/migrations/
+    └── routes/
+        ├── web.php
+        ├── api.php
+        ├── internal.php        # SMTP webhook (internal network only)
+        └── settings.php
+```
+
+---
+
 ## Docs
 
 | File | Content |
 |---|---|
 | [README_DEPLOY.md](README_DEPLOY.md) | Production deployment (env, DNS, launch, scaling) |
-| [README_DEV.md](README_DEV.md) | Local setup, project structure, dev workflow |
 | [README_SECURITY.md](README_SECURITY.md) | Security model: roles, encryption, audit |
+| [TODO.md](TODO.md) | Feature checklist and known remaining work |
 
 ---
 

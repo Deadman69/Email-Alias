@@ -1,13 +1,14 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/livewire-starter-kit",
+    "name": "emailalias/emailalias",
     "type": "project",
-    "description": "The official Laravel starter kit for Livewire.",
+    "description": "Self-hosted temporary email platform for developers.",
     "keywords": [
-        "laravel",
-        "framework"
+        "email",
+        "alias",
+        "self-hosted"
     ],
-    "license": "MIT",
+    "license": "AGPL-3.0-or-later",
     "require": {
         "php": "^8.3",
         "aacotroneo/laravel-saml2": "^2.1",

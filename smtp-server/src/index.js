@@ -15,6 +15,7 @@ const HEALTH_PORT          = parseInt(process.env.HEALTH_PORT || '8025', 10);
 const MAX_CLIENTS          = parseInt(process.env.MAX_CLIENTS || '100', 10);
 const MAX_MESSAGE_SIZE     = 25 * 1024 * 1024;  // 25 MB SMTP-level cap
 const MAX_ATTACHMENT_SIZE  =  5 * 1024 * 1024;  // 5 MB per attachment in payload
+const MAX_RCPT_PER_MESSAGE = 50;                 // anti-amplification: reject excess RCPT TO
 
 // Domain refresh interval in ms (default: 5 minutes).
 const DOMAIN_REFRESH_MS = parseInt(process.env.DOMAIN_REFRESH_MS || String(5 * 60 * 1000), 10);
@@ -40,6 +41,21 @@ if (!SMTP_INTERNAL_SECRET && process.env.NODE_ENV === 'production') {
 function log(level, message, extra = {}) {
   process.stdout.write(JSON.stringify({ level, ts: new Date().toISOString(), message, ...extra }) + '\n');
 }
+
+// ── Global error handlers ─────────────────────────────────────────────────────
+
+// Catch promise rejections that escaped their try/catch. Log and continue —
+// the rejection is likely isolated and the server can keep running.
+process.on('unhandledRejection', (reason) => {
+  log('error', 'unhandled_rejection', { err: String(reason?.message ?? reason) });
+});
+
+// Catch synchronous exceptions that escaped all handlers. The process is in an
+// unknown state so we exit immediately and let the container restart policy take over.
+process.on('uncaughtException', (err) => {
+  log('error', 'uncaught_exception', { err: err.message, stack: err.stack });
+  process.exit(1);
+});
 
 // ── Metrics counters ──────────────────────────────────────────────────────────
 
@@ -126,8 +142,10 @@ function serializeAttachments(attachments = []) {
 
 /**
  * Forward a parsed email to Laravel with up to 3 attempts and exponential backoff.
- * On permanent failure the email is dropped — the SMTP client has already been
- * told "250 OK" so there is nothing to bounce back.
+ *
+ * Returns true on success, false on permanent failure (all attempts exhausted).
+ * The caller is responsible for translating false into a 451 SMTP temp-fail so
+ * the sending MTA retries delivery rather than silently losing the message.
  */
 async function forwardToLaravel(parsed, rawBuffer, recipients) {
   const attachments = serializeAttachments(parsed.attachments ?? []);
@@ -164,12 +182,11 @@ async function forwardToLaravel(parsed, rawBuffer, recipients) {
         counters.emails_forwarded_total++;
         log('info', 'forwarded', {
           to:          recipients,
-          subject:     payload.subject,
           size:        payload.size_bytes,
           attachments: attachments.length,
           attempt:     i,
         });
-        return;
+        return true;
       }
 
       log('warn', 'laravel_non_ok', { status: res.status, attempt: i });
@@ -184,6 +201,7 @@ async function forwardToLaravel(parsed, rawBuffer, recipients) {
 
   counters.emails_failed_total++;
   log('error', 'forward_failed_all_attempts', { to: recipients });
+  return false;
 }
 
 // ── SMTP Server ───────────────────────────────────────────────────────────────
@@ -193,8 +211,23 @@ const server = new SMTPServer({
   disabledCommands: ['AUTH'],
   maxMessageSize:   MAX_MESSAGE_SIZE,
   maxClients:       MAX_CLIENTS,
+  socketTimeout:    60_000,  // close idle/slow-loris connections after 60 s
+  closeTimeout:     30_000,  // grace period for in-flight connections on shutdown
 
   onRcptTo(address, session, callback) {
+    // Reject when the per-message recipient limit is reached (anti-amplification).
+    if (session.envelope.rcptTo.length >= MAX_RCPT_PER_MESSAGE) {
+      counters.rcpt_rejected_total++;
+      log('warn', 'rcpt_limit_reached', {
+        address:  address.address,
+        count:    session.envelope.rcptTo.length,
+        remoteIp: session.remoteAddress,
+      });
+      const err = new Error('Too many recipients');
+      err.responseCode = 452;
+      return callback(err);
+    }
+
     const domain = address.address.split('@')[1]?.toLowerCase();
 
     if (!domain || allowedDomains.size === 0 || !allowedDomains.has(domain)) {
@@ -223,12 +256,23 @@ const server = new SMTPServer({
 
       counters.emails_received_total++;
 
+      // Parse failure: the email is malformed and cannot be retried — accept with 250
+      // so the sender is not notified (avoids backscatter on spam/malformed messages).
+      let parsed;
       try {
-        const parsed = await simpleParser(rawBuffer);
-        await forwardToLaravel(parsed, rawBuffer, recipients);
+        parsed = await simpleParser(rawBuffer);
       } catch (err) {
-        // Accept the message anyway — never bounce due to our own parse/forward error.
-        log('error', 'parse_or_forward_error', { err: err.message });
+        log('error', 'parse_error', { err: err.message });
+        return callback();
+      }
+
+      // Forward failure: Laravel is temporarily unreachable — return a 451 temp-fail
+      // so the sending MTA queues the message and retries instead of silently losing it.
+      const ok = await forwardToLaravel(parsed, rawBuffer, recipients);
+      if (!ok) {
+        const err = new Error('Temporary local error, please retry later');
+        err.responseCode = 451;
+        return callback(err);
       }
 
       callback();

@@ -6,13 +6,11 @@ on:
       - develop
       - main
       - master
-      - workos
   pull_request:
     branches:
       - develop
       - main
       - master
-      - workos
 
 permissions:
   contents: write

@@ -160,4 +160,4 @@ Logs are **append-only** — there is no delete or edit action in the applicatio
 
 ## Reporting a vulnerability
 
-If you discover a security vulnerability, please report it privately to the maintainers before disclosing it publicly. Do not open a GitHub issue for security vulnerabilities.
+See [SECURITY.md](SECURITY.md) for the full disclosure policy, supported versions, and response SLA. Do not open a public GitHub issue for security vulnerabilities.

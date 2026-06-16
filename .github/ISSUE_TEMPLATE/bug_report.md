@@ -1,0 +1,35 @@
+---
+name: Bug report
+about: Something isn't working as expected
+labels: bug
+---
+
+## Describe the bug
+
+A clear and concise description of what the bug is.
+
+## Steps to reproduce
+
+1. Go to '...'
+2. Click on '...'
+3. See error
+
+## Expected behaviour
+
+What you expected to happen.
+
+## Actual behaviour
+
+What actually happens. Include error messages, screenshots, or log output if relevant.
+
+## Environment
+
+- EmailAlias version / commit:
+- PHP version:
+- Database:
+- Browser (if UI issue):
+- Docker / Podman version:
+
+## Additional context
+
+Any other context (config, logs, etc.).
