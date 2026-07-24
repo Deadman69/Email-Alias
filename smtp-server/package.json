@@ -9,8 +9,8 @@
     "dev": "node --watch src/index.js"
   },
   "dependencies": {
-    "smtp-server": "^3.19.0",
-    "mailparser": "^3.9.10",
+    "smtp-server": "^3.19.2",
+    "mailparser": "^3.9.14",
     "node-fetch": "^3.3.2"
   }
 }
