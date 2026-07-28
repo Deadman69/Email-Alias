@@ -57,15 +57,16 @@ class CreateAdminCommand extends Command
                 }
             }
 
+            $previousRole = $existingUser->role;
             $existingUser->update(['role' => $targetRole]);
             $this->info("User [{$email}] promoted to {$targetRole->label()}.");
 
             AuditLog::create([
                 'user_id'        => $existingUser->id,
                 'event'          => AuditEvent::RoleChanged,
-                'auditable_type' => $existingUser,
-                'auditable_id'   => $existingUser?->getKey(),
-                'metadata'       => ['method' => 'cli', 'before' => $existingUser->role, 'after' => $targetRole->value],
+                'auditable_type' => $existingUser->getMorphClass(),
+                'auditable_id'   => $existingUser->getKey(),
+                'metadata'       => ['method' => 'cli', 'before' => $previousRole->value, 'after' => $targetRole->value],
                 'ip_address'     => null,
                 'user_agent'     => null,
             ]);
@@ -89,8 +90,8 @@ class CreateAdminCommand extends Command
         AuditLog::create([
             'user_id'        => $user->id,
             'event'          => AuditEvent::UserRegister,
-            'auditable_type' => $user,
-            'auditable_id'   => $user?->getKey(),
+            'auditable_type' => $user->getMorphClass(),
+            'auditable_id'   => $user->getKey(),
             'metadata'       => ['method' => 'cli', 'role' => $user->role],
             'ip_address'     => null,
             'user_agent'     => null,
