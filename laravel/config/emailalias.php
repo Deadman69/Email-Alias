@@ -181,6 +181,12 @@ return [
     'metrics_bearer_token' => env('METRICS_BEARER_TOKEN', ''),
 
     /*
+     * Webhook that every new AuditLog entry is forwarded to (HMAC-signed), if set.
+     */
+    'audit_webhook_url'    => env('AUDIT_WEBHOOK_URL', ''),
+    'audit_webhook_secret' => env('AUDIT_WEBHOOK_SECRET', ''),
+
+    /*
      * NOTE: All values above can be overridden at runtime by a Super Admin
      * via the Settings panel (/admin/settings). Overrides are stored in the
      * `settings` database table and applied on every request by the

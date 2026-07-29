@@ -56,6 +56,8 @@ class Dashboard extends Component
     #[Validate('required|email|max:255')]
     public string $shareEmail = '';
 
+    public bool $shareEditable = false;
+
     // ── Delete alias confirmation ─────────────────────────────────────────────────
 
     public bool $showConfirmDeleteAlias = false;
@@ -331,6 +333,7 @@ class Dashboard extends Component
 
         $this->sharingAliasId = $aliasId;
         $this->shareEmail = '';
+        $this->shareEditable = false;
         $this->resetValidation('shareEmail');
         $this->showShareModal = true;
 
@@ -371,17 +374,41 @@ class Dashboard extends Component
             'alias_id'      => $alias->id,
             'user_id'       => $invitee->id,
             'shared_by_id'  => Auth::id(),
+            'editable'      => $this->shareEditable,
         ]);
 
         $auditLogger->log(AuditEvent::AliasShared, $alias, [
             'shared_with' => $invitee->email,
+            'editable'    => $this->shareEditable,
         ]);
 
         $this->shareEmail = '';
+        $this->shareEditable = false;
         $this->resetValidation('shareEmail');
         unset($this->sharingAlias, $this->aliases);
 
         Flux::toast(variant: 'success', text: __('Alias shared with :email.', ['email' => $invitee->email]));
+    }
+
+    /**
+     * Toggle whether a shared user can edit (read/delete emails, rename…) the alias.
+     */
+    public function toggleShareEditable(string $shareId, AuditLogger $auditLogger): void
+    {
+        $share = AliasShare::findOrFail($shareId);
+        $alias = Alias::findOrFail($share->alias_id);
+        $this->authorize('share', $alias);
+
+        $share->editable = ! $share->editable;
+        $share->save();
+
+        $auditLogger->log(AuditEvent::AliasShared, $alias, [
+            'shared_with' => $share->user->email ?? '?',
+            'editable'    => $share->editable,
+        ]);
+
+        unset($this->sharingAlias);
+        Flux::toast(variant: 'success', text: __('Share permissions updated.'));
     }
 
     /**

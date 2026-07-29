@@ -72,6 +72,15 @@
             >
                 {{ __('API Tokens') }}
             </flux:button>
+
+            <flux:button
+                type="button"
+                wire:click="$set('activeTab', 'audit-logs')"
+                :variant="$activeTab === 'audit-logs' ? 'primary' : 'ghost'"
+                size="sm"
+            >
+                {{ __('Audit Logs') }}
+            </flux:button>
         </div>
 
         {{-- General --}}
@@ -287,6 +296,13 @@
                 </div>
 
                 <div @class(['space-y-4', 'rounded-xl', 'border', 'border-zinc-200', 'p-4', 'dark:border-zinc-700', 'opacity-40 pointer-events-none' => ! $sso_enabled])>
+                    @unless ($sso_enabled)
+                        <flux:callout variant="warning" icon="exclamation-triangle">
+                            <flux:callout.heading>{{ __('This authentication method is not active') }}</flux:callout.heading>
+                            <flux:callout.text>{{ __('SSO is currently disabled, so this configuration is saved but not used for login. Enable SSO above to activate it.') }}</flux:callout.text>
+                        </flux:callout>
+                    @endunless
+
                     <flux:field>
                         <flux:label>{{ __('SSO provider') }}</flux:label>
                         <flux:select wire:model.live="sso_provider" class="max-w-xs">
@@ -831,8 +847,74 @@
             </div>
         @endif
 
+        {{-- Audit Logs --}}
+        @if ($activeTab === 'audit-logs')
+            <div class="space-y-6 pt-4">
+
+                <flux:callout variant="info" icon="information-circle">
+                    <flux:callout.heading>{{ __('Audit log webhook') }}</flux:callout.heading>
+                    <flux:callout.text>{{ __('Every new audit log entry is forwarded to this URL as a signed HTTP request, just like the per-alias email webhooks.') }}</flux:callout.text>
+                </flux:callout>
+
+                <form wire:submit.prevent="saveAuditWebhook" class="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                    <flux:field>
+                        <flux:label>{{ __('Webhook URL') }}</flux:label>
+                        <flux:input wire:model="audit_webhook_url" placeholder="https://example.com/webhooks/audit-logs" autocomplete="off" />
+                        <flux:description>{{ __('Leave blank to disable audit log webhook delivery.') }}</flux:description>
+                        <flux:error name="audit_webhook_url" />
+                    </flux:field>
+
+                    @if ($auditWebhookSecret)
+                        <flux:field>
+                            <flux:label>{{ __('Signing secret') }}</flux:label>
+                            <div class="flex items-center gap-2">
+                                <code class="flex-1 truncate rounded bg-zinc-100 px-2 py-1 font-mono text-xs dark:bg-zinc-800">
+                                    {{ $auditWebhookSecret }}
+                                </code>
+                                {{-- Copy --}}
+                                <flux:tooltip content="{{ __('Copy') }}">
+                                    <button
+                                        type="button"
+                                        x-data
+                                        x-on:click="navigator.clipboard.writeText('{{ $auditWebhookSecret }}')"
+                                        class="shrink-0 text-zinc-400 hover:text-zinc-600"
+                                    >
+                                        <flux:icon name="clipboard" class="size-4" />
+                                    </button>
+                                </flux:tooltip>
+                                {{-- Rotate (explicit, confirmed via FluxUI modal) --}}
+                                <flux:tooltip content="{{ __('Rotate secret') }}">
+                                    <flux:button type="button" size="xs" variant="ghost" icon="arrow-path" wire:click="requestRotateAuditWebhookSecret" />
+                                </flux:tooltip>
+                            </div>
+                            <flux:description>{{ __('Deliveries are signed with HMAC-SHA256 in the X-Webhook-Signature header.') }}</flux:description>
+                        </flux:field>
+                    @endif
+
+                    <div class="flex justify-end">
+                        <flux:button type="submit" variant="primary" size="sm">
+                            {{ __('Save webhook') }}
+                        </flux:button>
+                    </div>
+                </form>
+
+                {{-- Rotate confirmation modal --}}
+                <flux:modal wire:model="showConfirmRotateAuditWebhookSecret" class="max-w-sm">
+                    <div class="space-y-4">
+                        <flux:heading>{{ __('Rotate webhook secret?') }}</flux:heading>
+                        <flux:text>{{ __('Update your receiver with the new secret before the next delivery, or signature verification will fail.') }}</flux:text>
+                        <div class="flex justify-end gap-3">
+                            <flux:button variant="ghost" wire:click="$set('showConfirmRotateAuditWebhookSecret', false)">{{ __('Cancel') }}</flux:button>
+                            <flux:button variant="danger" wire:click="rotateAuditWebhookSecret">{{ __('Rotate') }}</flux:button>
+                        </div>
+                    </div>
+                </flux:modal>
+
+            </div>
+        @endif
+
         {{-- Save button (hidden on tabs that manage their own actions) --}}
-        @if (! in_array($activeTab, ['domains', 'app-tokens']))
+        @if (! in_array($activeTab, ['domains', 'app-tokens', 'audit-logs']))
         <div class="flex justify-end pt-2">
             <flux:button type="button" wire:click="save" variant="primary">
                 {{ __('Save settings') }}

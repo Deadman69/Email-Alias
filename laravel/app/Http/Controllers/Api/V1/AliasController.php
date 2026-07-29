@@ -55,7 +55,7 @@ class AliasController extends BaseApiController
     )]
     public function index(Request $request): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::AliasesRead->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::AliasesRead->value), 403);
         $data = $request->validate(PaginationMeta::$validationRules);
 
         $userId = $request->user()->id;
@@ -120,7 +120,7 @@ class AliasController extends BaseApiController
     )]
     public function store(Request $request, AliasService $aliasService, AuditLogger $auditLogger): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::AliasesCreate->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::AliasesCreate->value), 403);
 
         $data = $request->validate([
             'type' => ['required', 'string', new Enum(AliasType::class)],
@@ -180,7 +180,7 @@ class AliasController extends BaseApiController
     )]
     public function show(Request $request, Alias $alias): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::AliasesRead->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::AliasesRead->value), 403);
         $this->authorize('view', $alias);
         $this->checkTokenAliasAccess($request, $alias);
 
@@ -203,7 +203,7 @@ class AliasController extends BaseApiController
     )]
     public function destroy(Request $request, Alias $alias, AliasService $aliasService, AuditLogger $auditLogger): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::AliasesDelete->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::AliasesDelete->value), 403);
         $this->authorize('delete', $alias);
         $this->checkTokenAliasAccess($request, $alias);
 

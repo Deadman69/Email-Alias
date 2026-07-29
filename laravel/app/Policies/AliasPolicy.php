@@ -53,20 +53,21 @@ class AliasPolicy
     }
 
     /**
-     * Only the alias owner can update it (rename, extend…).
-     * Shared users are read-only.
+     * The alias owner, or a user it was shared with editable=true, can update it.
      */
     public function update(User $user, Alias $alias): bool
     {
-        return $alias->user_id === $user->id;
+        return $alias->user_id === $user->id
+            || $alias->shares()->where('user_id', $user->id)->where('editable', true)->exists();
     }
 
     /**
-     * Only the alias owner can delete it.
+     * The alias owner, or a user it was shared with editable=true, can delete it.
      */
     public function delete(User $user, Alias $alias): bool
     {
-        return $alias->user_id === $user->id;
+        return $alias->user_id === $user->id
+            || $alias->shares()->where('user_id', $user->id)->where('editable', true)->exists();
     }
 
     /**

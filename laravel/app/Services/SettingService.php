@@ -32,6 +32,7 @@ class SettingService
         'oidc_client_secret',
         'scim_bearer_token',
         'saml_sp_private_key',
+        'audit_webhook_secret',
     ];
 
     /**
@@ -82,6 +83,9 @@ class SettingService
         'saml_attr_name'                   => 'emailalias.saml_attr_name',
         // App logo
         'app_logo_path'                    => 'emailalias.app_logo_path',
+        // Audit log webhook
+        'audit_webhook_url'                => 'emailalias.audit_webhook_url',
+        'audit_webhook_secret'             => 'emailalias.audit_webhook_secret',
     ];
 
     /**
@@ -138,6 +142,10 @@ class SettingService
         'admin_can_read_emails'           => ['group' => 'email',    'cast' => 'bool',    'default' => false],
         'alias_max_mailbox_size_bytes'    => ['group' => 'email',    'cast' => 'int',     'default' => 0],
         'alias_max_user_storage_bytes'    => ['group' => 'email',    'cast' => 'int',     'default' => 0],
+
+        // ── audit ────────────────────────────────────────────────────────────────
+        'audit_webhook_url'               => ['group' => 'audit',    'cast' => 'string',  'default' => ''],
+        'audit_webhook_secret'            => ['group' => 'audit',    'cast' => 'string',  'default' => ''],
     ];
 
     // ── Public API ────────────────────────────────────────────────────────────────

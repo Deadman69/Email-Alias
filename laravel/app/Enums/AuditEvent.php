@@ -32,6 +32,7 @@ enum AuditEvent: string
     case AdminViewedEmail  = 'admin.email.viewed';
     case AdminUserUpdated  = 'admin.user.updated';
     case AdminUserDeleted  = 'admin.user.deleted';
+    case AdminPasswordResetSent = 'admin.user.password_reset_sent';
 
     case ApiTokenCreated = 'api.token.created';
     case ApiTokenRevoked = 'api.token.revoked';
@@ -99,6 +100,7 @@ enum AuditEvent: string
             self::AdminViewedEmail   => __('Admin: email viewed'),
             self::AdminUserUpdated   => __('Admin: user updated'),
             self::AdminUserDeleted   => __('Admin: user deleted'),
+            self::AdminPasswordResetSent => __('Admin: password reset link sent'),
             self::ApiTokenCreated    => __('API token created'),
             self::ApiTokenRevoked    => __('API token revoked'),
             self::ApiAliasCreated    => __('API: alias created'),

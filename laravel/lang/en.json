@@ -532,5 +532,39 @@
     "Webhook failed": "Webhook failed",
 
     "Authentication method not tested": "Authentication method not tested",
-    "This SSO method has not been thoroughly tested. We recommend using OIDC.": "This SSO method has not been thoroughly tested. We recommend using OIDC."
+    "This SSO method has not been thoroughly tested. We recommend using OIDC.": "This SSO method has not been thoroughly tested. We recommend using OIDC.",
+
+    "Auth Type": "Auth Type",
+    "SSO": "SSO",
+    "Email/Password": "Email/Password",
+    "Reset password": "Reset password",
+    "Send password reset link?": "Send password reset link?",
+    "The user will receive an email with a link to set a new password.": "The user will receive an email with a link to set a new password.",
+    "Send link": "Send link",
+    "This user authenticates via SSO and has no local password.": "This user authenticates via SSO and has no local password.",
+    "Password reset link sent.": "Password reset link sent.",
+
+    "This authentication method is not active": "This authentication method is not active",
+    "SSO is currently disabled, so this configuration is saved but not used for login. Enable SSO above to activate it.": "SSO is currently disabled, so this configuration is saved but not used for login. Enable SSO above to activate it.",
+
+    "Allow edits (read, delete emails…) like the owner": "Allow edits (read, delete emails…) like the owner",
+    "Allow this user to edit (read, delete emails…) like the owner": "Allow this user to edit (read, delete emails…) like the owner",
+    "Editable": "Editable",
+    "Share permissions updated.": "Share permissions updated.",
+    "Shared users can view and read emails by default. Enable \"Editable\" to also let them delete emails and modify the alias.": "Shared users can view and read emails by default. Enable \"Editable\" to also let them delete emails and modify the alias.",
+
+    "Audit Logs": "Audit Logs",
+    "Audit log webhook": "Audit log webhook",
+    "Every new audit log entry is forwarded to this URL as a signed HTTP request, just like the per-alias email webhooks.": "Every new audit log entry is forwarded to this URL as a signed HTTP request, just like the per-alias email webhooks.",
+    "Webhook URL": "Webhook URL",
+    "Leave blank to disable audit log webhook delivery.": "Leave blank to disable audit log webhook delivery.",
+    "Signing secret is set. Deliveries are signed with HMAC-SHA256 in the X-Webhook-Signature header.": "Signing secret is set. Deliveries are signed with HMAC-SHA256 in the X-Webhook-Signature header.",
+    "Rotate secret": "Rotate secret",
+    "Save webhook": "Save webhook",
+    "Rotate webhook secret?": "Rotate webhook secret?",
+    "Update your receiver with the new secret before the next delivery, or signature verification will fail.": "Update your receiver with the new secret before the next delivery, or signature verification will fail.",
+    "Rotate": "Rotate",
+    "Audit webhook saved.": "Audit webhook saved.",
+    "Audit webhook removed.": "Audit webhook removed.",
+    "Audit webhook secret rotated. Update your receiver before the next delivery.": "Audit webhook secret rotated. Update your receiver before the next delivery."
 }

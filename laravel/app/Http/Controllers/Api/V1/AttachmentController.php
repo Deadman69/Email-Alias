@@ -39,7 +39,7 @@ class AttachmentController extends BaseApiController
     )]
     public function index(Request $request, InboundEmail $email): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::AttachmentsRead->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::AttachmentsRead->value), 403);
         $this->authorize('view', $email);
 
         // Token alias restriction check via the parent alias
@@ -69,7 +69,7 @@ class AttachmentController extends BaseApiController
     )]
     public function download(Request $request, Attachment $attachment): StreamedResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::AttachmentsRead->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::AttachmentsRead->value), 403);
 
         $email = $attachment->email()->with('alias')->firstOrFail();
         $this->authorize('view', $email);

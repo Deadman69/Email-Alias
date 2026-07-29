@@ -14,6 +14,7 @@ use App\Services\AliasService;
 use App\Services\AuditLogger;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -39,6 +40,13 @@ class Users extends Component
 
     #[Locked]
     public string $pendingDeleteUserId = '';
+
+    // ── Password reset confirmation ───────────────────────────────────────────────
+
+    public bool $showConfirmResetPassword = false;
+
+    #[Locked]
+    public string $pendingResetPasswordUserId = '';
 
     // ── Create alias for user ─────────────────────────────────────────────────────
 
@@ -311,6 +319,48 @@ class Users extends Component
                 $this->addError($field, $messages[0]);
             }
         }
+    }
+
+    // ── Password reset ────────────────────────────────────────────────────────────
+
+    /**
+     * Open the confirmation modal before sending a password reset link.
+     */
+    public function requestResetPassword(string $userId): void
+    {
+        $this->pendingResetPasswordUserId = $userId;
+        $this->showConfirmResetPassword = true;
+    }
+
+    /**
+     * Send a password reset link to a non-SSO user. SSO users authenticate
+     * through their identity provider and have no local password to reset.
+     */
+    public function resetPassword(AuditLogger $auditLogger): void
+    {
+        if (! $this->pendingResetPasswordUserId) {
+            return;
+        }
+
+        $user = User::findOrFail($this->pendingResetPasswordUserId);
+
+        $this->pendingResetPasswordUserId = '';
+        $this->showConfirmResetPassword = false;
+
+        if ($user->isSSO()) {
+            Flux::toast(variant: 'danger', text: __('This user authenticates via SSO and has no local password.'));
+
+            return;
+        }
+
+        Password::sendResetLink(['email' => $user->email]);
+
+        $auditLogger->log(AuditEvent::AdminPasswordResetSent, null, [
+            'user_id' => $user->id,
+            'actor'   => Auth::user()->email,
+        ]);
+
+        Flux::toast(variant: 'success', text: __('Password reset link sent.'));
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────────

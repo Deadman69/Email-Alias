@@ -67,7 +67,7 @@ class EmailController extends BaseApiController
     )]
     public function index(Request $request, Alias $alias): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::EmailsRead->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::EmailsRead->value), 403);
         $this->authorize('view', $alias);
         $this->checkTokenAliasAccess($request, $alias);
 
@@ -145,7 +145,7 @@ class EmailController extends BaseApiController
     )]
     public function show(Request $request, Alias $alias, InboundEmail $email, AuditLogger $auditLogger): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::EmailsRead->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::EmailsRead->value), 403);
         $this->authorize('view', $alias);
         $this->checkTokenAliasAccess($request, $alias);
         $this->authorize('view', $email);
@@ -175,7 +175,7 @@ class EmailController extends BaseApiController
     )]
     public function destroy(Request $request, Alias $alias, InboundEmail $email, AuditLogger $auditLogger): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::EmailsDelete->value), 403);
+        abort_unless($request->user()?->tokenCan(TokenAbility::EmailsDelete->value), 403);
         $this->authorize('view', $alias);
         $this->checkTokenAliasAccess($request, $alias);
         $this->authorize('delete', $email);

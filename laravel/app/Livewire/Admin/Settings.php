@@ -122,6 +122,15 @@ class Settings extends Component
     #[Locked]
     public string $pendingRevokeTokenId = '';
 
+    // ── Audit log webhook ─────────────────────────────────────────────────────────
+
+    #[Validate('nullable|url|max:500')]
+    public string $audit_webhook_url = '';
+
+    public string $auditWebhookSecret = '';
+
+    public bool $showConfirmRotateAuditWebhookSecret = false;
+
     // ── Active tab ────────────────────────────────────────────────────────────────
     public string $activeTab = 'general';
     public int $maxFileUploadSizeLogoMb = 8; 
@@ -178,6 +187,9 @@ class Settings extends Component
         $this->cleanup_retention_days       = (int) $settings->get('cleanup_retention_days', 7);
         $this->audit_log_retention_days     = (int) $settings->get('audit_log_retention_days', 365);
         $this->admin_can_read_emails        = (bool) $settings->get('admin_can_read_emails', false);
+
+        $this->audit_webhook_url    = (string) $settings->get('audit_webhook_url', '');
+        $this->auditWebhookSecret   = (string) $settings->get('audit_webhook_secret', '');
     }
 
     // ── Computed ──────────────────────────────────────────────────────────────────
@@ -596,6 +608,58 @@ class Settings extends Component
         unset($this->appTokens);
 
         Flux::toast(variant: 'success', text: __('Token revoked.'));
+    }
+
+    // ── Audit log webhook actions ─────────────────────────────────────────────────
+
+    /**
+     * Save or clear the audit webhook URL.
+     * A secret is generated automatically the first time a URL is set; the
+     * existing secret is preserved on subsequent URL edits.
+     */
+    public function saveAuditWebhook(SettingService $settings, AuditLogger $auditLogger): void
+    {
+        $this->validateOnly('audit_webhook_url');
+
+        $url = $this->audit_webhook_url ?: null;
+
+        if ($url && ! $this->auditWebhookSecret) {
+            $this->auditWebhookSecret = \Illuminate\Support\Str::random(40);
+            $settings->set('audit_webhook_secret', $this->auditWebhookSecret);
+        }
+
+        if (! $url) {
+            $settings->set('audit_webhook_secret', '');
+            $this->auditWebhookSecret = '';
+        }
+
+        $settings->set('audit_webhook_url', (string) $url);
+
+        $auditLogger->log(AuditEvent::SettingsSaved, null, [
+            'actor'   => Auth::user()->email,
+            'changed' => ['audit_webhook_url' => ['to' => $url]],
+        ]);
+
+        Flux::toast(variant: 'success', text: $url ? __('Audit webhook saved.') : __('Audit webhook removed.'));
+    }
+
+    public function requestRotateAuditWebhookSecret(): void
+    {
+        $this->showConfirmRotateAuditWebhookSecret = true;
+    }
+
+    public function rotateAuditWebhookSecret(SettingService $settings, AuditLogger $auditLogger): void
+    {
+        $this->auditWebhookSecret = \Illuminate\Support\Str::random(40);
+        $settings->set('audit_webhook_secret', $this->auditWebhookSecret);
+        $this->showConfirmRotateAuditWebhookSecret = false;
+
+        $auditLogger->log(AuditEvent::SettingsSaved, null, [
+            'actor'   => Auth::user()->email,
+            'changed' => ['audit_webhook_secret' => '[secret changed]'],
+        ]);
+
+        Flux::toast(variant: 'warning', text: __('Audit webhook secret rotated. Update your receiver before the next delivery.'));
     }
 
     public function checkForUpdates(VersionChecker $checker): void

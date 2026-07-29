@@ -61,12 +61,12 @@ class AuditLogController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        abort_unless($request->user()->tokenCan(TokenAbility::AdminLogs->value), 403);
+        $this->authorizeAdminAbility($request, TokenAbility::AdminLogs->value);
 
         // Validate event against the known enum values to prevent free-form string injection.
         $validEvents = array_column(AuditEvent::cases(), 'value');
 
-        $request->validate([
+        $data = $request->validate([
             ...PaginationMeta::$validationRules,
             'from'    => 'nullable|date',
             'to'      => 'nullable|date',

@@ -265,16 +265,19 @@
 - [x] Most important : vérifier que tous les readme sont à jour avec les vraies fonctionnalités
     - [x] Documentation : faire un readme avec toutes les fonctionnalités disponible (se servir depuis ce fichier todo)
 - [x] Consistency : use the enums available instead of the hard coded variables everywhere for everything that is duplicated
-- [ ] Dans le menu super-admin de settings, ajouter une option pour envoyer automatiquement les AuditLogs vers un webhook (et pouvoir les signer, comme pour les mailbox)
+- [x] Dans le menu super-admin de settings, ajouter une option pour envoyer automatiquement les AuditLogs vers un webhook (et pouvoir les signer, comme pour les mailbox)
 - [ ] Ajouter les CRUD complets pour les différentes ressources
     - [ ] Alias : update & extend duration
     - [ ] Admin : CRUD
-- [ ] Faire en sorte que le token admin de plateforme (généré par un super-admin dans les settings) puisse effectuer toutes les actions comme un token classique
+- [x] Faire en sorte que le token admin de plateforme (généré par un super-admin dans les settings) puisse effectuer toutes les actions comme un token classique
 
 - [ ] Tester authentification :
     - [ ] Azure
     - [ ] SAML
-- [ ] Ajouter message comme quoi cette méthode d'auth n'est pas configurée pour les méthodes SSO si ce n'est pas la méthode active.
+- [x] Ajouter message comme quoi cette méthode d'auth n'est pas configurée pour les méthodes SSO si ce n'est pas la méthode active.
 
-- [ ] Make shared alias to other users editable
+- [x] Make shared alias to other users editable
     - By default they are read-only, but there must be an option to allow the other user to edit it like the owner (read, delete emails...)
+
+
+- [ ] Full end-to-end tests and not only Laravel

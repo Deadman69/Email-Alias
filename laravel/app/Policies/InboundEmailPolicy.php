@@ -46,8 +46,8 @@ class InboundEmailPolicy
     }
 
     /**
-     * Only the alias owner can mutate (mark read/unread) an email.
-     * Shared users have read-only access.
+     * The alias owner, or a user it was shared with editable=true, can mutate
+     * (mark read/unread) an email. Other shared users have read-only access.
      */
     public function update(User $user, InboundEmail $email): bool
     {
@@ -57,12 +57,13 @@ class InboundEmailPolicy
             return false;
         }
 
-        return $alias->user_id === $user->id;
+        return $alias->user_id === $user->id
+            || $alias->shares()->where('user_id', $user->id)->where('editable', true)->exists();
     }
 
     /**
-     * Only the alias owner can delete emails.
-     * Shared users have read-only access.
+     * The alias owner, or a user it was shared with editable=true, can delete
+     * emails. Other shared users have read-only access.
      */
     public function delete(User $user, InboundEmail $email): bool
     {
@@ -72,6 +73,7 @@ class InboundEmailPolicy
             return false;
         }
 
-        return $alias->user_id === $user->id;
+        return $alias->user_id === $user->id
+            || $alias->shares()->where('user_id', $user->id)->where('editable', true)->exists();
     }
 }

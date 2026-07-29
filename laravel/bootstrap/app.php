@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\BootstrapSettings;
 use App\Http\Middleware\EnsureAppTokenAuth;
+use App\Http\Middleware\EnsureApiTokenOrSanctum;
 use App\Http\Middleware\EnsureMetricsAccess;
 use App\Http\Middleware\EnsureHealthCheckAccess;
 use App\Http\Middleware\EnsureInternalRequest;
@@ -53,6 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'scim.auth'      => EnsureScimAuth::class,
             'metrics.access' => EnsureMetricsAccess::class,
             'app.token'      => EnsureAppTokenAuth::class,
+            'api.auth'       => EnsureApiTokenOrSanctum::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

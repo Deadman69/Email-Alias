@@ -425,19 +425,25 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
             </div>
 
             {{-- Invite form --}}
-            <form wire:submit="addShare" class="flex gap-2">
-                <div class="flex-1">
-                    <flux:input
-                        wire:model="shareEmail"
-                        type="email"
-                        placeholder="{{ __('colleague@company.com') }}"
-                        autocomplete="off"
-                    />
-                    <flux:error name="shareEmail" />
+            <form wire:submit="addShare" class="space-y-2">
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <flux:input
+                            wire:model="shareEmail"
+                            type="email"
+                            placeholder="{{ __('colleague@company.com') }}"
+                            autocomplete="off"
+                        />
+                        <flux:error name="shareEmail" />
+                    </div>
+                    <flux:button type="submit" variant="primary" icon="user-plus">
+                        {{ __('Invite') }}
+                    </flux:button>
                 </div>
-                <flux:button type="submit" variant="primary" icon="user-plus">
-                    {{ __('Invite') }}
-                </flux:button>
+                <label class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                    <flux:checkbox wire:model="shareEditable" />
+                    {{ __('Allow edits (read, delete emails…) like the owner') }}
+                </label>
             </form>
 
             {{-- Current shares --}}
@@ -451,15 +457,26 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
                                     <p class="text-sm font-medium">{{ $share->user->name ?? '?' }}</p>
                                     <p class="text-xs text-zinc-500">{{ $share->user->email ?? '' }}</p>
                                 </div>
-                                <flux:tooltip content="{{ __('Remove access') }}">
-                                    <flux:button
-                                        size="xs"
-                                        variant="ghost"
-                                        icon="x-mark"
-                                        wire:click="requestRemoveShare('{{ $share->id }}')"
-                                        class="text-zinc-400 hover:text-red-500"
-                                    />
-                                </flux:tooltip>
+                                <div class="flex items-center gap-3">
+                                    <flux:tooltip content="{{ __('Allow this user to edit (read, delete emails…) like the owner') }}">
+                                        <label class="flex items-center gap-1.5 text-xs text-zinc-500">
+                                            <flux:switch
+                                                wire:click="toggleShareEditable('{{ $share->id }}')"
+                                                :checked="$share->editable"
+                                            />
+                                            {{ __('Editable') }}
+                                        </label>
+                                    </flux:tooltip>
+                                    <flux:tooltip content="{{ __('Remove access') }}">
+                                        <flux:button
+                                            size="xs"
+                                            variant="ghost"
+                                            icon="x-mark"
+                                            wire:click="requestRemoveShare('{{ $share->id }}')"
+                                            class="text-zinc-400 hover:text-red-500"
+                                        />
+                                    </flux:tooltip>
+                                </div>
                             </li>
                         @endforeach
                     </ul>
@@ -471,7 +488,7 @@ app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
             @endif
 
             <flux:callout variant="info" icon="information-circle" class="text-xs">
-                <flux:callout.text>{{ __('Shared users can view and read emails but cannot delete them or modify the alias.') }}</flux:callout.text>
+                <flux:callout.text>{{ __('Shared users can view and read emails by default. Enable "Editable" to also let them delete emails and modify the alias.') }}</flux:callout.text>
             </flux:callout>
 
             <div class="flex justify-end">

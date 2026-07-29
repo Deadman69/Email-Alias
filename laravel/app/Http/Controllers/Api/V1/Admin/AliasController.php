@@ -54,8 +54,7 @@ class AliasController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        abort_unless($request->user()->isAdmin(), 403);
-        abort_unless($request->user()->tokenCan(TokenAbility::AdminAliases->value), 403);
+        $this->authorizeAdminAbility($request, TokenAbility::AdminAliases->value);
         $data = $request->validate(PaginationMeta::$validationRules);
 
         $query = Alias::with('user')
@@ -94,8 +93,7 @@ class AliasController extends Controller
     )]
     public function destroy(Request $request, Alias $alias, AliasService $aliasService): JsonResponse
     {
-        abort_unless($request->user()->isAdmin(), 403);
-        abort_unless($request->user()->tokenCan(TokenAbility::AdminAliases->value), 403);
+        $this->authorizeAdminAbility($request, TokenAbility::AdminAliases->value);
 
         // AliasService::delete() logs AdminAliasDeleted with correct actor attribution.
         // We do NOT add a second log here to avoid double-entries in the audit trail.

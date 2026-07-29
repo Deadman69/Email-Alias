@@ -19,7 +19,7 @@ Route::prefix('v1')->middleware(['throttle:api', 'health.access'])->group(functi
     });
 });
 
-Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
+Route::prefix('v1')->middleware(['api.auth', 'throttle:api'])->group(function (): void {
     Route::get('domains', [DomainsController::class, 'index'])->name('api.domains.index');
 
     // ── User API ──────────────────────────────────────────────────────────────

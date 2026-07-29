@@ -532,5 +532,39 @@
     "Webhook failed": "Échec du webhook",
 
     "Authentication method not tested": "Méthode d'authentification non testée",
-    "This SSO method has not been thoroughly tested. We recommend using OIDC.": "Cette méthode SSO n'a pas été testée. Nous recommandons l'utilisation de OIDC."
+    "This SSO method has not been thoroughly tested. We recommend using OIDC.": "Cette méthode SSO n'a pas été testée. Nous recommandons l'utilisation de OIDC.",
+
+    "Auth Type": "Type d'authentification",
+    "SSO": "SSO",
+    "Email/Password": "Email/Mot de passe",
+    "Reset password": "Réinitialiser le mot de passe",
+    "Send password reset link?": "Envoyer le lien de réinitialisation du mot de passe ?",
+    "The user will receive an email with a link to set a new password.": "L'utilisateur recevra un email avec un lien pour définir un nouveau mot de passe.",
+    "Send link": "Envoyer le lien",
+    "This user authenticates via SSO and has no local password.": "Cet utilisateur s'authentifie via SSO et n'a pas de mot de passe local.",
+    "Password reset link sent.": "Lien de réinitialisation envoyé.",
+
+    "This authentication method is not active": "Cette méthode d'authentification n'est pas active",
+    "SSO is currently disabled, so this configuration is saved but not used for login. Enable SSO above to activate it.": "Le SSO est actuellement désactivé, cette configuration est donc enregistrée mais non utilisée pour la connexion. Activez le SSO ci-dessus pour l'activer.",
+
+    "Allow edits (read, delete emails…) like the owner": "Autoriser les modifications (lecture, suppression d'emails…) comme le propriétaire",
+    "Allow this user to edit (read, delete emails…) like the owner": "Autoriser cet utilisateur à modifier (lecture, suppression d'emails…) comme le propriétaire",
+    "Editable": "Modifiable",
+    "Share permissions updated.": "Permissions de partage mises à jour.",
+    "Shared users can view and read emails by default. Enable \"Editable\" to also let them delete emails and modify the alias.": "Par défaut, les utilisateurs avec qui l'alias est partagé peuvent seulement consulter et lire les emails. Activez « Modifiable » pour leur permettre aussi de supprimer des emails et de modifier l'alias.",
+
+    "Audit Logs": "Journaux d'audit",
+    "Audit log webhook": "Webhook des journaux d'audit",
+    "Every new audit log entry is forwarded to this URL as a signed HTTP request, just like the per-alias email webhooks.": "Chaque nouvelle entrée du journal d'audit est transmise à cette URL sous forme de requête HTTP signée, comme pour les webhooks d'emails par alias.",
+    "Webhook URL": "URL du webhook",
+    "Leave blank to disable audit log webhook delivery.": "Laisser vide pour désactiver l'envoi du webhook des journaux d'audit.",
+    "Signing secret is set. Deliveries are signed with HMAC-SHA256 in the X-Webhook-Signature header.": "Un secret de signature est défini. Les envois sont signés en HMAC-SHA256 dans l'en-tête X-Webhook-Signature.",
+    "Rotate secret": "Régénérer le secret",
+    "Save webhook": "Enregistrer le webhook",
+    "Rotate webhook secret?": "Régénérer le secret du webhook ?",
+    "Update your receiver with the new secret before the next delivery, or signature verification will fail.": "Mettez à jour votre récepteur avec le nouveau secret avant le prochain envoi, sinon la vérification de signature échouera.",
+    "Rotate": "Régénérer",
+    "Audit webhook saved.": "Webhook d'audit enregistré.",
+    "Audit webhook removed.": "Webhook d'audit supprimé.",
+    "Audit webhook secret rotated. Update your receiver before the next delivery.": "Secret du webhook d'audit régénéré. Mettez à jour votre récepteur avant le prochain envoi."
 }

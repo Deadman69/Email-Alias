@@ -24,6 +24,7 @@
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('User') }}</th>
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Role') }}</th>
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Status') }}</th>
+                    <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Auth Type') }}</th>
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Aliases') }}</th>
                     <th class="px-4 py-3 text-left font-medium text-zinc-600 dark:text-zinc-400">{{ __('Joined') }}</th>
                     <th class="px-4 py-3"></th>
@@ -32,7 +33,7 @@
             <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
                 @forelse ($this->users as $user)
                     @php $isSuperAdmin = $user->role === \App\Enums\Role::SuperAdmin; @endphp
-                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                    <tr wire:key="user-{{ $user->id }}" class="hover:bg-zinc-50 dark:hover:bg-zinc-800">
 
                         {{-- Name + email --}}
                         <td class="px-4 py-3">
@@ -81,6 +82,15 @@
                             @endif
                         </td>
 
+                        {{-- Auth type --}}
+                        <td class="px-4 py-3">
+                            @if ($user->isSSO())
+                                <flux:badge color="blue" size="sm">{{ __('SSO') }}</flux:badge>
+                            @else
+                                <flux:badge color="zinc" size="sm">{{ __('Email/Password') }}</flux:badge>
+                            @endif
+                        </td>
+
                         {{-- Aliases count --}}
                         <td class="px-4 py-3 text-zinc-600 dark:text-zinc-400">
                             {{ $user->aliases_count }}
@@ -113,6 +123,16 @@
                                         />
                                     @endif
                                 </flux:tooltip>
+                                @if (! $user->isSSO())
+                                    <flux:tooltip content="{{ __('Reset password') }}">
+                                        <flux:button
+                                            size="xs"
+                                            variant="ghost"
+                                            icon="key"
+                                            wire:click="requestResetPassword('{{ $user->id }}')"
+                                        />
+                                    </flux:tooltip>
+                                @endif
                                 @if (! $isSuperAdmin)
                                     @if ($user->is_active)
                                         <flux:tooltip content="{{ __('Suspend user') }}">
@@ -150,7 +170,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-8 text-center text-zinc-400">
+                        <td colspan="7" class="px-4 py-8 text-center text-zinc-400">
                             {{ __('No users found.') }}
                         </td>
                     </tr>
@@ -264,6 +284,20 @@
                     <flux:button variant="primary" type="submit">{{ __('Create') }}</flux:button>
                 </div>
             </form>
+        </div>
+    </flux:modal>
+
+    {{-- ── Confirm: Reset password ─────────────────────────────────────────────── --}}
+    <flux:modal wire:model="showConfirmResetPassword" name="confirm-reset-password" class="max-w-sm">
+        <div class="space-y-4 p-6">
+            <flux:heading size="lg">{{ __('Send password reset link?') }}</flux:heading>
+            <flux:text class="text-sm text-zinc-500">
+                {{ __('The user will receive an email with a link to set a new password.') }}
+            </flux:text>
+            <div class="flex justify-end gap-3 pt-2">
+                <flux:button wire:click="$set('showConfirmResetPassword', false)">{{ __('Cancel') }}</flux:button>
+                <flux:button variant="primary" wire:click="resetPassword">{{ __('Send link') }}</flux:button>
+            </div>
         </div>
     </flux:modal>
 
